@@ -16,6 +16,8 @@ import {
   LogOut,
   Star,
   ClipboardList,
+  BookOpen,
+  MapPin,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -67,6 +69,22 @@ export default function Sidebar() {
       label: t("adminStats"),
       adminOnly: true,
     },
+    {
+      href: `/${locale}/admin/catalog/rewards`,
+      icon: BookOpen,
+      label: "Catálogo recompensas",
+      adminOnly: true,
+    },
+    {
+      href: `/${locale}/admin/catalog/tasks`,
+      icon: BookOpen,
+      label: "Catálogo tareas",
+      adminOnly: true,
+    },
+  ];
+
+  const settingsItems: NavItem[] = [
+    { href: `/${locale}/settings`, icon: MapPin, label: "Localización" },
   ];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -133,8 +151,23 @@ export default function Sidebar() {
         )}
       </nav>
 
+      {/* Settings */}
+      <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
+        <p className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-3 mb-1">
+          Config.
+        </p>
+        {settingsItems.map((item) => (
+          <SidebarItem
+            key={item.href}
+            item={item}
+            active={isActive(item.href)}
+            onClick={() => router.push(item.href)}
+          />
+        ))}
+      </div>
+
       {/* Logout */}
-      <div className="px-3 pb-4 border-t border-sidebar-border pt-3">
+      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border">
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"

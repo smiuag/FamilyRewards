@@ -15,7 +15,10 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k\\) for k in d.get\\('exports',{}\\).keys\\(\\)]\")",
       "Bash(node:*)",
       "Bash(xargs grep:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(rm -rf /c/proyectos/Claude/FamilyRewards/apps/web/.git)",
+      "Bash(git rm:*)",
+      "Bash(pnpm dev:*)"
     ]
   }
 }
