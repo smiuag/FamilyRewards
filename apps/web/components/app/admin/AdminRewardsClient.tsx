@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_REWARDS, MOCK_USERS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Star, CheckCircle2, XCircle, Clock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -39,16 +45,20 @@ const emptyForm = () => ({
 });
 
 export default function AdminRewardsClient() {
-  const { claims, updateClaim } = useAppStore();
-  const [rewards, setRewards] = useState(MOCK_REWARDS);
+  const { rewards: storeRewards, users, claims, updateClaim, addReward, updateReward } = useAppStore();
+  const [filterMember, setFilterMember] = useState<string>("all");
   const [mode, setMode] = useState<DialogMode>(null);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [form, setForm] = useState(emptyForm());
 
-  const pendingClaims = claims.filter((c) => c.status === "pending");
 
-  const getReward = (id: string) => rewards.find((r) => r.id === id);
-  const getUser = (id: string) => MOCK_USERS.find((u) => u.id === id);
+
+  const getReward = (id: string) => storeRewards.find((r) => r.id === id);
+  const getUser = (id: string) => users.find((u) => u.id === id);
+
+  const pendingClaims = claims.filter(
+    (c) => c.status === "pending" && (filterMember === "all" || c.userId === filterMember)
+  );
 
   const handleApprove = (claimId: string) => {
     updateClaim(claimId, "approved");
@@ -90,25 +100,10 @@ export default function AdminRewardsClient() {
     const cost = parseInt(form.pointsCost) || 100;
 
     if (mode === "edit" && editingReward) {
-      setRewards((prev) =>
-        prev.map((r) =>
-          r.id === editingReward.id
-            ? { ...r, title: form.title, description: form.description, emoji: form.emoji, pointsCost: cost }
-            : r
-        )
-      );
+      updateReward(editingReward.id, { title: form.title, description: form.description, emoji: form.emoji, pointsCost: cost });
       toast.success(`Recompensa "${form.title}" actualizada`);
     } else {
-      const newReward: Reward = {
-        id: `r-${Date.now()}`,
-        familyId: "f1",
-        title: form.title,
-        description: form.description,
-        emoji: form.emoji,
-        pointsCost: cost,
-        status: "available",
-      };
-      setRewards((prev) => [...prev, newReward]);
+      addReward({ title: form.title, description: form.description, emoji: form.emoji, pointsCost: cost, status: "available" });
       toast.success(`Recompensa "${form.title}" creada`);
     }
     closeDialog();
@@ -116,12 +111,25 @@ export default function AdminRewardsClient() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-extrabold">Gestión de Recompensas</h1>
-        <Button size="sm" onClick={openAdd}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nueva recompensa
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={filterMember} onValueChange={(v) => setFilterMember(v ?? "all")}>
+            <SelectTrigger className="w-40 h-8 text-sm">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los miembros</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.avatar} {u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={openAdd}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nueva recompensa
+          </Button>
+        </div>
       </div>
 
       {/* Pending claims */}
@@ -216,7 +224,7 @@ export default function AdminRewardsClient() {
       <div>
         <h2 className="text-base font-semibold mb-3">Catálogo de recompensas</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {rewards.map((reward) => (
+          {storeRewards.map((reward) => (
             <Card key={reward.id} className="shadow-sm">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">

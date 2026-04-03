@@ -25,19 +25,38 @@
     "yes": "Yes",
     "no": "No",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "skip": "Skip",
+    "optional": "Optional",
+    "next": "Next",
+    "finish": "Finish",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly"
   },
   "nav": {
     "dashboard": "Home",
     "tasks": "Tasks",
     "calendar": "Calendar",
     "rewards": "Rewards",
+    "members": "Family",
     "profile": "My Profile",
+    "achievements": "Achievements",
+    "challenges": "Challenges",
+    "board": "Board",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
     "admin": "Administration",
     "adminMembers": "Members",
-    "adminTasks": "Task Management",
-    "adminRewards": "Reward Management",
+    "adminTasks": "Tasks",
+    "adminRewards": "Rewards",
     "adminStats": "Statistics",
+    "adminCatalogTasks": "Task catalog",
+    "adminCatalogRewards": "Reward catalog",
+    "adminTemplates": "Templates",
+    "adminChallenges": "Family challenges",
+    "adminMultipliers": "Multipliers",
     "logout": "Log out"
   },
   "login": {
@@ -51,7 +70,7 @@
   "dashboard": {
     "greeting": "Hello, {name}!",
     "todaySummary": "Today's Summary",
-    "tasksPending": "Pending tasks",
+    "tasksPending": "Pending",
     "tasksCompleted": "Completed",
     "pointsToday": "Points today",
     "pointsTotal": "Total points",
@@ -59,7 +78,7 @@
     "nextReward": "Next Reward",
     "weeklySummary": "This week",
     "noTasksToday": "No tasks for today. Enjoy your free day!",
-    "pointsProgress": "{current} of {needed} points",
+    "pointsProgress": "{current} of {needed} pts",
     "streakDays": "{days} day streak",
     "quickComplete": "Complete",
     "quickOmit": "Skip"
@@ -71,11 +90,15 @@
     "filterCompleted": "Completed",
     "recurringBadge": "Recurring",
     "markCompleted": "Mark as completed",
-    "markNotCompleted": "Mark as not completed",
+    "markNotCompleted": "Not completed",
     "omitToday": "Skip today",
     "restore": "Restore",
     "noTasks": "No tasks for this day",
-    "points": "+{points} pts"
+    "points": "+{points} pts",
+    "statePending": "Pending",
+    "stateCompleted": "Completed",
+    "stateNotCompleted": "Not completed",
+    "stateOmitted": "Omitted"
   },
   "calendar": {
     "title": "Calendar",
@@ -105,13 +128,31 @@
     "claimSuccess": "Request sent. An administrator will review it soon.",
     "myClaims": "My requests"
   },
+  "members": {
+    "title": "Family",
+    "subtitle": "All members",
+    "pointsBalance": "Points",
+    "tasksToday": "Tasks today",
+    "completedToday": "Completed today",
+    "weeklyPoints": "Weekly points",
+    "monthlyPoints": "Monthly points",
+    "viewProfile": "View summary",
+    "dailySummary": "Today",
+    "weeklySummary": "This week",
+    "monthlySummary": "This month",
+    "noTasks": "No tasks assigned",
+    "tasksDone": "{done} of {total} completed",
+    "pointsEarned": "{pts} pts earned",
+    "admin": "Administrator",
+    "member": "Member"
+  },
   "profile": {
     "title": "My Profile",
     "totalPoints": "Total points",
     "pointsHistory": "Points history",
     "streak": "Current streak",
     "bestStreak": "Best streak",
-    "completedThisMonth": "Tasks completed this month",
+    "completedThisMonth": "Tasks this month",
     "days": "days",
     "historyDate": "Date",
     "historyReason": "Description",
@@ -120,7 +161,34 @@
       "task": "Task completed",
       "reward": "Reward redeemed",
       "manual": "Manual adjustment"
-    }
+    },
+    "adminPanel": "Admin panel",
+    "settings": "Settings"
+  },
+  "onboarding": {
+    "welcome": "Welcome to FamilyRewards!",
+    "welcomeDesc": "In a few steps you'll be ready to start earning points as a family.",
+    "stepMembers": "Your family",
+    "stepMembersDesc": "Who are the members of your family?",
+    "stepTask": "First task",
+    "stepTaskDesc": "Choose a task from the catalog to get started",
+    "stepReward": "First reward",
+    "stepRewardDesc": "What can be redeemed with points?",
+    "stepLocation": "Location",
+    "stepLocationDesc": "To configure local public holidays",
+    "stepDone": "All set!",
+    "stepDoneDesc": "Your family is configured. Let the game begin!",
+    "addMember": "Add member",
+    "memberName": "Name",
+    "memberRole": "Role",
+    "skipStep": "Skip this step",
+    "goToDashboard": "Go to home",
+    "fromCatalog": "From catalog",
+    "customTask": "Custom task",
+    "customReward": "Custom reward",
+    "selectCountry": "Country",
+    "selectRegion": "Region / State",
+    "currentMembers": "Current members"
   },
   "admin": {
     "members": {
@@ -146,6 +214,8 @@
       "pattern": "Pattern",
       "defaultState": "Default state",
       "toggleActive": "Enable/Disable",
+      "filterMember": "Filter by member",
+      "allMembers": "All",
       "days": {
         "mon": "Mon",
         "tue": "Tue",
@@ -164,7 +234,9 @@
       "pendingClaims": "Pending requests",
       "member": "Member",
       "requestedAt": "Requested",
-      "noClaimsPending": "No pending requests"
+      "noClaimsPending": "No pending requests",
+      "filterMember": "Filter by member",
+      "allMembers": "All"
     },
     "stats": {
       "title": "Family Statistics",

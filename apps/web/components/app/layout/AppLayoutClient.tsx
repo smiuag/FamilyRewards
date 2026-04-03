@@ -5,12 +5,13 @@ import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
+import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
-  const currentUser = useAppStore((s) => s.currentUser);
+  const { currentUser, onboardingCompleted } = useAppStore();
 
   useEffect(() => {
     if (!currentUser) {
@@ -22,6 +23,9 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Onboarding wizard (first time only) */}
+      {!onboardingCompleted && <OnboardingWizard />}
+
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-shrink-0">
         <Sidebar />

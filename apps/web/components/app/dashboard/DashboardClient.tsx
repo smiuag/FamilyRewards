@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_TASKS, MOCK_REWARDS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -19,7 +18,7 @@ import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
-  const { currentUser, taskInstances, updateTaskInstance } = useAppStore();
+  const { currentUser, tasks, rewards, taskInstances, updateTaskInstance } = useAppStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
@@ -38,7 +37,7 @@ export default function DashboardClient() {
   const pointsToday = completedToday.reduce((acc, ti) => acc + ti.pointsAwarded, 0);
 
   // Find next affordable reward
-  const nextReward = MOCK_REWARDS.filter(
+  const nextReward = rewards.filter(
     (r) => r.status === "available" && r.pointsCost > currentUser.pointsBalance
   ).sort((a, b) => a.pointsCost - b.pointsCost)[0];
 
@@ -67,7 +66,7 @@ export default function DashboardClient() {
 
   // Map task instances to tasks for display
   const todayTasksWithInfo = todayInstances.slice(0, 4).map((ti) => {
-    const task = MOCK_TASKS.find((t) => t.id === ti.taskId);
+    const task = tasks.find((t) => t.id === ti.taskId);
     return { instance: ti, task };
   });
 

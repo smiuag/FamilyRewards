@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_TASKS } from "@/lib/mock-data";
-import type { TaskState, TaskInstance } from "@/lib/types";
+import type { Task, TaskState, TaskInstance } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ type Filter = "all" | "pending" | "completed";
 
 export default function TasksClient() {
   const t = useTranslations("tasks");
-  const { currentUser, taskInstances, updateTaskInstance } = useAppStore();
+  const { currentUser, tasks, taskInstances, updateTaskInstance } = useAppStore();
   const [filter, setFilter] = useState<Filter>("all");
 
   if (!currentUser) return null;
@@ -68,7 +67,7 @@ export default function TasksClient() {
           </Card>
         ) : (
           filtered.map((instance) => {
-            const task = MOCK_TASKS.find((tk) => tk.id === instance.taskId);
+            const task = tasks.find((tk) => tk.id === instance.taskId);
             if (!task) return null;
             return (
               <TaskCard
@@ -93,7 +92,7 @@ function TaskCard({
   onStateChange,
 }: {
   instance: TaskInstance;
-  task: ReturnType<typeof MOCK_TASKS.find> & object;
+  task: Task;
   t: ReturnType<typeof useTranslations>;
   onStateChange: (instance: TaskInstance, state: TaskState) => void;
 }) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MOCK_TASKS, MOCK_USERS } from "@/lib/mock-data";
+import { useAppStore } from "@/lib/store/useAppStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,15 +44,15 @@ const emptyForm = () => ({
 });
 
 export default function AdminTasksClient() {
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const { tasks: storeTasks, users, addTask, updateTask } = useAppStore();
+  const [filterMember, setFilterMember] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form, setForm] = useState(emptyForm());
 
   const toggleTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, isActive: !t.isActive } : t))
-    );
+    const t = storeTasks.find((t) => t.id === taskId);
+    if (t) updateTask(taskId, { isActive: !t.isActive });
   };
 
   const openNew = () => {
@@ -82,49 +82,30 @@ export default function AdminTasksClient() {
       return;
     }
     if (editingTask) {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === editingTask.id
-            ? {
-                ...t,
-                title: form.title,
-                description: form.description,
-                points: parseInt(form.points) || 10,
-                assignedTo: form.assignedTo,
-                isRecurring: form.isRecurring,
-                recurringPattern: form.isRecurring
-                  ? {
-                      daysOfWeek: form.daysOfWeek,
-                      time: form.time || undefined,
-                      defaultState: form.defaultState,
-                    }
-                  : undefined,
-              }
-            : t
-        )
-      );
-      toast.success(`Tarea "${form.title}" actualizada`);
-    } else {
-      const newTask: Task = {
-        id: `t-${Date.now()}`,
-        familyId: "f1",
+      updateTask(editingTask.id, {
         title: form.title,
         description: form.description,
         points: parseInt(form.points) || 10,
         assignedTo: form.assignedTo,
-        createdBy: "u1",
         isRecurring: form.isRecurring,
         recurringPattern: form.isRecurring
-          ? {
-              daysOfWeek: form.daysOfWeek,
-              time: form.time || undefined,
-              defaultState: form.defaultState,
-            }
+          ? { daysOfWeek: form.daysOfWeek, time: form.time || undefined, defaultState: form.defaultState }
+          : undefined,
+      });
+      toast.success(`Tarea "${form.title}" actualizada`);
+    } else {
+      addTask({
+        title: form.title,
+        description: form.description,
+        points: parseInt(form.points) || 10,
+        assignedTo: form.assignedTo,
+        createdBy: users.find((u) => u.role === "admin")?.id ?? "u1",
+        isRecurring: form.isRecurring,
+        recurringPattern: form.isRecurring
+          ? { daysOfWeek: form.daysOfWeek, time: form.time || undefined, defaultState: form.defaultState }
           : undefined,
         isActive: true,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setTasks((prev) => [...prev, newTask]);
+      });
       toast.success(`Tarea "${form.title}" creada`);
     }
     setOpen(false);
@@ -150,21 +131,38 @@ export default function AdminTasksClient() {
 
   const getAssignedNames = (userIds: string[]) =>
     userIds
-      .map((id) => MOCK_USERS.find((u) => u.id === id)?.name ?? "?")
+      .map((id) => users.find((u) => u.id === id)?.name ?? "?")
       .join(", ");
+
+  const visibleTasks = filterMember === "all"
+    ? storeTasks
+    : storeTasks.filter((t) => t.assignedTo.includes(filterMember));
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-extrabold">Gestión de Tareas</h1>
-        <Button size="sm" onClick={openNew}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nueva tarea
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={filterMember} onValueChange={(v) => setFilterMember(v ?? "all")}>
+            <SelectTrigger className="w-40 h-8 text-sm">
+              <SelectValue placeholder="Todos los miembros" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los miembros</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.avatar} {u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={openNew}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nueva tarea
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
-        {tasks.map((task) => (
+        {visibleTasks.map((task) => (
           <Card
             key={task.id}
             className={cn("shadow-sm transition-all", !task.isActive && "opacity-60")}
@@ -317,7 +315,7 @@ export default function AdminTasksClient() {
             <div>
               <Label className="mb-2 block">Asignada a</Label>
               <div className="flex gap-2 flex-wrap">
-                {MOCK_USERS.map((u) => (
+                {users.map((u) => (
                   <button
                     key={u.id}
                     onClick={() => toggleUser(u.id)}

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_REWARDS } from "@/lib/mock-data";
 import type { RewardClaim } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,7 @@ import type { Reward } from "@/lib/types";
 
 export default function RewardsClient() {
   const t = useTranslations("rewards");
-  const { currentUser, claims, addClaim } = useAppStore();
+  const { currentUser, rewards, claims, addClaim } = useAppStore();
   const [confirmReward, setConfirmReward] = useState<Reward | null>(null);
 
   if (!currentUser) return null;
@@ -64,7 +63,7 @@ export default function RewardsClient() {
 
       {/* Rewards grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MOCK_REWARDS.map((reward) => {
+        {rewards.map((reward) => {
           const canAfford = currentUser.pointsBalance >= reward.pointsCost;
           const claim = getClaimForReward(reward.id);
           const hasPendingClaim = claim?.status === "pending";

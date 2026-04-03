@@ -25,19 +25,38 @@
     "yes": "Sí",
     "no": "No",
     "approve": "Aprobar",
-    "reject": "Rechazar"
+    "reject": "Rechazar",
+    "skip": "Saltar",
+    "optional": "Opcional",
+    "next": "Siguiente",
+    "finish": "Finalizar",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "monthly": "Mensual"
   },
   "nav": {
     "dashboard": "Inicio",
     "tasks": "Tareas",
     "calendar": "Calendario",
     "rewards": "Recompensas",
+    "members": "Familia",
     "profile": "Mi Perfil",
+    "achievements": "Logros",
+    "challenges": "Retos",
+    "board": "Tablón",
+    "reports": "Informes",
+    "settings": "Ajustes",
+    "help": "Ayuda",
     "admin": "Administración",
     "adminMembers": "Miembros",
-    "adminTasks": "Gestión de Tareas",
-    "adminRewards": "Gestión de Recompensas",
+    "adminTasks": "Tareas",
+    "adminRewards": "Recompensas",
     "adminStats": "Estadísticas",
+    "adminCatalogTasks": "Catálogo tareas",
+    "adminCatalogRewards": "Catálogo recompensas",
+    "adminTemplates": "Plantillas",
+    "adminChallenges": "Retos familiares",
+    "adminMultipliers": "Multiplicadores",
     "logout": "Cerrar sesión"
   },
   "login": {
@@ -51,7 +70,7 @@
   "dashboard": {
     "greeting": "¡Hola, {name}!",
     "todaySummary": "Resumen de hoy",
-    "tasksPending": "Tareas pendientes",
+    "tasksPending": "Pendientes",
     "tasksCompleted": "Completadas",
     "pointsToday": "Puntos hoy",
     "pointsTotal": "Puntos totales",
@@ -59,7 +78,7 @@
     "nextReward": "Próxima recompensa",
     "weeklySummary": "Esta semana",
     "noTasksToday": "No tienes tareas para hoy. ¡Disfruta tu día libre!",
-    "pointsProgress": "{current} de {needed} puntos",
+    "pointsProgress": "{current} de {needed} pts",
     "streakDays": "{days} días seguidos",
     "quickComplete": "Completar",
     "quickOmit": "Omitir"
@@ -71,11 +90,15 @@
     "filterCompleted": "Completadas",
     "recurringBadge": "Recurrente",
     "markCompleted": "Marcar como completada",
-    "markNotCompleted": "Marcar como no completada",
+    "markNotCompleted": "No completada",
     "omitToday": "Omitir hoy",
     "restore": "Restaurar",
     "noTasks": "No hay tareas para este día",
-    "points": "+{points} pts"
+    "points": "+{points} pts",
+    "statePending": "Pendiente",
+    "stateCompleted": "Completada",
+    "stateNotCompleted": "No completada",
+    "stateOmitted": "Omitida"
   },
   "calendar": {
     "title": "Calendario",
@@ -105,13 +128,31 @@
     "claimSuccess": "Solicitud enviada. Un administrador la revisará pronto.",
     "myClaims": "Mis solicitudes"
   },
+  "members": {
+    "title": "Familia",
+    "subtitle": "Todos los miembros",
+    "pointsBalance": "Puntos",
+    "tasksToday": "Tareas hoy",
+    "completedToday": "Completadas hoy",
+    "weeklyPoints": "Puntos semana",
+    "monthlyPoints": "Puntos mes",
+    "viewProfile": "Ver resumen",
+    "dailySummary": "Resumen del día",
+    "weeklySummary": "Esta semana",
+    "monthlySummary": "Este mes",
+    "noTasks": "Sin tareas asignadas",
+    "tasksDone": "{done} de {total} completadas",
+    "pointsEarned": "{pts} pts ganados",
+    "admin": "Administrador",
+    "member": "Miembro"
+  },
   "profile": {
     "title": "Mi Perfil",
     "totalPoints": "Puntos totales",
     "pointsHistory": "Historial de puntos",
     "streak": "Racha actual",
     "bestStreak": "Mejor racha",
-    "completedThisMonth": "Tareas completadas este mes",
+    "completedThisMonth": "Tareas este mes",
     "days": "días",
     "historyDate": "Fecha",
     "historyReason": "Concepto",
@@ -120,7 +161,34 @@
       "task": "Tarea completada",
       "reward": "Recompensa canjeada",
       "manual": "Ajuste manual"
-    }
+    },
+    "adminPanel": "Panel de administración",
+    "settings": "Configuración"
+  },
+  "onboarding": {
+    "welcome": "¡Bienvenido a FamilyRewards!",
+    "welcomeDesc": "En unos pasos tendrás todo listo para empezar a ganar puntos en familia.",
+    "stepMembers": "Tu familia",
+    "stepMembersDesc": "¿Quiénes forman parte de tu familia?",
+    "stepTask": "Primera tarea",
+    "stepTaskDesc": "Elige una tarea del catálogo para empezar",
+    "stepReward": "Primera recompensa",
+    "stepRewardDesc": "¿Qué se puede canjear con los puntos?",
+    "stepLocation": "Localización",
+    "stepLocationDesc": "Para configurar los días festivos locales",
+    "stepDone": "¡Todo listo!",
+    "stepDoneDesc": "Tu familia está configurada. ¡Que empiece el juego!",
+    "addMember": "Añadir miembro",
+    "memberName": "Nombre",
+    "memberRole": "Rol",
+    "skipStep": "Saltar este paso",
+    "goToDashboard": "Ir al inicio",
+    "fromCatalog": "Del catálogo",
+    "customTask": "Tarea personalizada",
+    "customReward": "Recompensa personalizada",
+    "selectCountry": "País",
+    "selectRegion": "Comunidad / Región",
+    "currentMembers": "Miembros actuales"
   },
   "admin": {
     "members": {
@@ -146,6 +214,8 @@
       "pattern": "Patrón",
       "defaultState": "Estado por defecto",
       "toggleActive": "Activar/Desactivar",
+      "filterMember": "Filtrar por miembro",
+      "allMembers": "Todos",
       "days": {
         "mon": "Lun",
         "tue": "Mar",
@@ -164,7 +234,9 @@
       "pendingClaims": "Solicitudes pendientes",
       "member": "Miembro",
       "requestedAt": "Solicitada",
-      "noClaimsPending": "No hay solicitudes pendientes"
+      "noClaimsPending": "No hay solicitudes pendientes",
+      "filterMember": "Filtrar por miembro",
+      "allMembers": "Todos"
     },
     "stats": {
       "title": "Estadísticas Familiares",
