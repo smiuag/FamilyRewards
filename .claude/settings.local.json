@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(pnpm --version)",
+      "Bash(npm install:*)",
+      "Bash(mkdir -p apps packages)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(node -e \"const ni = require\\('/c/proyectos/Claude/FamilyRewards/apps/web/node_modules/next-intl'\\); console.log\\(Object.keys\\(ni\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k\\) for k in d.get\\('exports',{}\\).keys\\(\\)]\")",
+      "Bash(node:*)",
+      "Bash(xargs grep:*)",
+      "Bash(pnpm build:*)"
+    ]
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "common": {
+    "appName": "FamilyRewards",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Añadir",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "points": "puntos",
+    "pts": "pts",
+    "today": "Hoy",
+    "week": "Semana",
+    "month": "Mes",
+    "all": "Todos",
+    "pending": "Pendiente",
+    "completed": "Completada",
+    "notCompleted": "No completada",
+    "omitted": "Omitida",
+    "active": "Activa",
+    "inactive": "Inactiva",
+    "yes": "Sí",
+    "no": "No",
+    "approve": "Aprobar",
+    "reject": "Rechazar"
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "tasks": "Tareas",
+    "calendar": "Calendario",
+    "rewards": "Recompensas",
+    "profile": "Mi Perfil",
+    "admin": "Administración",
+    "adminMembers": "Miembros",
+    "adminTasks": "Gestión de Tareas",
+    "adminRewards": "Gestión de Recompensas",
+    "adminStats": "Estadísticas",
+    "logout": "Cerrar sesión"
+  },
+  "login": {
+    "title": "FamilyRewards",
+    "subtitle": "¿Quién eres hoy?",
+    "description": "Selecciona tu perfil para continuar",
+    "adminBadge": "Administrador",
+    "memberBadge": "Miembro",
+    "points": "{points} puntos acumulados"
+  },
+  "dashboard": {
+    "greeting": "¡Hola, {name}!",
+    "todaySummary": "Resumen de hoy",
+    "tasksPending": "Tareas pendientes",
+    "tasksCompleted": "Completadas",
+    "pointsToday": "Puntos hoy",
+    "pointsTotal": "Puntos totales",
+    "todayTasks": "Tareas de hoy",
+    "nextReward": "Próxima recompensa",
+    "weeklySummary": "Esta semana",
+    "noTasksToday": "No tienes tareas para hoy. ¡Disfruta tu día libre!",
+    "pointsProgress": "{current} de {needed} puntos",
+    "streakDays": "{days} días seguidos",
+    "quickComplete": "Completar",
+    "quickOmit": "Omitir"
+  },
+  "tasks": {
+    "title": "Mis Tareas",
+    "filterAll": "Todas",
+    "filterPending": "Pendientes",
+    "filterCompleted": "Completadas",
+    "recurringBadge": "Recurrente",
+    "markCompleted": "Marcar como completada",
+    "markNotCompleted": "Marcar como no completada",
+    "omitToday": "Omitir hoy",
+    "restore": "Restaurar",
+    "noTasks": "No hay tareas para este día",
+    "points": "+{points} pts"
+  },
+  "calendar": {
+    "title": "Calendario",
+    "viewMonth": "Mes",
+    "viewWeek": "Semana",
+    "viewDay": "Día",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "taskCount": "{count} tarea(s)",
+    "noTasksDay": "Sin tareas este día",
+    "selectDay": "Selecciona un día para ver sus tareas"
+  },
+  "rewards": {
+    "title": "Recompensas",
+    "myPoints": "Mis puntos",
+    "redeem": "Canjear",
+    "notEnoughPoints": "Puntos insuficientes",
+    "cost": "{points} puntos",
+    "status": {
+      "available": "Disponible",
+      "disabled": "No disponible",
+      "pending": "Pendiente de aprobación",
+      "approved": "¡Aprobado!",
+      "rejected": "Rechazado"
+    },
+    "claimConfirm": "¿Seguro que quieres canjear \"{name}\" por {points} puntos?",
+    "claimSuccess": "Solicitud enviada. Un administrador la revisará pronto.",
+    "myClaims": "Mis solicitudes"
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "totalPoints": "Puntos totales",
+    "pointsHistory": "Historial de puntos",
+    "streak": "Racha actual",
+    "bestStreak": "Mejor racha",
+    "completedThisMonth": "Tareas completadas este mes",
+    "days": "días",
+    "historyDate": "Fecha",
+    "historyReason": "Concepto",
+    "historyAmount": "Puntos",
+    "historyTypes": {
+      "task": "Tarea completada",
+      "reward": "Recompensa canjeada",
+      "manual": "Ajuste manual"
+    }
+  },
+  "admin": {
+    "members": {
+      "title": "Gestión de Miembros",
+      "addMember": "Añadir miembro",
+      "name": "Nombre",
+      "role": "Rol",
+      "points": "Puntos",
+      "tasksToday": "Tareas hoy",
+      "actions": "Acciones",
+      "adjustPoints": "Ajustar puntos",
+      "adjustPointsTitle": "Ajustar puntos de {name}",
+      "pointsAmount": "Cantidad (+/-)",
+      "reason": "Motivo"
+    },
+    "tasks": {
+      "title": "Gestión de Tareas",
+      "addTask": "Nueva tarea",
+      "taskName": "Nombre de la tarea",
+      "assignedTo": "Asignada a",
+      "points": "Puntos",
+      "recurring": "Recurrente",
+      "pattern": "Patrón",
+      "defaultState": "Estado por defecto",
+      "toggleActive": "Activar/Desactivar",
+      "days": {
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb",
+        "sun": "Dom"
+      }
+    },
+    "rewards": {
+      "title": "Gestión de Recompensas",
+      "addReward": "Nueva recompensa",
+      "rewardName": "Nombre",
+      "cost": "Coste (pts)",
+      "pendingClaims": "Solicitudes pendientes",
+      "member": "Miembro",
+      "requestedAt": "Solicitada",
+      "noClaimsPending": "No hay solicitudes pendientes"
+    },
+    "stats": {
+      "title": "Estadísticas Familiares",
+      "pointsComparison": "Comparativa de puntos",
+      "weeklyTasks": "Tareas esta semana",
+      "approvedClaims": "Canjes aprobados este mes",
+      "memberPerformance": "Rendimiento de miembros"
+    }
+  },
+  "roles": {
+    "admin": "Administrador",
+    "member": "Miembro"
+  }
+}

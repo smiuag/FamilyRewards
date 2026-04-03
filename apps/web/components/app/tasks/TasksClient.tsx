@@ -1,0 +1,197 @@
+"use client";
+
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useAppStore } from "@/lib/store/useAppStore";
+import { MOCK_TASKS } from "@/lib/mock-data";
+import type { TaskState, TaskInstance } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2, XCircle, MinusCircle, RefreshCw, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+type Filter = "all" | "pending" | "completed";
+
+export default function TasksClient() {
+  const t = useTranslations("tasks");
+  const { currentUser, taskInstances, updateTaskInstance } = useAppStore();
+  const [filter, setFilter] = useState<Filter>("all");
+
+  if (!currentUser) return null;
+
+  const today = new Date().toISOString().split("T")[0];
+  const formattedDate = format(new Date(), "EEEE, d MMMM", { locale: es });
+
+  const todayInstances = taskInstances.filter(
+    (ti) => ti.userId === currentUser.id && ti.date === today
+  );
+
+  const filtered = todayInstances.filter((ti) => {
+    if (filter === "pending") return ti.state === "pending";
+    if (filter === "completed") return ti.state === "completed" || ti.state === "not_completed";
+    return true;
+  });
+
+  const handleStateChange = (instance: TaskInstance, newState: TaskState) => {
+    const isSameState = instance.state === newState;
+    updateTaskInstance(instance.id, isSameState ? "pending" : newState);
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold">{t("title")}</h1>
+        <p className="text-muted-foreground capitalize">{formattedDate}</p>
+      </div>
+
+      {/* Filters */}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+        <TabsList className="w-full">
+          <TabsTrigger value="all" className="flex-1">{t("filterAll")}</TabsTrigger>
+          <TabsTrigger value="pending" className="flex-1">{t("filterPending")}</TabsTrigger>
+          <TabsTrigger value="completed" className="flex-1">{t("filterCompleted")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Task list */}
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground">
+              {t("noTasks")}
+            </CardContent>
+          </Card>
+        ) : (
+          filtered.map((instance) => {
+            const task = MOCK_TASKS.find((tk) => tk.id === instance.taskId);
+            if (!task) return null;
+            return (
+              <TaskCard
+                key={instance.id}
+                instance={instance}
+                task={task}
+                t={t}
+                onStateChange={handleStateChange}
+              />
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({
+  instance,
+  task,
+  t,
+  onStateChange,
+}: {
+  instance: TaskInstance;
+  task: ReturnType<typeof MOCK_TASKS.find> & object;
+  t: ReturnType<typeof useTranslations>;
+  onStateChange: (instance: TaskInstance, state: TaskState) => void;
+}) {
+  const stateConfig: Record<TaskState, { color: string; icon: React.ReactNode; label: string }> = {
+    completed: {
+      color: "border-green-200 bg-green-50/50",
+      icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+      label: "Completada",
+    },
+    pending: {
+      color: "border-border bg-white",
+      icon: <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />,
+      label: "Pendiente",
+    },
+    not_completed: {
+      color: "border-red-200 bg-red-50/50",
+      icon: <XCircle className="w-5 h-5 text-red-400" />,
+      label: "No completada",
+    },
+    omitted: {
+      color: "border-gray-200 bg-gray-50/50",
+      icon: <MinusCircle className="w-5 h-5 text-gray-400" />,
+      label: "Omitida",
+    },
+  };
+
+  const config = stateConfig[instance.state];
+
+  return (
+    <Card className={cn("border-2 shadow-sm transition-all", config.color)}>
+      <CardContent className="py-4">
+        <div className="flex items-center gap-4">
+          {/* State icon */}
+          <div className="flex-shrink-0">{config.icon}</div>
+
+          {/* Task info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={cn(
+                  "font-semibold",
+                  instance.state === "omitted" && "line-through text-muted-foreground"
+                )}
+              >
+                {task?.title}
+              </span>
+              {task?.isRecurring && (
+                <Badge variant="secondary" className="text-xs">
+                  <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                  {t("recurringBadge")}
+                </Badge>
+              )}
+            </div>
+            {task?.description && (
+              <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+            )}
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="w-3 h-3 text-primary fill-primary" />
+              <span className="text-xs font-medium text-primary">+{task?.points ?? 0} pts</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          {instance.state !== "omitted" && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                size="sm"
+                variant={instance.state === "completed" ? "default" : "outline"}
+                className="h-8 text-xs"
+                onClick={() => onStateChange(instance, "completed")}
+              >
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                {t("markCompleted")}
+              </Button>
+              <Button
+                size="sm"
+                variant={instance.state === "not_completed" ? "destructive" : "ghost"}
+                className="h-8 text-xs"
+                onClick={() => onStateChange(instance, "not_completed")}
+              >
+                <XCircle className="w-3 h-3 mr-1" />
+                No
+              </Button>
+            </div>
+          )}
+          {instance.state === "omitted" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs"
+              onClick={() => onStateChange(instance, "pending")}
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              {t("restore")}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

@@ -1,0 +1,181 @@
+{
+  "common": {
+    "appName": "FamilyRewards",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "points": "points",
+    "pts": "pts",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "all": "All",
+    "pending": "Pending",
+    "completed": "Completed",
+    "notCompleted": "Not completed",
+    "omitted": "Omitted",
+    "active": "Active",
+    "inactive": "Inactive",
+    "yes": "Yes",
+    "no": "No",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "nav": {
+    "dashboard": "Home",
+    "tasks": "Tasks",
+    "calendar": "Calendar",
+    "rewards": "Rewards",
+    "profile": "My Profile",
+    "admin": "Administration",
+    "adminMembers": "Members",
+    "adminTasks": "Task Management",
+    "adminRewards": "Reward Management",
+    "adminStats": "Statistics",
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "FamilyRewards",
+    "subtitle": "Who are you today?",
+    "description": "Select your profile to continue",
+    "adminBadge": "Administrator",
+    "memberBadge": "Member",
+    "points": "{points} points earned"
+  },
+  "dashboard": {
+    "greeting": "Hello, {name}!",
+    "todaySummary": "Today's Summary",
+    "tasksPending": "Pending tasks",
+    "tasksCompleted": "Completed",
+    "pointsToday": "Points today",
+    "pointsTotal": "Total points",
+    "todayTasks": "Today's Tasks",
+    "nextReward": "Next Reward",
+    "weeklySummary": "This week",
+    "noTasksToday": "No tasks for today. Enjoy your free day!",
+    "pointsProgress": "{current} of {needed} points",
+    "streakDays": "{days} day streak",
+    "quickComplete": "Complete",
+    "quickOmit": "Skip"
+  },
+  "tasks": {
+    "title": "My Tasks",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterCompleted": "Completed",
+    "recurringBadge": "Recurring",
+    "markCompleted": "Mark as completed",
+    "markNotCompleted": "Mark as not completed",
+    "omitToday": "Skip today",
+    "restore": "Restore",
+    "noTasks": "No tasks for this day",
+    "points": "+{points} pts"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "viewMonth": "Month",
+    "viewWeek": "Week",
+    "viewDay": "Day",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "taskCount": "{count} task(s)",
+    "noTasksDay": "No tasks this day",
+    "selectDay": "Select a day to view its tasks"
+  },
+  "rewards": {
+    "title": "Rewards",
+    "myPoints": "My points",
+    "redeem": "Redeem",
+    "notEnoughPoints": "Not enough points",
+    "cost": "{points} points",
+    "status": {
+      "available": "Available",
+      "disabled": "Unavailable",
+      "pending": "Pending approval",
+      "approved": "Approved!",
+      "rejected": "Rejected"
+    },
+    "claimConfirm": "Are you sure you want to redeem \"{name}\" for {points} points?",
+    "claimSuccess": "Request sent. An administrator will review it soon.",
+    "myClaims": "My requests"
+  },
+  "profile": {
+    "title": "My Profile",
+    "totalPoints": "Total points",
+    "pointsHistory": "Points history",
+    "streak": "Current streak",
+    "bestStreak": "Best streak",
+    "completedThisMonth": "Tasks completed this month",
+    "days": "days",
+    "historyDate": "Date",
+    "historyReason": "Description",
+    "historyAmount": "Points",
+    "historyTypes": {
+      "task": "Task completed",
+      "reward": "Reward redeemed",
+      "manual": "Manual adjustment"
+    }
+  },
+  "admin": {
+    "members": {
+      "title": "Member Management",
+      "addMember": "Add member",
+      "name": "Name",
+      "role": "Role",
+      "points": "Points",
+      "tasksToday": "Tasks today",
+      "actions": "Actions",
+      "adjustPoints": "Adjust points",
+      "adjustPointsTitle": "Adjust {name}'s points",
+      "pointsAmount": "Amount (+/-)",
+      "reason": "Reason"
+    },
+    "tasks": {
+      "title": "Task Management",
+      "addTask": "New task",
+      "taskName": "Task name",
+      "assignedTo": "Assigned to",
+      "points": "Points",
+      "recurring": "Recurring",
+      "pattern": "Pattern",
+      "defaultState": "Default state",
+      "toggleActive": "Enable/Disable",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
+    },
+    "rewards": {
+      "title": "Reward Management",
+      "addReward": "New reward",
+      "rewardName": "Name",
+      "cost": "Cost (pts)",
+      "pendingClaims": "Pending requests",
+      "member": "Member",
+      "requestedAt": "Requested",
+      "noClaimsPending": "No pending requests"
+    },
+    "stats": {
+      "title": "Family Statistics",
+      "pointsComparison": "Points comparison",
+      "weeklyTasks": "Tasks this week",
+      "approvedClaims": "Approved claims this month",
+      "memberPerformance": "Member performance"
+    }
+  },
+  "roles": {
+    "admin": "Administrator",
+    "member": "Member"
+  }
+}
