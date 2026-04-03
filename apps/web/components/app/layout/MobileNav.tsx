@@ -4,7 +4,7 @@ import { usePathname, useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { cn } from "@/lib/utils";
-import { Home, CheckSquare, Calendar, Gift, User, Trophy, MessageSquare } from "lucide-react";
+import { Home, CheckSquare, Gift, Trophy, Flag } from "lucide-react";
 
 export default function MobileNav() {
   const t = useTranslations("nav");
@@ -18,8 +18,8 @@ export default function MobileNav() {
     { href: `/${locale}/dashboard`, icon: Home, label: "Inicio" },
     { href: `/${locale}/tasks`, icon: CheckSquare, label: "Tareas" },
     { href: `/${locale}/rewards`, icon: Gift, label: "Premios" },
+    { href: `/${locale}/challenges`, icon: Flag, label: "Retos" },
     { href: `/${locale}/achievements`, icon: Trophy, label: "Logros" },
-    { href: `/${locale}/board`, icon: MessageSquare, label: "Tablón" },
   ];
 
   if (!currentUser) return null;

@@ -17,6 +17,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,16 +31,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Plus, Minus, SlidersHorizontal } from "lucide-react";
+import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
+
+const AVATARS = ["👦", "👧", "👨", "👩", "👴", "👵", "🧑", "👱", "🧒", "🐶", "🐱", "🦊"];
+
+type DialogMode = "adjust" | "edit" | "add" | null;
 
 export default function AdminMembersClient() {
   const t = useTranslations("admin.members");
   const { users, adjustPoints } = useAppStore();
-  const [adjustingUser, setAdjustingUser] = useState<User | null>(null);
+
+  const [mode, setMode] = useState<DialogMode>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Adjust points form
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
+
+  // Edit / Add member form
+  const [formName, setFormName] = useState("");
+  const [formAvatar, setFormAvatar] = useState("👦");
+  const [formRole, setFormRole] = useState<"admin" | "member">("member");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -45,29 +65,69 @@ export default function AdminMembersClient() {
       (ti) => ti.userId === userId && ti.date === today && ti.state === "completed"
     ).length;
 
+  const openAdjust = (user: User) => {
+    setSelectedUser(user);
+    setAdjustAmount("");
+    setAdjustReason("");
+    setMode("adjust");
+  };
+
+  const openEdit = (user: User) => {
+    setSelectedUser(user);
+    setFormName(user.name);
+    setFormAvatar(user.avatar);
+    setFormRole(user.role);
+    setMode("edit");
+  };
+
+  const openAdd = () => {
+    setSelectedUser(null);
+    setFormName("");
+    setFormAvatar("👦");
+    setFormRole("member");
+    setMode("add");
+  };
+
+  const closeDialog = () => {
+    setMode(null);
+    setSelectedUser(null);
+  };
+
   const handleAdjust = () => {
-    if (!adjustingUser) return;
+    if (!selectedUser) return;
     const amount = parseInt(adjustAmount);
     if (isNaN(amount) || amount === 0) {
       toast.error("Introduce un número válido (positivo o negativo)");
       return;
     }
-    adjustPoints(adjustingUser.id, amount);
-    toast.success(
-      `${amount > 0 ? "+" : ""}${amount} pts a ${adjustingUser.name}`,
-      { description: adjustReason || "Ajuste manual" }
-    );
-    setAdjustingUser(null);
-    setAdjustAmount("");
-    setAdjustReason("");
+    adjustPoints(selectedUser.id, amount);
+    toast.success(`${amount > 0 ? "+" : ""}${amount} pts a ${selectedUser.name}`, {
+      description: adjustReason || "Ajuste manual",
+    });
+    closeDialog();
+  };
+
+  const handleSaveMember = () => {
+    if (!formName.trim()) {
+      toast.error("El nombre es obligatorio");
+      return;
+    }
+    if (mode === "add") {
+      toast.success(`Miembro "${formName}" añadido`, {
+        description: "En la versión real se guardaría en la base de datos.",
+      });
+    } else {
+      toast.success(`Perfil de "${formName}" actualizado`);
+    }
+    closeDialog();
   };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">{t("title")}</h1>
-        <Button size="sm">
-          <Plus className="w-4 h-4 mr-1.5" />
+        <Button size="sm" onClick={openAdd}>
+          <UserPlus className="w-4 h-4 mr-1.5" />
           {t("addMember")}
         </Button>
       </div>
@@ -118,7 +178,10 @@ export default function AdminMembersClient() {
                           <div
                             className="bg-primary h-1.5 rounded-full"
                             style={{
-                              width: totalToday > 0 ? `${(doneToday / totalToday) * 100}%` : "0%",
+                              width:
+                                totalToday > 0
+                                  ? `${(doneToday / totalToday) * 100}%`
+                                  : "0%",
                             }}
                           />
                         </div>
@@ -128,14 +191,26 @@ export default function AdminMembersClient() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setAdjustingUser(user)}
-                      >
-                        <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                        {t("adjustPoints")}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => openEdit(user)}
+                        >
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => openAdjust(user)}
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                          {t("adjustPoints")}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -146,11 +221,11 @@ export default function AdminMembersClient() {
       </Card>
 
       {/* Adjust points dialog */}
-      <Dialog open={!!adjustingUser} onOpenChange={() => setAdjustingUser(null)}>
+      <Dialog open={mode === "adjust"} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t("adjustPointsTitle", { name: adjustingUser?.name ?? "" })}
+              {t("adjustPointsTitle", { name: selectedUser?.name ?? "" })}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -161,9 +236,7 @@ export default function AdminMembersClient() {
                   size="icon"
                   variant="outline"
                   className="h-9 w-9"
-                  onClick={() =>
-                    setAdjustAmount((v) => String((parseInt(v) || 0) - 10))
-                  }
+                  onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) - 10))}
                 >
                   <Minus className="w-3 h-3" />
                 </Button>
@@ -178,9 +251,7 @@ export default function AdminMembersClient() {
                   size="icon"
                   variant="outline"
                   className="h-9 w-9"
-                  onClick={() =>
-                    setAdjustAmount((v) => String((parseInt(v) || 0) + 10))
-                  }
+                  onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) + 10))}
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
@@ -197,10 +268,73 @@ export default function AdminMembersClient() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAdjustingUser(null)}>
+            <Button variant="outline" onClick={closeDialog}>
               Cancelar
             </Button>
             <Button onClick={handleAdjust}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit member dialog */}
+      <Dialog open={mode === "add" || mode === "edit"} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {mode === "add" ? "Añadir miembro" : `Editar a ${selectedUser?.name}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Nombre del miembro"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block">Avatar</Label>
+              <div className="flex flex-wrap gap-2">
+                {AVATARS.map((av) => (
+                  <button
+                    key={av}
+                    onClick={() => setFormAvatar(av)}
+                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
+                      formAvatar === av
+                        ? "bg-primary/20 ring-2 ring-primary"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                  >
+                    {av}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Rol</Label>
+              <Select
+                value={formRole}
+                onValueChange={(v) => setFormRole(v as "admin" | "member")}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Miembro</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveMember}>
+              {mode === "add" ? "Añadir" : "Guardar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

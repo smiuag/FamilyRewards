@@ -24,6 +24,7 @@ interface AppState {
   login: (userId: string) => void;
   logout: () => void;
   updateTaskInstance: (instanceId: string, state: TaskInstance["state"]) => void;
+  checkAndAwardStreakBonus: (userId: string) => { streak: number; bonus: number };
   addClaim: (claim: RewardClaim) => void;
   updateClaim: (claimId: string, status: RewardClaim["status"]) => void;
   adjustPoints: (userId: string, amount: number) => void;
@@ -44,26 +45,85 @@ export const useAppStore = create<AppState>()(
 
       logout: () => set({ currentUser: null }),
 
-      updateTaskInstance: (instanceId, state) => {
+      updateTaskInstance: (instanceId, newState) => {
         set((prev) => {
-          const instances = prev.taskInstances.map((ti) => {
-            if (ti.id !== instanceId) return ti;
-            // Find the task to know its points
-            const pointsAwarded = state === "completed" ? ti.pointsAwarded || 0 : 0;
-            return { ...ti, state, pointsAwarded };
-          });
+          const oldInstance = prev.taskInstances.find((ti) => ti.id === instanceId);
+          if (!oldInstance) return {};
 
-          // Recalculate user points balance
-          const users = prev.users.map((u) => {
-            const earned = instances
-              .filter((ti) => ti.userId === u.id && ti.state === "completed")
-              .reduce((acc, ti) => acc + ti.pointsAwarded, 0);
-            // Keep existing balance logic simple for mock
-            return u;
-          });
+          const wasCompleted = oldInstance.state === "completed";
+          const isNowCompleted = newState === "completed";
+          const pointsDelta = isNowCompleted
+            ? oldInstance.pointsAwarded || 0
+            : wasCompleted
+            ? -(oldInstance.pointsAwarded || 0)
+            : 0;
 
-          return { taskInstances: instances, users };
+          const instances = prev.taskInstances.map((ti) =>
+            ti.id === instanceId ? { ...ti, state: newState } : ti
+          );
+
+          const users = prev.users.map((u) =>
+            u.id === oldInstance.userId
+              ? { ...u, pointsBalance: Math.max(0, u.pointsBalance + pointsDelta) }
+              : u
+          );
+
+          const currentUser =
+            prev.currentUser?.id === oldInstance.userId
+              ? {
+                  ...prev.currentUser,
+                  pointsBalance: Math.max(
+                    0,
+                    prev.currentUser.pointsBalance + pointsDelta
+                  ),
+                }
+              : prev.currentUser;
+
+          return { taskInstances: instances, users, currentUser };
         });
+      },
+
+      checkAndAwardStreakBonus: (userId: string) => {
+        const { taskInstances, users } = get();
+        // Count consecutive days with at least one completed task
+        const completedDates = new Set(
+          taskInstances
+            .filter((ti) => ti.userId === userId && ti.state === "completed")
+            .map((ti) => ti.date)
+        );
+        let streak = 0;
+        const today = new Date();
+        for (let i = 0; i < 365; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          const dateStr = d.toISOString().split("T")[0];
+          if (completedDates.has(dateStr)) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+        // Award bonus at 7, 14, 21, 30-day milestones
+        const MILESTONES: Record<number, number> = { 7: 50, 14: 100, 21: 150, 30: 250 };
+        if (MILESTONES[streak]) {
+          const bonus = MILESTONES[streak];
+          set((prev) => ({
+            users: prev.users.map((u) =>
+              u.id === userId
+                ? { ...u, pointsBalance: u.pointsBalance + bonus }
+                : u
+            ),
+            currentUser:
+              prev.currentUser?.id === userId
+                ? {
+                    ...prev.currentUser,
+                    pointsBalance: prev.currentUser.pointsBalance + bonus,
+                  }
+                : prev.currentUser,
+          }));
+          return { streak, bonus };
+        }
+        return { streak, bonus: 0 };
       },
 
       addClaim: (claim) =>

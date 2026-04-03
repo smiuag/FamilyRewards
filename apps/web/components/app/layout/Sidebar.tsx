@@ -21,6 +21,9 @@ import {
   Trophy,
   MessageSquare,
   Layers,
+  Zap,
+  Flag,
+  HelpCircle,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -45,7 +48,9 @@ export default function Sidebar() {
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
     { href: `/${locale}/achievements`, icon: Trophy, label: "Logros" },
+    { href: `/${locale}/challenges`, icon: Flag, label: "Retos" },
     { href: `/${locale}/board`, icon: MessageSquare, label: "Tablón familiar" },
+    { href: `/${locale}/reports`, icon: BarChart3, label: "Informes" },
     { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
@@ -92,10 +97,23 @@ export default function Sidebar() {
       label: "Plantillas temporada",
       adminOnly: true,
     },
+    {
+      href: `/${locale}/admin/challenges`,
+      icon: Flag,
+      label: "Retos familiares",
+      adminOnly: true,
+    },
+    {
+      href: `/${locale}/admin/multipliers`,
+      icon: Zap,
+      label: "Multiplicadores",
+      adminOnly: true,
+    },
   ];
 
   const settingsItems: NavItem[] = [
     { href: `/${locale}/settings`, icon: MapPin, label: "Localización" },
+    { href: `/${locale}/help`, icon: HelpCircle, label: "Ayuda" },
   ];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");

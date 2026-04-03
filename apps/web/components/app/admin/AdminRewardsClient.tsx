@@ -1,10 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { MOCK_REWARDS, MOCK_USERS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -13,18 +23,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Star, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Star, CheckCircle2, XCircle, Clock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import type { Reward } from "@/lib/types";
+
+type DialogMode = "add" | "edit" | null;
+
+const emptyForm = () => ({
+  title: "",
+  description: "",
+  emoji: "🎁",
+  pointsCost: "100",
+});
 
 export default function AdminRewardsClient() {
   const { claims, updateClaim } = useAppStore();
+  const [rewards, setRewards] = useState(MOCK_REWARDS);
+  const [mode, setMode] = useState<DialogMode>(null);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [form, setForm] = useState(emptyForm());
 
   const pendingClaims = claims.filter((c) => c.status === "pending");
 
-  const getReward = (id: string) => MOCK_REWARDS.find((r) => r.id === id);
+  const getReward = (id: string) => rewards.find((r) => r.id === id);
   const getUser = (id: string) => MOCK_USERS.find((u) => u.id === id);
 
   const handleApprove = (claimId: string) => {
@@ -37,11 +60,65 @@ export default function AdminRewardsClient() {
     toast.error("Solicitud rechazada");
   };
 
+  const openAdd = () => {
+    setEditingReward(null);
+    setForm(emptyForm());
+    setMode("add");
+  };
+
+  const openEdit = (reward: Reward) => {
+    setEditingReward(reward);
+    setForm({
+      title: reward.title,
+      description: reward.description ?? "",
+      emoji: reward.emoji,
+      pointsCost: String(reward.pointsCost),
+    });
+    setMode("edit");
+  };
+
+  const closeDialog = () => {
+    setMode(null);
+    setEditingReward(null);
+  };
+
+  const handleSave = () => {
+    if (!form.title.trim()) {
+      toast.error("El nombre es obligatorio");
+      return;
+    }
+    const cost = parseInt(form.pointsCost) || 100;
+
+    if (mode === "edit" && editingReward) {
+      setRewards((prev) =>
+        prev.map((r) =>
+          r.id === editingReward.id
+            ? { ...r, title: form.title, description: form.description, emoji: form.emoji, pointsCost: cost }
+            : r
+        )
+      );
+      toast.success(`Recompensa "${form.title}" actualizada`);
+    } else {
+      const newReward: Reward = {
+        id: `r-${Date.now()}`,
+        familyId: "f1",
+        title: form.title,
+        description: form.description,
+        emoji: form.emoji,
+        pointsCost: cost,
+        status: "available",
+      };
+      setRewards((prev) => [...prev, newReward]);
+      toast.success(`Recompensa "${form.title}" creada`);
+    }
+    closeDialog();
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">Gestión de Recompensas</h1>
-        <Button size="sm">
+        <Button size="sm" onClick={openAdd}>
           <Plus className="w-4 h-4 mr-1.5" />
           Nueva recompensa
         </Button>
@@ -139,7 +216,7 @@ export default function AdminRewardsClient() {
       <div>
         <h2 className="text-base font-semibold mb-3">Catálogo de recompensas</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {MOCK_REWARDS.map((reward) => (
+          {rewards.map((reward) => (
             <Card key={reward.id} className="shadow-sm">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
@@ -153,8 +230,13 @@ export default function AdminRewardsClient() {
                       </span>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs">
-                    Editar
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={() => openEdit(reward)}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </CardContent>
@@ -162,6 +244,64 @@ export default function AdminRewardsClient() {
           ))}
         </div>
       </div>
+
+      {/* Add / Edit reward dialog */}
+      <Dialog open={mode !== null} onOpenChange={closeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {mode === "add" ? "Nueva recompensa" : `Editar: ${editingReward?.title}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-5 gap-3">
+              <div className="col-span-1">
+                <Label>Emoji</Label>
+                <Input
+                  value={form.emoji}
+                  onChange={(e) => setForm({ ...form, emoji: e.target.value })}
+                  className="text-center text-xl mt-1.5"
+                />
+              </div>
+              <div className="col-span-4">
+                <Label>Nombre</Label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Nombre de la recompensa"
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Descripción (opcional)</Label>
+              <Input
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Breve descripción"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Coste en puntos</Label>
+              <Input
+                type="number"
+                value={form.pointsCost}
+                onChange={(e) => setForm({ ...form, pointsCost: e.target.value })}
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>
+              {mode === "add" ? "Crear recompensa" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

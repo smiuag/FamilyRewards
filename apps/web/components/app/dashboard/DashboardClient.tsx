@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
 import { ACHIEVEMENTS, MOCK_USER_STATS, RARITY_CONFIG } from "@/lib/achievements";
 import { MOCK_BOARD_MESSAGES } from "@/lib/mock-data/board";
 import { MOCK_USERS } from "@/lib/mock-data";
+import { useChallengesStore } from "@/lib/store/useChallengesStore";
+import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
@@ -45,6 +47,14 @@ export default function DashboardClient() {
     : 100;
 
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
+
+  // Challenges & multipliers
+  const { challenges } = useChallengesStore();
+  const { multipliers } = useMultipliersStore();
+  const activeChallenges = challenges.filter((c) => c.status === "active").slice(0, 2);
+  const activeMultiplier = multipliers.find(
+    (m) => m.isActive && m.startDate <= today && m.endDate >= today
+  );
 
   // Achievements
   const stats = MOCK_USER_STATS[currentUser.id];
@@ -98,6 +108,61 @@ export default function DashboardClient() {
           bg="bg-blue-50"
         />
       </div>
+
+      {/* Active multiplier banner */}
+      {activeMultiplier && (
+        <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-2xl px-4 py-3">
+          <span className="text-2xl">{activeMultiplier.emoji}</span>
+          <div className="flex-1">
+            <p className="font-bold text-primary">
+              ×{activeMultiplier.multiplier} activo — {activeMultiplier.name}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {activeMultiplier.description} · Hasta {activeMultiplier.endDate}
+            </p>
+          </div>
+          <Zap className="w-5 h-5 text-primary" />
+        </div>
+      )}
+
+      {/* Active challenges */}
+      {activeChallenges.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Flag className="w-4 h-4 text-primary" />
+                Retos activos
+              </CardTitle>
+              <button
+                onClick={() => router.push(`/${locale}/challenges`)}
+                className="text-xs text-primary hover:underline"
+              >
+                Ver todos →
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {activeChallenges.map((c) => {
+              const pct = Math.min(100, (c.currentProgress / c.goalTarget) * 100);
+              return (
+                <div key={c.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span>{c.emoji}</span>
+                      {c.title}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {Math.round(pct)}%
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Today's tasks */}
