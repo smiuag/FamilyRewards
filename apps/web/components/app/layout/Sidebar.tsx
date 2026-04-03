@@ -18,6 +18,9 @@ import {
   ClipboardList,
   BookOpen,
   MapPin,
+  Trophy,
+  MessageSquare,
+  Layers,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -41,6 +44,8 @@ export default function Sidebar() {
     { href: `/${locale}/tasks`, icon: CheckSquare, label: t("tasks") },
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
+    { href: `/${locale}/achievements`, icon: Trophy, label: "Logros" },
+    { href: `/${locale}/board`, icon: MessageSquare, label: "Tablón familiar" },
     { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
@@ -79,6 +84,12 @@ export default function Sidebar() {
       href: `/${locale}/admin/catalog/tasks`,
       icon: BookOpen,
       label: "Catálogo tareas",
+      adminOnly: true,
+    },
+    {
+      href: `/${locale}/admin/templates`,
+      icon: Layers,
+      label: "Plantillas temporada",
       adminOnly: true,
     },
   ];

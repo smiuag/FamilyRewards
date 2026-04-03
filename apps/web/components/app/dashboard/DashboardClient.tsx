@@ -7,13 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useRouter, useParams } from "next/navigation";
+import { ACHIEVEMENTS, MOCK_USER_STATS, RARITY_CONFIG } from "@/lib/achievements";
+import { MOCK_BOARD_MESSAGES } from "@/lib/mock-data/board";
+import { MOCK_USERS } from "@/lib/mock-data";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
   const { currentUser, taskInstances, updateTaskInstance } = useAppStore();
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
 
   if (!currentUser) return null;
 
@@ -38,6 +45,15 @@ export default function DashboardClient() {
     : 100;
 
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
+
+  // Achievements
+  const stats = MOCK_USER_STATS[currentUser.id];
+  const recentAchievements = stats
+    ? ACHIEVEMENTS.filter((a) => a.condition(stats)).slice(-3).reverse()
+    : [];
+
+  // Board
+  const recentBoardMessages = MOCK_BOARD_MESSAGES.slice(0, 2);
 
   // Map task instances to tasks for display
   const todayTasksWithInfo = todayInstances.slice(0, 4).map((ti) => {
@@ -177,6 +193,85 @@ export default function DashboardClient() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Bottom row: achievements + board preview */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Recent achievements */}
+        {recentAchievements.length > 0 && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  Logros recientes
+                </CardTitle>
+                <button
+                  onClick={() => router.push(`/${locale}/achievements`)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Ver todos →
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {recentAchievements.map((a) => {
+                const rarity = RARITY_CONFIG[a.rarity];
+                return (
+                  <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/40">
+                    <div className="text-2xl">{a.emoji}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">{a.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{a.description}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full border-0 ${rarity.color}`}>
+                      {rarity.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Board preview */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-blue-500" />
+                Tablón familiar
+              </CardTitle>
+              <button
+                onClick={() => router.push(`/${locale}/board`)}
+                className="text-xs text-primary hover:underline"
+              >
+                Ver todo →
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {recentBoardMessages.map((msg) => {
+              const author = MOCK_USERS.find((u) => u.id === msg.userId);
+              const isSystem = msg.userId === "system";
+              return (
+                <div key={msg.id} className="flex gap-2.5 p-2.5 rounded-xl bg-muted/40">
+                  <div className="text-xl flex-shrink-0">
+                    {isSystem ? msg.emoji : author?.avatar}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-muted-foreground mb-0.5">
+                      {isSystem ? "FamilyRewards" : author?.name}
+                    </p>
+                    <p className="text-sm text-foreground leading-snug line-clamp-2">
+                      {msg.content.replace(/\*\*/g, "")}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
