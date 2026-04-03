@@ -18,7 +18,15 @@
       "Bash(pnpm build:*)",
       "Bash(rm -rf /c/proyectos/Claude/FamilyRewards/apps/web/.git)",
       "Bash(git rm:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/es/challenges\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/es/reports\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/es/help\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/es/admin/challenges\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/es/admin/multipliers\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:3000__TRACKED_VAR__)",
+      "Bash(gh run:*)"
     ]
   }
 }
