@@ -7,13 +7,7 @@ import type { RewardClaim } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import { Star, Gift, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -141,42 +135,39 @@ export default function RewardsClient() {
         })}
       </div>
 
-      {/* Confirm dialog */}
-      <Dialog open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-3xl">{confirmReward?.emoji}</span>
-              Canjear recompensa
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <p className="text-muted-foreground">
-              ¿Seguro que quieres solicitar{" "}
-              <span className="font-semibold text-foreground">
-                {confirmReward?.title}
-              </span>{" "}
-              por{" "}
-              <span className="font-semibold text-primary">
-                {confirmReward?.pointsCost.toLocaleString()} puntos
-              </span>
-              ?
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Un administrador revisará y aprobará tu solicitud.
-            </p>
+      {/* Confirm modal */}
+      <AppModal open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
+        <AppModalHeader
+          emoji={confirmReward?.emoji}
+          title="Canjear recompensa"
+          description={confirmReward?.title}
+          color="bg-gradient-to-br from-amber-400 to-orange-500"
+          onClose={() => setConfirmReward(null)}
+        />
+        <AppModalBody>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Vas a solicitar esta recompensa por{" "}
+            <span className="font-bold text-primary text-base">
+              {confirmReward?.pointsCost.toLocaleString()} pts
+            </span>
+            . Un administrador revisará y aprobará tu solicitud.
+          </p>
+          <div className="flex items-center justify-between bg-muted rounded-xl p-3">
+            <span className="text-sm text-muted-foreground">Tu saldo actual</span>
+            <span className="font-bold text-foreground flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+              {currentUser?.pointsBalance.toLocaleString()} pts
+            </span>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmReward(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleRedeem}>
-              <Gift className="w-4 h-4 mr-1.5" />
-              Confirmar solicitud
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setConfirmReward(null)}>Cancelar</Button>
+          <Button onClick={handleRedeem}>
+            <Gift className="w-4 h-4 mr-1.5" />
+            Confirmar solicitud
+          </Button>
+        </AppModalFooter>
+      </AppModal>
     </div>
   );
 }

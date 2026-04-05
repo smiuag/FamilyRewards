@@ -7,13 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import {
   Table,
   TableBody,
@@ -253,63 +247,43 @@ export default function AdminRewardsClient() {
         </div>
       </div>
 
-      {/* Add / Edit reward dialog */}
-      <Dialog open={mode !== null} onOpenChange={closeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {mode === "add" ? "Nueva recompensa" : `Editar: ${editingReward?.title}`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-5 gap-3">
-              <div className="col-span-1">
-                <Label>Emoji</Label>
-                <Input
-                  value={form.emoji}
-                  onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-                  className="text-center text-xl mt-1.5"
-                />
-              </div>
-              <div className="col-span-4">
-                <Label>Nombre</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Nombre de la recompensa"
-                  className="mt-1.5"
-                />
-              </div>
+      {/* Add / Edit reward modal */}
+      <AppModal open={mode !== null} onOpenChange={closeDialog}>
+        <AppModalHeader
+          emoji={form.emoji || "🎁"}
+          title={mode === "add" ? "Nueva recompensa" : `Editar: ${editingReward?.title}`}
+          color="bg-gradient-to-br from-blue-500 to-indigo-600"
+          onClose={closeDialog}
+        />
+        <AppModalBody>
+          <div className="grid grid-cols-5 gap-3">
+            <div className="col-span-1">
+              <Label>Emoji</Label>
+              <Input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })}
+                className="text-center text-xl mt-1.5" />
             </div>
-            <div>
-              <Label>Descripción (opcional)</Label>
-              <Input
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Breve descripción"
-                className="mt-1.5"
-              />
-            </div>
-            <div>
-              <Label>Coste en puntos</Label>
-              <Input
-                type="number"
-                value={form.pointsCost}
-                onChange={(e) => setForm({ ...form, pointsCost: e.target.value })}
-                className="mt-1.5"
-              />
+            <div className="col-span-4">
+              <Label>Nombre</Label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Nombre de la recompensa" className="mt-1.5" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>
-              {mode === "add" ? "Crear recompensa" : "Guardar cambios"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div>
+            <Label>Descripción (opcional)</Label>
+            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Breve descripción" className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Coste en puntos</Label>
+            <Input type="number" value={form.pointsCost}
+              onChange={(e) => setForm({ ...form, pointsCost: e.target.value })} className="mt-1.5" />
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button onClick={handleSave}>{mode === "add" ? "Crear recompensa" : "Guardar cambios"}</Button>
+        </AppModalFooter>
+      </AppModal>
     </div>
   );
 }

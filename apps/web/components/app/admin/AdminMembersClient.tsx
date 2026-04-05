@@ -9,13 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import {
   Select,
   SelectContent,
@@ -220,124 +214,86 @@ export default function AdminMembersClient() {
         </CardContent>
       </Card>
 
-      {/* Adjust points dialog */}
-      <Dialog open={mode === "adjust"} onOpenChange={closeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {t("adjustPointsTitle", { name: selectedUser?.name ?? "" })}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>{t("pointsAmount")}</Label>
-              <div className="flex items-center gap-2 mt-1.5">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9"
-                  onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) - 10))}
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
-                <Input
-                  type="number"
-                  placeholder="ej: +50 o -100"
-                  value={adjustAmount}
-                  onChange={(e) => setAdjustAmount(e.target.value)}
-                  className="text-center"
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9"
-                  onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) + 10))}
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-            <div>
-              <Label>{t("reason")}</Label>
-              <Input
-                placeholder="Bonus por semana perfecta..."
-                value={adjustReason}
-                onChange={(e) => setAdjustReason(e.target.value)}
-                className="mt-1.5"
-              />
+      {/* Adjust points modal */}
+      <AppModal open={mode === "adjust"} onOpenChange={closeDialog}>
+        <AppModalHeader
+          emoji="⭐"
+          title={t("adjustPointsTitle", { name: selectedUser?.name ?? "" })}
+          description="Añade o resta puntos manualmente"
+          color="bg-gradient-to-br from-primary to-orange-400"
+          onClose={closeDialog}
+        />
+        <AppModalBody>
+          <div>
+            <Label>{t("pointsAmount")}</Label>
+            <div className="flex items-center gap-2 mt-1.5">
+              <Button size="icon" variant="outline" className="h-10 w-10 rounded-xl"
+                onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) - 10))}>
+                <Minus className="w-4 h-4" />
+              </Button>
+              <Input type="number" placeholder="ej: +50 o -100" value={adjustAmount}
+                onChange={(e) => setAdjustAmount(e.target.value)} className="text-center text-lg font-bold" />
+              <Button size="icon" variant="outline" className="h-10 w-10 rounded-xl"
+                onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) + 10))}>
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAdjust}>Aplicar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div>
+            <Label>{t("reason")}</Label>
+            <Input placeholder="Bonus por semana perfecta..." value={adjustReason}
+              onChange={(e) => setAdjustReason(e.target.value)} className="mt-1.5" />
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button onClick={handleAdjust}>Aplicar</Button>
+        </AppModalFooter>
+      </AppModal>
 
-      {/* Add / Edit member dialog */}
-      <Dialog open={mode === "add" || mode === "edit"} onOpenChange={closeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {mode === "add" ? "Añadir miembro" : `Editar a ${selectedUser?.name}`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Nombre</Label>
-              <Input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Nombre del miembro"
-                className="mt-1.5"
-              />
-            </div>
-            <div>
-              <Label className="mb-2 block">Avatar</Label>
-              <div className="flex flex-wrap gap-2">
-                {AVATARS.map((av) => (
-                  <button
-                    key={av}
-                    onClick={() => setFormAvatar(av)}
-                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
-                      formAvatar === av
-                        ? "bg-primary/20 ring-2 ring-primary"
-                        : "bg-muted hover:bg-muted/80"
-                    }`}
-                  >
-                    {av}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <Label>Rol</Label>
-              <Select
-                value={formRole}
-                onValueChange={(v) => setFormRole(v as "admin" | "member")}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Miembro</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Add / Edit member modal */}
+      <AppModal open={mode === "add" || mode === "edit"} onOpenChange={closeDialog}>
+        <AppModalHeader
+          emoji={mode === "add" ? "👤" : selectedUser?.avatar}
+          title={mode === "add" ? "Añadir miembro" : `Editar a ${selectedUser?.name}`}
+          color="bg-gradient-to-br from-violet-500 to-purple-600"
+          onClose={closeDialog}
+        />
+        <AppModalBody>
+          <div>
+            <Label>Nombre</Label>
+            <Input value={formName} onChange={(e) => setFormName(e.target.value)}
+              placeholder="Nombre del miembro" className="mt-1.5" />
+          </div>
+          <div>
+            <Label className="mb-2 block">Avatar</Label>
+            <div className="flex flex-wrap gap-2">
+              {AVATARS.map((av) => (
+                <button key={av} onClick={() => setFormAvatar(av)}
+                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
+                    formAvatar === av ? "bg-primary/20 ring-2 ring-primary" : "bg-muted hover:bg-muted/80"
+                  }`}>
+                  {av}
+                </button>
+              ))}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveMember}>
-              {mode === "add" ? "Añadir" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div>
+            <Label>Rol</Label>
+            <Select value={formRole} onValueChange={(v) => setFormRole(v as "admin" | "member")}>
+              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Miembro</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button onClick={handleSaveMember}>{mode === "add" ? "Añadir" : "Guardar"}</Button>
+        </AppModalFooter>
+      </AppModal>
     </div>
   );
 }

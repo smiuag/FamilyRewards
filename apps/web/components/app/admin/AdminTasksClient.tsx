@@ -8,13 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import {
   Select,
   SelectContent,
@@ -274,15 +268,15 @@ export default function AdminTasksClient() {
         ))}
       </div>
 
-      {/* New / Edit task dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTask ? `Editar: ${editingTask.title}` : "Nueva tarea"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
+      {/* New / Edit task modal */}
+      <AppModal open={open} onOpenChange={setOpen}>
+        <AppModalHeader
+          emoji="✅"
+          title={editingTask ? `Editar: ${editingTask.title}` : "Nueva tarea"}
+          color="bg-gradient-to-br from-green-500 to-emerald-600"
+          onClose={() => setOpen(false)}
+        />
+        <AppModalBody className="overflow-y-auto max-h-[60dvh]">
             <div>
               <Label>Nombre</Label>
               <Input
@@ -396,17 +390,12 @@ export default function AdminTasksClient() {
                 </div>
               </>
             )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>
-              {editingTask ? "Guardar cambios" : "Crear tarea"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSave}>{editingTask ? "Guardar cambios" : "Crear tarea"}</Button>
+        </AppModalFooter>
+      </AppModal>
     </div>
   );
 }
