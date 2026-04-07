@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   TASKS_CATALOG,
   TASK_CATEGORIES,
@@ -8,6 +8,7 @@ import {
   type CatalogTask,
 } from "@/lib/catalog/tasks-catalog";
 import { MOCK_USERS } from "@/lib/mock-data";
+import { useAppStore } from "@/lib/store/useAppStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,9 @@ const DAY_MAP: Record<string, string> = {
 };
 
 export default function CatalogTasksClient() {
+  const { setupVisited, markSetupVisited } = useAppStore();
+  useEffect(() => { markSetupVisited("catalogTasks"); }, []);
+
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<TaskCategory | "all">("all");
   const [configuringTask, setConfiguringTask] = useState<CatalogTask | null>(null);
@@ -100,6 +104,16 @@ export default function CatalogTasksClient() {
           Añade tareas predefinidas a tu familia con un solo click
         </p>
       </div>
+
+      {!setupVisited.catalogTasks && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 space-y-1">
+          <p className="font-semibold text-orange-800 text-sm">📋 Añade tareas a tu familia</p>
+          <p className="text-sm text-orange-700">
+            Explora el catálogo y añade las tareas que quieras. Podrás ajustar los puntos y asignarlas
+            a cada miembro desde <strong>Administración → Tareas</strong>.
+          </p>
+        </div>
+      )}
 
       {/* Search + category filter */}
       <div className="flex gap-2">

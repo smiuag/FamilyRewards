@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   REWARDS_CATALOG,
   REWARD_CATEGORIES,
@@ -36,7 +36,8 @@ const TIER_CONFIG = {
 const MAX_POINTS = 20000;
 
 export default function CatalogRewardsClient() {
-  const { addReward } = useAppStore();
+  const { addReward, setupVisited, markSetupVisited } = useAppStore();
+  useEffect(() => { markSetupVisited("catalogRewards"); }, []);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<RewardCategory | "all">("all");
   const [pointRange, setPointRange] = useState<[number, number]>([0, MAX_POINTS]);
@@ -107,6 +108,16 @@ export default function CatalogRewardsClient() {
           Selecciona recompensas del catálogo para añadirlas a tu familia
         </p>
       </div>
+
+      {!setupVisited.catalogRewards && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 space-y-1">
+          <p className="font-semibold text-orange-800 text-sm">🎁 Añade recompensas a tu familia</p>
+          <p className="text-sm text-orange-700">
+            Elige las recompensas que podrán canjear los miembros con sus puntos. Puedes ajustar
+            el coste de cada una o crear una personalizada.
+          </p>
+        </div>
+      )}
 
       {/* Actions row */}
       <div className="flex justify-end">

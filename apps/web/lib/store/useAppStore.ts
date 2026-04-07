@@ -30,6 +30,10 @@ interface AppState {
   // Onboarding
   onboardingCompleted: boolean;
 
+  // Setup guidance (! badges en sidebar)
+  setupVisited: { members: boolean; catalogTasks: boolean; catalogRewards: boolean };
+  markSetupVisited: (section: "members" | "catalogTasks" | "catalogRewards") => void;
+
   // Actions
   login: (userId: string) => void;
   logout: () => void;
@@ -77,6 +81,7 @@ export const useAppStore = create<AppState>()(
       claims: MOCK_CLAIMS,
       transactions: [],
       onboardingCompleted: false,
+      setupVisited: { members: false, catalogTasks: false, catalogRewards: false },
       targetRewardIds: [],
       archivedClaimIds: [],
       featuresUnlocked: [],
@@ -93,7 +98,7 @@ export const useAppStore = create<AppState>()(
       setCurrentProfile: (profile) => set({ currentUser: profile }),
 
       // Limpia todo el mock data e inicializa con datos reales de Supabase
-      initRealAuth: (profiles, selectedProfile) => set({
+      initRealAuth: (profiles, selectedProfile) => set((prev) => ({
         currentUser: selectedProfile,
         users: profiles,
         tasks: [],
@@ -101,14 +106,21 @@ export const useAppStore = create<AppState>()(
         rewards: [],
         claims: [],
         transactions: [],
-        onboardingCompleted: false,
+        // Preservar onboardingCompleted y setupVisited entre sesiones
+        onboardingCompleted: prev.onboardingCompleted,
+        setupVisited: prev.setupVisited,
         targetRewardIds: [],
         archivedClaimIds: [],
         featuresUnlocked: [],
         streakAlert: null,
-      }),
+      })),
 
       completeOnboarding: () => set({ onboardingCompleted: true }),
+
+      markSetupVisited: (section) =>
+        set((prev) => ({
+          setupVisited: { ...prev.setupVisited, [section]: true },
+        })),
 
       updateTaskInstance: (instanceId, newState) => {
         set((prev) => {
@@ -392,6 +404,7 @@ export const useAppStore = create<AppState>()(
         rewards: state.rewards,
         claims: state.claims,
         onboardingCompleted: state.onboardingCompleted,
+        setupVisited: state.setupVisited,
         targetRewardIds: state.targetRewardIds,
         archivedClaimIds: state.archivedClaimIds,
         featuresUnlocked: state.featuresUnlocked,

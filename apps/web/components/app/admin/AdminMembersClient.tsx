@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { MOCK_TASK_INSTANCES } from "@/lib/mock-data";
@@ -35,7 +35,9 @@ type DialogMode = "adjust" | "edit" | "add" | null;
 
 export default function AdminMembersClient() {
   const t = useTranslations("admin.members");
-  const { users, adjustPoints } = useAppStore();
+  const { users, adjustPoints, setupVisited, markSetupVisited } = useAppStore();
+
+  useEffect(() => { markSetupVisited("members"); }, []);
 
   const [mode, setMode] = useState<DialogMode>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -125,6 +127,16 @@ export default function AdminMembersClient() {
           {t("addMember")}
         </Button>
       </div>
+
+      {!setupVisited.members && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 space-y-1">
+          <p className="font-semibold text-orange-800 text-sm">👥 Añade a tu familia</p>
+          <p className="text-sm text-orange-700">
+            Aquí puedes añadir a todos los miembros de tu familia, asignarles un rol y ajustar sus puntos manualmente.
+            Para dar acceso de administrador a alguien, edita su perfil y cambia el rol a <strong>Admin</strong>.
+          </p>
+        </div>
+      )}
 
       {/* Members table */}
       <Card className="shadow-sm">

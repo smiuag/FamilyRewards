@@ -140,7 +140,7 @@ export default function OnboardingWizard() {
 
   const handleFinish = () => {
     completeOnboarding();
-    router.push(`/${locale}/dashboard`);
+    router.push(`/${locale}/admin/members`);
   };
 
   const taskNextDisabled =

@@ -32,6 +32,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  alert?: boolean;
 }
 
 export default function Sidebar() {
@@ -40,7 +41,7 @@ export default function Sidebar() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
-  const { currentUser, users, taskInstances, logout, featuresUnlocked } = useAppStore();
+  const { currentUser, users, taskInstances, logout, featuresUnlocked, setupVisited } = useAppStore();
 
   const isAdminRoute = pathname.startsWith(`/${locale}/admin`);
   const isMemberRoute = pathname.startsWith(`/${locale}/members`);
@@ -58,7 +59,7 @@ export default function Sidebar() {
   ];
 
   const adminItems: NavItem[] = [
-    { href: `/${locale}/admin/members`, icon: Users, label: t("adminMembers") },
+    { href: `/${locale}/admin/members`, icon: Users, label: t("adminMembers"), alert: !setupVisited.members },
     { href: `/${locale}/admin/tasks`, icon: ClipboardList, label: t("adminTasks") },
     { href: `/${locale}/admin/rewards`, icon: Gift, label: t("adminRewards") },
     { href: `/${locale}/admin/stats`, icon: BarChart3, label: t("adminStats") },
@@ -66,8 +67,8 @@ export default function Sidebar() {
       { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
       { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
     ] : []),
-    { href: `/${locale}/admin/catalog/tasks`, icon: BookOpen, label: t("adminCatalogTasks") },
-    { href: `/${locale}/admin/catalog/rewards`, icon: BookOpen, label: t("adminCatalogRewards") },
+    { href: `/${locale}/admin/catalog/tasks`, icon: BookOpen, label: t("adminCatalogTasks"), alert: !setupVisited.catalogTasks },
+    { href: `/${locale}/admin/catalog/rewards`, icon: BookOpen, label: t("adminCatalogRewards"), alert: !setupVisited.catalogRewards },
     { href: `/${locale}/admin/templates`, icon: Layers, label: t("adminTemplates") },
     { href: `/${locale}/settings`, icon: MapPin, label: t("settings") },
     { href: `/${locale}/help`, icon: HelpCircle, label: t("help") },
@@ -276,7 +277,12 @@ function NavBtn({
       )}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />
-      <span>{item.label}</span>
+      <span className="flex-1 text-left">{item.label}</span>
+      {item.alert && (
+        <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+          !
+        </span>
+      )}
     </button>
   );
 }
