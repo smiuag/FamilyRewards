@@ -8,8 +8,17 @@ import { Star, User, Lock, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const AVATARS = [
-  "👦","👧","👨","👩","🧔","👱","👴","👵","🧒","👶",
-  "🧑","🧕","🦸","🧙","👮","🧑‍🍳","🧑‍🎨","🧑‍💻","🥷","🧑‍🚀",
+  // Personas
+  "👶","🧒","👦","👧","🧑","👨","👩","👱","🧔","🧓","👴","👵",
+  // Roles
+  "🧑‍🍳","🧑‍💻","🧑‍🎨","🧑‍🚀","🧑‍🔬","🧑‍🏫","🧑‍⚕️","🧑‍🎤","🧑‍🏋️","🥷",
+  "👸","🤴","🧙","🦸","🦹","🧝","🧜","🧚","🎅","🤶",
+  // Animales
+  "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
+  "🦁","🐮","🐷","🐸","🐵","🐙","🦄","🐺","🦝","🐧",
+  "🦋","🐢","🦖","🦕","🐉",
+  // Divertidos
+  "🤖","👾","👻","💩","🎃","⭐","🔥","🌈","🎸","⚽",
 ];
 
 export default function JoinClient() {
@@ -128,7 +137,7 @@ export default function JoinClient() {
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Tu avatar</label>
-            <div className="grid grid-cols-10 gap-1">
+            <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto pr-1">
               {AVATARS.map((a) => (
                 <button key={a} type="button" onClick={() => setAvatar(a)}
                   className={cn("text-xl p-1 rounded-lg transition-all",

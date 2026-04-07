@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus, Check, Star, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +46,11 @@ export default function CatalogRewardsClient() {
   const [confirmReward, setConfirmReward] = useState<CatalogReward | null>(null);
   const [confirmPoints, setConfirmPoints] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const categoryLabel =
+    activeCategory === "all"
+      ? `🌟 Todas (${REWARDS_CATALOG.length})`
+      : `${REWARD_CATEGORIES[activeCategory as RewardCategory]?.emoji} ${REWARD_CATEGORIES[activeCategory as RewardCategory]?.label}`;
 
   // Custom reward creation
   const [customOpen, setCustomOpen] = useState(false);
@@ -160,8 +164,8 @@ export default function CatalogRewardsClient() {
           />
         </div>
         <Select value={activeCategory} onValueChange={(v) => setActiveCategory((v ?? "all") as RewardCategory | "all")}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Todas las categorías" />
+          <SelectTrigger className="w-48">
+            <span className="text-sm truncate">{categoryLabel}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">🌟 Todas ({REWARDS_CATALOG.length})</SelectItem>

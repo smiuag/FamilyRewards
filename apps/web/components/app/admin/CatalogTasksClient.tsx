@@ -27,18 +27,19 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus, Check, Star, Users, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { DayOfWeek } from "@/lib/types";
 
 const DIFFICULTY_CONFIG = {
-  easy:   { label: "Fácil",   color: "bg-green-100 text-green-700",  dot: "bg-green-500" },
-  medium: { label: "Normal",  color: "bg-amber-100 text-amber-700",  dot: "bg-amber-500" },
-  hard:   { label: "Difícil", color: "bg-red-100 text-red-700",      dot: "bg-red-500" },
+  easy:   { label: "Fácil",   color: "bg-green-100 text-green-700" },
+  medium: { label: "Normal",  color: "bg-amber-100 text-amber-700" },
+  hard:   { label: "Difícil", color: "bg-red-100 text-red-700" },
 };
 
+const ALL_DAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const DAY_MAP: Record<string, string> = {
   mon: "L", tue: "M", wed: "X", thu: "J", fri: "V", sat: "S", sun: "D",
 };
@@ -53,9 +54,10 @@ export default function CatalogTasksClient() {
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
-  // Quick-add form state
+  // Dialog form state
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [makeRecurring, setMakeRecurring] = useState(false);
+  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
   const [customPoints, setCustomPoints] = useState("");
 
   const filtered = useMemo(() => {
@@ -72,8 +74,14 @@ export default function CatalogTasksClient() {
     setConfiguringTask(task);
     setSelectedUsers([]);
     setMakeRecurring(!!task.suggestedDays?.length);
+    setSelectedDays((task.suggestedDays ?? []) as DayOfWeek[]);
     setCustomPoints(String(task.suggestedPoints));
   };
+
+  const toggleDay = (day: DayOfWeek) =>
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
 
   const handleConfirmAdd = async () => {
     if (!configuringTask) return;
@@ -81,15 +89,15 @@ export default function CatalogTasksClient() {
     if (!currentUser?.familyId) { toast.error("No se pudo determinar la familia"); return; }
     setSaving(true);
     try {
-      const recurringPattern = makeRecurring && configuringTask.suggestedDays?.length
-        ? { daysOfWeek: configuringTask.suggestedDays as import("@/lib/types").DayOfWeek[], time: configuringTask.suggestedTime, defaultState: "pending" as const }
+      const recurringPattern = makeRecurring && selectedDays.length > 0
+        ? { daysOfWeek: selectedDays, time: configuringTask.suggestedTime, defaultState: "pending" as const }
         : undefined;
       await createTask(currentUser.familyId, currentUser.id, {
         title: configuringTask.title,
         description: configuringTask.description,
         points: parseInt(customPoints) || configuringTask.suggestedPoints,
         assignedTo: selectedUsers,
-        isRecurring: makeRecurring && !!configuringTask.suggestedDays?.length,
+        isRecurring: makeRecurring && selectedDays.length > 0,
         recurringPattern,
       });
       setAddedIds((prev) => new Set([...prev, configuringTask.id]));
@@ -104,17 +112,21 @@ export default function CatalogTasksClient() {
     }
   };
 
-  const toggleUser = (uid: string) => {
+  const toggleUser = (uid: string) =>
     setSelectedUsers((prev) =>
       prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
     );
-  };
 
   const categories = Object.entries(TASK_CATEGORIES) as [TaskCategory, typeof TASK_CATEGORIES[TaskCategory]][];
 
+  // Display label for the category select trigger
+  const categoryLabel =
+    activeCategory === "all"
+      ? `🗂️ Todas (${TASKS_CATALOG.length})`
+      : `${TASK_CATEGORIES[activeCategory as TaskCategory]?.emoji} ${TASK_CATEGORIES[activeCategory as TaskCategory]?.label}`;
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-5">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-extrabold">Catálogo de Tareas</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
@@ -144,8 +156,8 @@ export default function CatalogTasksClient() {
           />
         </div>
         <Select value={activeCategory} onValueChange={(v) => setActiveCategory((v ?? "all") as TaskCategory | "all")}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Todas las categorías" />
+          <SelectTrigger className="w-48">
+            <span className="text-sm truncate">{categoryLabel}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">🗂️ Todas ({TASKS_CATALOG.length})</SelectItem>
@@ -165,7 +177,7 @@ export default function CatalogTasksClient() {
         {filtered.length} tarea{filtered.length !== 1 ? "s" : ""} encontrada{filtered.length !== 1 ? "s" : ""}
       </p>
 
-      {/* Grid */}
+      {/* Grid — cards use flex-col so footer always aligns */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((task) => {
           const isAdded = addedIds.has(task.id);
@@ -176,74 +188,75 @@ export default function CatalogTasksClient() {
             <Card
               key={task.id}
               className={cn(
-                "shadow-sm hover:shadow-md transition-all border-2",
+                "shadow-sm hover:shadow-md transition-all border-2 flex flex-col",
                 isAdded ? "border-green-300 bg-green-50/50" : "border-transparent"
               )}
             >
-              <CardContent className="pt-4 pb-4">
-                {/* Header row */}
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-3xl">{task.emoji}</span>
-                  <Badge className={cn("text-xs border-0", catConfig.color)}>
-                    {catConfig.emoji} {catConfig.label}
-                  </Badge>
-                </div>
+              <CardContent className="pt-4 pb-4 flex flex-col flex-1">
+                {/* Top section grows */}
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-3xl">{task.emoji}</span>
+                    <Badge className={cn("text-xs border-0", catConfig.color)}>
+                      {catConfig.emoji} {catConfig.label}
+                    </Badge>
+                  </div>
+                  <h3 className="font-bold text-sm leading-tight mb-1">{task.title}</h3>
+                  <p className="text-xs text-muted-foreground mb-2 leading-relaxed line-clamp-2">
+                    {task.description}
+                  </p>
 
-                {/* Title */}
-                <h3 className="font-bold text-sm leading-tight mb-1">{task.title}</h3>
-                <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
-                  {task.description}
-                </p>
-
-                {/* Suggested days */}
-                {task.suggestedDays && task.suggestedDays.length > 0 && (
-                  <div className="flex gap-1 mb-2">
-                    {["mon","tue","wed","thu","fri","sat","sun"].map((d) => (
-                      <span
-                        key={d}
-                        className={cn(
-                          "w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center",
-                          task.suggestedDays?.includes(d)
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground/40"
+                  {/* Days row — always reserves space (hidden placeholder when no days) */}
+                  <div className="h-6 flex items-center gap-1 mb-2">
+                    {task.suggestedDays && task.suggestedDays.length > 0 ? (
+                      <>
+                        {ALL_DAYS.map((d) => (
+                          <span
+                            key={d}
+                            className={cn(
+                              "w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center",
+                              task.suggestedDays?.includes(d)
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground/40"
+                            )}
+                          >
+                            {DAY_MAP[d]}
+                          </span>
+                        ))}
+                        {task.suggestedTime && (
+                          <span className="flex items-center gap-0.5 ml-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">{task.suggestedTime}</span>
+                          </span>
                         )}
-                      >
-                        {DAY_MAP[d]}
-                      </span>
-                    ))}
-                    {task.suggestedTime && (
-                      <div className="flex items-center gap-0.5 ml-1">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">{task.suggestedTime}</span>
-                      </div>
-                    )}
+                      </>
+                    ) : null}
                   </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                    <span className="font-bold text-primary text-sm">{task.suggestedPoints}</span>
-                    <span className="text-xs text-muted-foreground">pts</span>
-                  </div>
-                  <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded-full", diff.color)}>
-                    {diff.label}
-                  </span>
                 </div>
 
-                <Button
-                  size="sm"
-                  className={cn("w-full h-8 text-xs", isAdded && "bg-green-500 hover:bg-green-600")}
-                  onClick={() => !isAdded && openConfigure(task)}
-                  disabled={isAdded}
-                >
-                  {isAdded ? (
-                    <><Check className="w-3.5 h-3.5 mr-1" /> Añadida</>
-                  ) : (
-                    <><Plus className="w-3.5 h-3.5 mr-1" /> Añadir y configurar</>
-                  )}
-                </Button>
+                {/* Bottom section always at same position */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                      <span className="font-bold text-primary text-sm">{task.suggestedPoints}</span>
+                      <span className="text-xs text-muted-foreground">pts</span>
+                    </div>
+                    <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded-full", diff.color)}>
+                      {diff.label}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className={cn("w-full h-8 text-xs", isAdded && "bg-green-500 hover:bg-green-600")}
+                    onClick={() => !isAdded && openConfigure(task)}
+                    disabled={isAdded}
+                  >
+                    {isAdded
+                      ? <><Check className="w-3.5 h-3.5 mr-1" /> Añadida</>
+                      : <><Plus className="w-3.5 h-3.5 mr-1" /> Añadir y configurar</>}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
@@ -313,19 +326,39 @@ export default function CatalogTasksClient() {
               </div>
             </div>
 
-            {/* Recurring */}
-            {configuringTask?.suggestedDays && configuringTask.suggestedDays.length > 0 && (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold flex items-center gap-1">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Tarea recurrente
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Días sugeridos: {configuringTask.suggestedDays.map((d) => DAY_MAP[d]).join(" ")}
-                  </p>
+            {/* Recurring toggle — always visible */}
+            <div className="flex items-center justify-between rounded-xl border border-border p-3">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Tarea recurrente
+                </p>
+                <p className="text-xs text-muted-foreground">Se repite en los días elegidos</p>
+              </div>
+              <Switch checked={makeRecurring} onCheckedChange={(v) => { setMakeRecurring(v); if (v && selectedDays.length === 0) setSelectedDays((configuringTask?.suggestedDays ?? []) as DayOfWeek[]); }} />
+            </div>
+
+            {/* Day picker — shown when recurring */}
+            {makeRecurring && (
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Días de la semana</Label>
+                <div className="flex gap-1.5">
+                  {ALL_DAYS.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDay(d)}
+                      className={cn(
+                        "w-9 h-9 rounded-xl text-sm font-bold transition-all",
+                        selectedDays.includes(d)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      )}
+                    >
+                      {DAY_MAP[d]}
+                    </button>
+                  ))}
                 </div>
-                <Switch checked={makeRecurring} onCheckedChange={setMakeRecurring} />
               </div>
             )}
           </div>

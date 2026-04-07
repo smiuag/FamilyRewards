@@ -34,7 +34,19 @@ import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Che
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
 
-const AVATARS = ["👦", "👧", "👨", "👩", "👴", "👵", "🧑", "👱", "🧒", "🐶", "🐱", "🦊"];
+const AVATARS = [
+  // Personas
+  "👶", "🧒", "👦", "👧", "🧑", "👨", "👩", "👱", "🧔", "🧓", "👴", "👵",
+  // Roles y estilos
+  "🧑‍🍳", "🧑‍💻", "🧑‍🎨", "🧑‍🚀", "🧑‍🔬", "🧑‍🏫", "🧑‍⚕️", "🧑‍🎤", "🧑‍🏋️", "🥷",
+  "👸", "🤴", "🧙", "🦸", "🦹", "🧝", "🧜", "🧚", "🎅", "🤶",
+  // Animales
+  "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
+  "🦁", "🐮", "🐷", "🐸", "🐵", "🐙", "🦄", "🐺", "🦝", "🐧",
+  "🦋", "🐢", "🦖", "🦕", "🐉",
+  // Objetos y símbolos divertidos
+  "🤖", "👾", "👻", "💩", "🎃", "⭐", "🔥", "🌈", "🎸", "⚽",
+];
 
 type DialogMode = "adjust" | "edit" | "add" | "invite" | null;
 
@@ -318,10 +330,10 @@ export default function AdminMembersClient() {
           </div>
           <div>
             <Label className="mb-2 block">Avatar</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-10 gap-1.5 max-h-40 overflow-y-auto pr-1">
               {AVATARS.map((av) => (
                 <button key={av} onClick={() => setFormAvatar(av)}
-                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${
                     formAvatar === av ? "bg-primary/20 ring-2 ring-primary" : "bg-muted hover:bg-muted/80"
                   }`}>
                   {av}
