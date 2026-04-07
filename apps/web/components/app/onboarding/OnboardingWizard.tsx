@@ -38,39 +38,11 @@ const CUSTOM_ID = "__custom__";
 
 const AVATARS = ["👦","👧","👨","👩","👴","👵","🧒","🧑","👱","🦊","🐱","🐶"];
 
-const COUNTRIES = [
-  { code: "ES", name: "España" },
-  { code: "MX", name: "México" },
-  { code: "AR", name: "Argentina" },
-  { code: "CO", name: "Colombia" },
-  { code: "US", name: "Estados Unidos" },
-  { code: "OTHER", name: "Otro" },
-];
-
-const ES_REGIONS = [
-  { code: "ES-MD", name: "Madrid" },
-  { code: "ES-CT", name: "Cataluña" },
-  { code: "ES-AN", name: "Andalucía" },
-  { code: "ES-VC", name: "Valencia" },
-  { code: "ES-GA", name: "Galicia" },
-  { code: "ES-PV", name: "País Vasco" },
-  { code: "ES-CM", name: "Castilla-La Mancha" },
-  { code: "ES-CL", name: "Castilla y León" },
-  { code: "ES-AR", name: "Aragón" },
-  { code: "ES-EX", name: "Extremadura" },
-  { code: "ES-MU", name: "Murcia" },
-  { code: "ES-CN", name: "Canarias" },
-  { code: "ES-CB", name: "Cantabria" },
-  { code: "ES-LO", name: "La Rioja" },
-  { code: "ES-IB", name: "Baleares" },
-  { code: "ES-AS", name: "Asturias" },
-  { code: "ES-NA", name: "Navarra" },
-];
 
 export default function OnboardingWizard() {
   const t = useTranslations("onboarding");
   const { currentUser, users, addMember, addTask, addReward, completeOnboarding } = useAppStore();
-  const { setLocation } = useSettingsStore();
+  const { setPostalCode } = useSettingsStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
@@ -93,8 +65,7 @@ export default function OnboardingWizard() {
   const [newRole, setNewRole] = useState<"admin" | "member">("member");
 
   // Location step
-  const [country, setCountry] = useState("ES");
-  const [region, setRegion] = useState("ES-MD");
+  const [postalCode, setPostalCodeInput] = useState("");
 
   const currentIndex = STEPS.indexOf(step);
   const progress = (currentIndex / (STEPS.length - 1)) * 100;
@@ -163,7 +134,7 @@ export default function OnboardingWizard() {
   };
 
   const handleSaveLocation = () => {
-    setLocation(country, region, region);
+    if (postalCode.trim()) setPostalCode(postalCode.trim());
     goNext();
   };
 
@@ -428,27 +399,18 @@ export default function OnboardingWizard() {
           {step === "location" && (
             <div className="space-y-5">
               <StepHeader icon={<MapPin className="w-5 h-5" />} title={t("stepLocation")} desc={t("stepLocationDesc")} />
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-sm mb-1.5 block">{t("selectCountry")}</Label>
-                  <Select value={country} onValueChange={(v) => setCountry(v ?? "ES")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {country === "ES" && (
-                  <div>
-                    <Label className="text-sm mb-1.5 block">{t("selectRegion")}</Label>
-                    <Select value={region} onValueChange={(v) => setRegion(v ?? "ES-MD")}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ES_REGIONS.map((r) => <SelectItem key={r.code} value={r.code}>{r.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+              <div>
+                <Label className="text-sm mb-1.5 block">Código postal</Label>
+                <Input
+                  placeholder="28001"
+                  value={postalCode}
+                  onChange={(e) => setPostalCodeInput(e.target.value)}
+                  maxLength={10}
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Lo usaremos para calcular los festivos locales de tu zona.
+                </p>
               </div>
               <StepFooter onSkip={goNext} onNext={handleSaveLocation} skipLabel={t("skipStep")} nextLabel={t("next")} />
             </div>
@@ -468,7 +430,7 @@ export default function OnboardingWizard() {
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Próximos pasos sugeridos</p>
                 {[
                   { icon: "👨‍👩‍👧", text: "Añade al resto de tu familia desde Administración → Miembros" },
-                  { icon: "✉️", text: "Invita a tu pareja para que también sea administrador" },
+                  { icon: "✉️", text: "Dale permisos de administrador a quien desees desde Administración → Miembros" },
                   { icon: "📋", text: "Crea más tareas y asígnalas a quien quieras" },
                   { icon: "🎁", text: "Explora el catálogo completo de recompensas" },
                   { icon: "📅", text: "Configura festivos locales en Configuración" },
