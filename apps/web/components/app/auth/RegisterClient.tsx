@@ -87,7 +87,7 @@ export default function RegisterClient() {
       setError(
         error.message === "User already registered"
           ? "Ya existe una cuenta con ese email."
-          : `Error: ${error.message}`
+          : "Error al crear la cuenta. Inténtalo de nuevo."
       );
       setLoading(false);
       return;
