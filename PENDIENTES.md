@@ -1,85 +1,77 @@
 # Pendientes FamilyRewards
 
-## 🔴 Urgente — Deploy Vercel
-- Verificar que https://family-rewards-zeta.vercel.app funciona tras el fix del middleware.ts
-- Si sigue fallando, revisar los logs de build en Vercel dashboard
-- El fix: se creó `apps/web/middleware.ts` con default export (el antiguo proxy.ts no lo reconocía Vercel)
+## 🔴 Migración a Supabase — datos reales
 
-## 🟡 Plugin Vercel en Claude Code
-- Diego instaló `npx plugins add vercel/vercel-plugin` pero necesita reiniciar Claude Code para activarlo
-- Una vez activo, Claude puede ver logs de deploy y redesplegar directamente
+Todo lo que sigue usa datos mock/Zustand local y necesita conectarse a Supabase.
+El esquema de base de datos ya existe (`supabase/migrations/20260407000000_initial_schema.sql`).
+
+### FASE 3 — Miembros e invitaciones
+- [ ] **Admin → Miembros**: guardar nuevos miembros en `profiles` de Supabase (ahora solo es local)
+- [ ] **Admin → Miembros**: editar nombre/avatar/rol y persistirlo en Supabase
+- [ ] **Admin → Miembros**: ajuste de puntos → guardar en `points_transactions` y actualizar `profiles.points_balance`
+- [ ] **Invitaciones**: flujo para invitar a otro adulto como administrador (tabla `family_invitations`, email con link de join)
+- [ ] **ProfileSelectClient**: leer perfiles desde Supabase en lugar de solo al hacer login (refrescar si cambian)
+
+### FASE 4 — Tareas
+- [ ] **Admin → Tareas**: crear/editar/desactivar tareas → tabla `tasks` en Supabase
+- [ ] **Admin → Tareas**: asignar tareas a miembros → tabla `task_assignments`
+- [ ] **Admin → Catálogo Tareas**: al añadir una tarea del catálogo, guardarla en `tasks`
+- [ ] **TasksClient / DashboardClient**: leer `task_instances` desde Supabase para el día actual
+- [ ] **TasksClient**: marcar completada/omitida → actualizar `task_instances` en Supabase
+- [ ] **CalendarClient**: usa `MOCK_TASKS` para resolver nombre de tarea → usar store real
+- [ ] **AdminMembersClient**: contadores "tareas hoy" usan `MOCK_TASK_INSTANCES` → usar store real
+
+### FASE 5 — Recompensas y canjes
+- [ ] **Admin → Recompensas**: crear/editar recompensas → tabla `rewards` en Supabase
+- [ ] **Admin → Catálogo Recompensas**: al añadir del catálogo, guardar en `rewards`
+- [ ] **RewardsClient**: leer recompensas y canjes desde Supabase
+- [ ] **RewardsClient**: solicitar canje → insertar en `reward_claims`
+- [ ] **Admin → Recompensas**: aprobar/rechazar canje → actualizar `reward_claims` y `points_transactions`
+
+### FASE 6 — Puntos e historial
+- [ ] **ProfileClient**: historial de puntos usa `MOCK_POINTS_HISTORY` → leer `points_transactions` de Supabase
+- [ ] **ProfileClient**: `completedThisMonth` es valor hardcodeado → calcular desde Supabase
+- [ ] **Admin → Stats**: toda la página usa `MOCK_USERS`, `MOCK_TASK_INSTANCES`, `MOCK_CLAIMS`, `MOCK_REWARDS` → store real / Supabase
+
+### FASE 7 — Funcionalidades avanzadas (datos mock)
+- [ ] **Board** (`BoardClient`, `DashboardClient`): mensajes hardcodeados en `MOCK_BOARD_MESSAGES` → tabla nueva en Supabase
+- [ ] **Achievements**: `MOCK_USER_STATS` hardcodeado → calcular desde datos reales
+- [ ] **Challenges** (`useChallengesStore`): usa `MOCK_CHALLENGES` → tabla en Supabase
+- [ ] **Multipliers** (`useMultipliersStore`): usa `MOCK_MULTIPLIERS` → tabla en Supabase
+- [ ] **Reports** (`lib/reports/index.ts`): usa `MOCK_TASKS` para calcular top task → usar store real
+- [ ] **Admin → Multipliers**: `MOCK_USERS` y `MOCK_TASKS` para mostrar nombres → usar store real
+- [ ] **Admin → Challenges**: `MOCK_USERS` para mostrar participantes → usar store real
+- [ ] **CatalogTasksClient**: asignación en modal usa `MOCK_USERS` → usar store real
+
+---
 
 ## 🟡 APK de pruebas (TWA)
 Pasos pendientes una vez el deploy de Vercel funcione:
 1. Añadir `manifest.json` y meta PWA a la web (iconos, theme-color, display: standalone)
 2. Instalar Bubblewrap: `npm i -g @bubblewrap/cli`
-3. `bubblewrap init --manifest https://family-rewards-zeta.vercel.app/manifest.json`
+3. `bubblewrap init --manifest https://family-awards.vercel.app/manifest.json`
 4. `bubblewrap build` → genera el .apk
 5. Necesita Java 11+ y Android SDK (Bubblewrap puede descargarlos)
 
-## 🟢 Mejoras pendientes de la maqueta
-
-### Hechas en sesión actual
-- [x] Geolocalizador por código postal en Ajustes
-- [x] Plantillas de temporada: barra completa clickable, sin flechas separadas
-- [x] Sidebar: "Mi perfil" en lugar del nombre, sin item de navegación "Perfil"
-- [x] Recompensas "objetivo": marcar/desmarcar, sección separada en la vista
-- [x] Catálogo de recompensas: modal de confirmación con puntos editables
-- [x] Texto truncado en tarjetas del catálogo (línea 1 + ...)
-- [x] Auto-aceptar solicitud de recompensa si quien canjea es administrador
-- [x] Recompensas personalizadas: botón "Crear recompensa personalizada" en AdminRewardsClient
-
-### Pendientes nuevas (2026-04-05)
-
-- [x] **Recompensas personalizadas desde catálogo**
-  - En la página de catálogo de recompensas (admin), añadir botón "Crear personalizada" que abra
-    un modal vacío para crear una recompensa desde cero (no del catálogo predefinido).
-  - El modal reutiliza el de AdminRewardsClient (emoji, nombre, descripción, puntos).
-
-- [x] **Texto truncado en tarjetas del catálogo de recompensas**
-  - La descripción en cada tarjeta debe truncarse a 1 línea (`line-clamp-1`) para que el botón
-    "Añadir al catálogo" siempre quede en la misma posición vertical.
-
-- [x] **Auto-aceptar recompensa si quien canjea es administrador**
-  - En `RewardsClient.tsx`, si `currentUser.role === "admin"`, al confirmar el canje llamar
-    también a `updateClaim(id, "approved")` en el mismo flujo, en lugar de dejarlo en "pending".
-  - Mostrar un toast diferente: "Recompensa canjeada directamente" (sin esperar aprobación).
-
-- [x] **Plantillas de temporada: asignar tareas a miembros concretos**
-  - Al hacer clic en "Aplicar pack", antes de confirmar mostrar un paso de asignación:
-    un selector múltiple de miembros (como el que tiene AdminTasksClient) para elegir
-    a quiénes se les asignan las tareas de la plantilla.
-  - Las recompensas del pack se añaden al catálogo familiar (sin asignación, son globales).
-  - Guardar la decisión y llamar a `addTask` por cada tarea con `assignedTo` poblado.
-
-- [x] **Descubrimiento progresivo de funcionalidades** (implementado para rachas; challenges/multipliers se ocultan hasta desbloquear "streaks")
-  - Introducir un sistema de `featuresUnlocked: string[]` en el store (persistido).
-  - Funcionalidades que empiezan bloqueadas (no visibles en el menú ni en el dashboard):
-    - `"streaks"` — rachas y bonificaciones por racha
-    - `"achievements"` — logros / medallas
-    - `"challenges"` — retos familiares
-    - `"multipliers"` — multiplicadores de puntos
-    - `"board"` — tablón familiar
-  - Reglas de desbloqueo:
-    - `"streaks"`: cuando al completar una tarea alguien lleva 7 días consecutivos con
-      todas las tareas completadas → al admin le aparece un toast/modal con la opción de
-      "Bonificar racha y activar funcionalidad de rachas". Si acepta, `featuresUnlocked`
-      añade `"streaks"` y se añade el nav item correspondiente.
-    - `"achievements"`, `"challenges"`, `"multipliers"`, `"board"`: definir criterios
-      similares (proponer criterios razonables antes de implementar).
-  - En el sidebar y en la navegación, los items de esas secciones solo aparecen si la
-    feature correspondiente está desbloqueada.
-
-- [x] **Archivo de recompensas canjeadas (usuario)**
-  - En `RewardsClient.tsx`, las solicitudes aprobadas o rechazadas se pueden "archivar"
-    (botón pequeño en la esquina de cada tarjeta con estado resuelto).
-  - Añadir al store: `archivedClaimIds: string[]` + `archiveClaim(claimId: string)`.
-  - Las solicitudes archivadas desaparecen de la vista principal.
-  - Nuevo apartado colapsable "Archivo" al final de la página, con las solicitudes
-    archivadas ordenadas por `requestedAt` desc, mostrando emoji + nombre + fecha + estado.
-
-### Otras pendientes anteriores
+## 🟢 Mejoras UI pendientes
 - [ ] Botones sin handler pendientes de revisar (profile edit, settings save, board pin/delete mensajes)
 - [ ] El multiplicador activo debería mostrarse también en la vista de Tareas junto a cada tarea afectada
 - [ ] Admin/Stats — página existe pero podría enriquecerse con los datos de reports
-- [ ] Eliminar o deprecar `proxy.ts` una vez confirmado que middleware.ts funciona en producción
+- [ ] NEXT_PUBLIC_AUTH_ENABLED sigue en `false` — activar protección de rutas cuando la migración a Supabase esté completa
+
+## ✅ Completado
+
+- [x] Sidebar: secciones colapsables, jerarquía visual, separadores
+- [x] Wizard de onboarding: orden de pasos, código postal, custom inline, traducciones
+- [x] Wizard sale solo una vez; preserva estado entre logins
+- [x] Al terminar wizard → redirige a Admin → Miembros
+- [x] Badges `!` en sidebar (Miembros, Catálogo Tareas, Catálogo Recompensas)
+- [x] Banners de primera visita en secciones de configuración
+- [x] Auth real con Supabase: registro, login, profile-select
+- [x] Ruta `/auth/confirm` para intercambio de token de confirmación de email
+- [x] Skip re-login si Supabase devuelve sesión directamente tras registro
+- [x] Pantalla de espera "Confirmando email" con auto-avance por onAuthStateChange
+- [x] Recompensas objetivo, archivo de canjes, auto-aceptar si admin
+- [x] Descubrimiento progresivo de funcionalidades (streaks desbloquea challenges/multipliers)
+- [x] Plantillas de temporada con asignación de miembros
+- [x] Catálogo de recompensas con modal de puntos editables y recompensa personalizada
