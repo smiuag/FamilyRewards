@@ -21,12 +21,12 @@ import { es } from "date-fns/locale";
 const DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 
 export default function ReportsClient() {
-  const { currentUser, users, taskInstances } = useAppStore();
+  const { currentUser, users, taskInstances, tasks } = useAppStore();
   const [period, setPeriod] = useState<"week" | "month">("week");
 
   if (!currentUser) return null;
 
-  const report = buildFamilyReport(users, taskInstances, period);
+  const report = buildFamilyReport(users, taskInstances, period, tasks);
 
   // My report
   const myReport = report.memberReports.find(

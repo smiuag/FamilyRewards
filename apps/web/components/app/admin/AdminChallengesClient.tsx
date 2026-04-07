@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
-import { MOCK_USERS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,7 @@ const GOAL_LABELS: Record<ChallengeGoalType, string> = {
 };
 
 export default function AdminChallengesClient() {
-  const { currentUser } = useAppStore();
+  const { currentUser, users } = useAppStore();
   const { challenges, addChallenge, updateStatus, deleteChallenge } =
     useChallengesStore();
   const [open, setOpen] = useState(false);
@@ -165,7 +164,7 @@ export default function AdminChallengesClient() {
                 {/* Contributions */}
                 <div className="flex flex-wrap gap-2">
                   {c.contributions.map((con) => {
-                    const user = MOCK_USERS.find((u) => u.id === con.userId);
+                    const user = users.find((u) => u.id === con.userId);
                     return (
                       <span
                         key={con.userId}

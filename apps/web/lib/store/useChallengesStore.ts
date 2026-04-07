@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { MOCK_CHALLENGES, type FamilyChallenge, type ChallengeStatus } from "@/lib/challenges";
+import type { FamilyChallenge, ChallengeStatus } from "@/lib/challenges";
 
 interface ChallengesState {
   challenges: FamilyChallenge[];
@@ -15,7 +15,7 @@ interface ChallengesState {
 export const useChallengesStore = create<ChallengesState>()(
   persist(
     (set) => ({
-      challenges: MOCK_CHALLENGES,
+      challenges: [],
 
       addChallenge: (challenge) =>
         set((s) => ({ challenges: [...s.challenges, challenge] })),

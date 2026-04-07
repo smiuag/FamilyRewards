@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import {
   ACHIEVEMENTS,
   RARITY_CONFIG,
   CATEGORY_CONFIG,
-  MOCK_USER_STATS,
   type AchievementCategory,
+  type UserStats,
 } from "@/lib/achievements";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,16 +16,86 @@ import { Star, Lock, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AchievementsClient() {
-  const { currentUser } = useAppStore();
+  const { currentUser, taskInstances, claims, transactions } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
-  if (!currentUser) return null;
+  const stats = useMemo<UserStats>(() => {
+    if (!currentUser) return {
+      totalTasksCompleted: 0, currentStreak: 0, bestStreak: 0,
+      totalPoints: 0, rewardsClaimed: 0, perfectWeeks: 0,
+      totalPointsEarned: 0, daysActive: 0,
+    };
 
-  const stats = MOCK_USER_STATS[currentUser.id] ?? {
-    totalTasksCompleted: 0, currentStreak: 0, bestStreak: 0,
-    totalPoints: 0, rewardsClaimed: 0, perfectWeeks: 0,
-    totalPointsEarned: 0, daysActive: 0,
-  };
+    const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
+    const completed = myInstances.filter((ti) => ti.state === "completed");
+    const totalPointsEarned = completed.reduce((s, ti) => s + ti.pointsAwarded, 0);
+
+    // Streak: count consecutive days (ending today) with at least one completed task
+    const completedDays = new Set(completed.map((ti) => ti.date));
+    let currentStreak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const ds = d.toISOString().split("T")[0];
+      if (completedDays.has(ds)) {
+        currentStreak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    // Best streak: find max consecutive days
+    const sortedDays = Array.from(completedDays).sort();
+    let bestStreak = 0;
+    let runStreak = 0;
+    let prevDate: Date | null = null;
+    for (const ds of sortedDays) {
+      const d = new Date(ds);
+      if (prevDate) {
+        const diff = (d.getTime() - prevDate.getTime()) / 86400000;
+        runStreak = diff === 1 ? runStreak + 1 : 1;
+      } else {
+        runStreak = 1;
+      }
+      bestStreak = Math.max(bestStreak, runStreak);
+      prevDate = d;
+    }
+
+    // Perfect weeks: weeks where all days Mon-Sun had at least one completion
+    // Simplified: count weeks in completedDays that have all 7 days
+    const weekSets: Record<string, Set<string>> = {};
+    for (const ds of completedDays) {
+      const d = new Date(ds);
+      const day = d.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - diff);
+      const weekKey = monday.toISOString().split("T")[0];
+      if (!weekSets[weekKey]) weekSets[weekKey] = new Set();
+      weekSets[weekKey].add(ds);
+    }
+    const perfectWeeks = Object.values(weekSets).filter((s) => s.size === 7).length;
+
+    const rewardsClaimed = claims.filter(
+      (c) => c.userId === currentUser.id && c.status === "approved"
+    ).length;
+
+    const daysActive = completedDays.size;
+
+    return {
+      totalTasksCompleted: completed.length,
+      currentStreak,
+      bestStreak: Math.max(currentStreak, bestStreak),
+      totalPoints: currentUser.pointsBalance,
+      rewardsClaimed,
+      perfectWeeks,
+      totalPointsEarned,
+      daysActive,
+    };
+  }, [currentUser, taskInstances, claims, transactions]);
+
+  if (!currentUser) return null;
 
   const unlocked = ACHIEVEMENTS.filter((a) => a.condition(stats));
   const locked = ACHIEVEMENTS.filter((a) => !a.condition(stats));

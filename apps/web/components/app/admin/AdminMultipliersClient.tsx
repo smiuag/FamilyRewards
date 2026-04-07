@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
-import { MOCK_TASKS, MOCK_USERS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,7 @@ const addDays = (n: number) =>
   new Date(Date.now() + n * 86400000).toISOString().split("T")[0];
 
 export default function AdminMultipliersClient() {
-  const { currentUser } = useAppStore();
+  const { currentUser, users, tasks } = useAppStore();
   const { multipliers, addMultiplier, toggleActive, deleteMultiplier } =
     useMultipliersStore();
   const [open, setOpen] = useState(false);
@@ -139,7 +138,7 @@ export default function AdminMultipliersClient() {
                             : (m.userIds as string[])
                                 .map(
                                   (id) =>
-                                    MOCK_USERS.find((u) => u.id === id)?.name
+                                    users.find((u) => u.id === id)?.name
                                 )
                                 .join(", ")}
                         </span>
@@ -150,7 +149,7 @@ export default function AdminMultipliersClient() {
                             : (m.taskIds as string[])
                                 .map(
                                   (id) =>
-                                    MOCK_TASKS.find((t) => t.id === id)?.title
+                                    tasks.find((t) => t.id === id)?.title
                                 )
                                 .join(", ")}
                         </span>

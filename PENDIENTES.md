@@ -53,6 +53,14 @@ Pasos pendientes una vez el deploy de Vercel funcione:
 4. `bubblewrap build` → genera el .apk
 5. Necesita Java 11+ y Android SDK (Bubblewrap puede descargarlos)
 
+## 🟠 Autenticación con Google (OAuth)
+- [ ] Habilitar proveedor Google en Supabase Dashboard (Authentication → Providers)
+- [ ] Añadir `NEXT_PUBLIC_GOOGLE_CLIENT_ID` y secret en variables de entorno
+- [ ] LoginClient: añadir botón "Continuar con Google" → `supabase.auth.signInWithOAuth({ provider: 'google' })`
+- [ ] RegisterClient: mismo botón en el flujo de registro
+- [ ] Gestionar callback OAuth en `/auth/confirm` (ya existe, Supabase lo maneja automáticamente)
+- [ ] Al primer login con Google: si no tiene perfil en `profiles`, redirigir a onboarding/creación de familia
+
 ## 🟢 Mejoras UI pendientes
 - [ ] Botones sin handler pendientes de revisar (profile edit, settings save, board pin/delete mensajes)
 - [ ] El multiplicador activo debería mostrarse también en la vista de Tareas junto a cada tarea afectada

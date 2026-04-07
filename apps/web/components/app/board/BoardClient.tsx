@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_BOARD_MESSAGES, type BoardMessage } from "@/lib/mock-data/board";
+import type { BoardMessage } from "@/lib/mock-data/board";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,6 @@ import { Heart, Pin, Send, Megaphone, Trophy, Gift, MessageCircle } from "lucide
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { MOCK_USERS } from "@/lib/mock-data";
 
 const TYPE_CONFIG = {
   message:      { icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   label: "Mensaje" },
@@ -20,8 +19,8 @@ const TYPE_CONFIG = {
 };
 
 export default function BoardClient() {
-  const { currentUser } = useAppStore();
-  const [messages, setMessages] = useState<BoardMessage[]>(MOCK_BOARD_MESSAGES);
+  const { currentUser, users } = useAppStore();
+  const [messages, setMessages] = useState<BoardMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
   if (!currentUser) return null;
@@ -102,6 +101,7 @@ export default function BoardClient() {
               msg={msg}
               currentUserId={currentUser.id}
               onLike={handleLike}
+              users={users}
             />
           ))}
         </div>
@@ -115,6 +115,7 @@ export default function BoardClient() {
             msg={msg}
             currentUserId={currentUser.id}
             onLike={handleLike}
+            users={users}
           />
         ))}
       </div>
@@ -126,12 +127,14 @@ function MessageCard({
   msg,
   currentUserId,
   onLike,
+  users,
 }: {
   msg: BoardMessage;
   currentUserId: string;
   onLike: (id: string) => void;
+  users: ReturnType<typeof useAppStore.getState>["users"];
 }) {
-  const author = MOCK_USERS.find((u) => u.id === msg.userId);
+  const author = users.find((u) => u.id === msg.userId);
   const isSystem = msg.userId === "system";
   const typeConfig = TYPE_CONFIG[msg.type];
   const TypeIcon = typeConfig.icon;

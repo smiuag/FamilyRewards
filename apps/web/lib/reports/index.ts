@@ -1,5 +1,4 @@
-import type { TaskInstance, User } from "@/lib/types";
-import { MOCK_TASKS } from "@/lib/mock-data";
+import type { Task, TaskInstance, User } from "@/lib/types";
 
 export interface DailyReport {
   date: string;
@@ -46,7 +45,8 @@ export function buildMemberReport(
   user: User,
   instances: TaskInstance[],
   startDate: string,
-  endDate: string
+  endDate: string,
+  tasks: Task[] = []
 ): MemberReport {
   const userInstances = instances.filter(
     (ti) => ti.userId === user.id && ti.date >= startDate && ti.date <= endDate
@@ -67,7 +67,7 @@ export function buildMemberReport(
   });
   const topTaskId = Object.entries(taskCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const topTask = topTaskId
-    ? (MOCK_TASKS.find((t) => t.id === topTaskId)?.title ?? null)
+    ? (tasks.find((t) => t.id === topTaskId)?.title ?? null)
     : null;
 
   const dates = getDatesInRange(startDate, endDate);
@@ -98,7 +98,8 @@ export function buildMemberReport(
 export function buildFamilyReport(
   users: User[],
   instances: TaskInstance[],
-  period: "week" | "month"
+  period: "week" | "month",
+  tasks: Task[] = []
 ): FamilyReport {
   const today = new Date();
   let startDate: string;
@@ -119,7 +120,7 @@ export function buildFamilyReport(
   }
 
   const memberReports = users.map((u) =>
-    buildMemberReport(u, instances, startDate, endDate)
+    buildMemberReport(u, instances, startDate, endDate, tasks)
   );
 
   const totalCompleted = memberReports.reduce((s, r) => s + r.totalCompleted, 0);

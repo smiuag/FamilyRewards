@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { MOCK_MULTIPLIERS, type PointMultiplier } from "@/lib/multipliers";
+import type { PointMultiplier } from "@/lib/multipliers";
 
 interface MultipliersState {
   multipliers: PointMultiplier[];
@@ -16,7 +16,7 @@ interface MultipliersState {
 export const useMultipliersStore = create<MultipliersState>()(
   persist(
     (set) => ({
-      multipliers: MOCK_MULTIPLIERS,
+      multipliers: [],
 
       addMultiplier: (m) =>
         set((s) => ({ multipliers: [...s.multipliers, m] })),
