@@ -182,6 +182,8 @@
     "addMember": "Add member",
     "memberName": "Name",
     "memberRole": "Role",
+    "next": "Next",
+    "optional": "optional",
     "skipStep": "Skip this step",
     "goToDashboard": "Go to home",
     "fromCatalog": "From catalog",
@@ -189,7 +191,13 @@
     "customReward": "Custom reward",
     "selectCountry": "Country",
     "selectRegion": "Region / State",
-    "currentMembers": "Current members"
+    "currentMembers": "Current members",
+    "stepTaskForYou": "Your first task",
+    "stepTaskForYouDesc": "This task will be assigned to you. You can add more and assign them later.",
+    "stepRewardForYou": "Your first reward",
+    "stepRewardForYouDesc": "Choose something you can redeem with the points you earn.",
+    "stepMembersAfter": "Add the rest of your family",
+    "stepMembersAfterDesc": "Are there more people at home? Add them now or later from Administration."
   },
   "admin": {
     "members": {

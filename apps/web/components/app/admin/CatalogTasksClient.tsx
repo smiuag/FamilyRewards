@@ -21,7 +21,14 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Check, Star, Users, RefreshCw, Clock, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Plus, Check, Star, Users, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -94,49 +101,33 @@ export default function CatalogTasksClient() {
         </p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar tareas..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Category pills */}
-      <div className="overflow-x-auto pb-1">
-        <div className="flex gap-2 min-w-max">
-          <button
-            onClick={() => setActiveCategory("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-              activeCategory === "all"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-          >
-            🗂️ Todas ({TASKS_CATALOG.length})
-          </button>
-          {categories.map(([key, cat]) => {
-            const count = TASKS_CATALOG.filter((t) => t.category === key).length;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveCategory(key)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                  activeCategory === key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                {cat.emoji} {cat.label} ({count})
-              </button>
-            );
-          })}
+      {/* Search + category filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar tareas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
+        <Select value={activeCategory} onValueChange={(v) => setActiveCategory((v ?? "all") as TaskCategory | "all")}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Todas las categorías" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">🗂️ Todas ({TASKS_CATALOG.length})</SelectItem>
+            {categories.map(([key, cat]) => {
+              const count = TASKS_CATALOG.filter((t) => t.category === key).length;
+              return (
+                <SelectItem key={key} value={key}>
+                  {cat.emoji} {cat.label} ({count})
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </div>
 
       <p className="text-xs text-muted-foreground">

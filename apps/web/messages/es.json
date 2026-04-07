@@ -182,6 +182,8 @@
     "addMember": "Añadir miembro",
     "memberName": "Nombre",
     "memberRole": "Rol",
+    "next": "Siguiente",
+    "optional": "opcional",
     "skipStep": "Saltar este paso",
     "goToDashboard": "Ir al inicio",
     "fromCatalog": "Del catálogo",
@@ -189,7 +191,13 @@
     "customReward": "Recompensa personalizada",
     "selectCountry": "País",
     "selectRegion": "Comunidad / Región",
-    "currentMembers": "Miembros actuales"
+    "currentMembers": "Miembros actuales",
+    "stepTaskForYou": "Tu primera tarea",
+    "stepTaskForYouDesc": "Esta tarea quedará asignada a ti. Después podrás añadir más y asignarlas a quien quieras.",
+    "stepRewardForYou": "Tu primera recompensa",
+    "stepRewardForYouDesc": "Elige algo que puedas canjear con los puntos que vayas ganando.",
+    "stepMembersAfter": "Añade el resto de tu familia",
+    "stepMembersAfterDesc": "¿Hay más personas en casa? Añádelas ahora o hazlo más tarde desde Administración."
   },
   "admin": {
     "members": {
