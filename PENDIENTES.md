@@ -1,14 +1,5 @@
 # Pendientes FamilyRewards
 
-## 🔴 Migración a Supabase — pendiente
-
-### FASE 3 — Miembros e invitaciones (parcialmente completada)
-- [ ] **Admin → Miembros**: guardar nuevos miembros en `profiles` de Supabase (ahora solo es local)
-- [ ] **Admin → Miembros**: editar nombre/avatar/rol y persistirlo en Supabase
-- [ ] **Admin → Miembros**: ajuste de puntos → guardar en `points_transactions` y actualizar `profiles.points_balance`
-- [ ] **Invitaciones**: flujo para invitar a otro adulto como administrador (tabla `family_invitations`, email con link de join)
-- [ ] **ProfileSelectClient**: leer perfiles desde Supabase en lugar de solo al hacer login (refrescar si cambian)
-
 ---
 
 ## 🟡 APK de pruebas (TWA)
@@ -38,6 +29,12 @@ Pasos pendientes una vez el deploy de Vercel funcione:
 ## ✅ Completado
 
 ### Migración a Supabase
+- [x] **FASE 3 — Miembros**: crear/editar/ajuste de puntos → `profiles` + `points_transactions` en Supabase
+- [x] **FASE 3 — Invitaciones**: `createInvitation` → `family_invitations`; `JoinClient` acepta token y crea perfil
+- [x] **FASE 3 — ProfileSelectClient**: siempre lee perfiles desde Supabase en el mount
+- [x] **FASE 3 — OnboardingWizard**: miembro/tarea/recompensa inicial → persisten en Supabase
+- [x] **FASE 3 — SeasonTemplatesClient**: aplicar pack → `createTask`/`createReward` en Supabase
+- [x] **FASE 3 — useAppStore**: estado inicial vacío (sin MOCK data); eliminadas acciones locales `addMember`/`addTask`/`addReward`
 - [x] **FASE 4 — Tareas**: crear/editar/desactivar tareas, asignar a miembros, `task_instances` del día, marcar completada/omitida → Supabase
 - [x] **FASE 4 — Catálogo Tareas**: al añadir del catálogo → guarda en `tasks`; modal usa store real en vez de MOCK_USERS
 - [x] **FASE 4 — CalendarClient**: resuelve nombre de tarea desde store real
