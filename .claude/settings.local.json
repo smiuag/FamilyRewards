@@ -29,7 +29,17 @@
       "Bash(gh run:*)",
       "Bash(curl -s -o /tmp/resp.txt -w \"%{http_code} %{redirect_url}\" -L \"https://family-rewards-zeta.vercel.app\")",
       "Read(//tmp/**)",
-      "Bash(curl -sv -o /tmp/resp2.txt \"https://family-rewards-zeta.vercel.app\")"
+      "Bash(curl -sv -o /tmp/resp2.txt \"https://family-rewards-zeta.vercel.app\")",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(sorted\\(data.get\\('paths',{}\\).keys\\(\\)\\)\\)\\)\")",
+      "Bash(pnpm exec:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(ls /c/proyectos/Claude/FamilyRewards/apps/web/*.ts)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(taskkill //PID 7400 //F)",
+      "Bash(ls:*)",
+      "Bash(grep -o '[^\"]*$')",
+      "Bash(python3 -c ':*)"
     ]
   }
 }
