@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Star, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -10,7 +10,10 @@ import { cn } from "@/lib/utils";
 export default function LoginClient() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const locale = (params?.locale as string) ?? "es";
+
+  const confirmationFailed = searchParams.get("error") === "confirmation_failed";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,6 +49,12 @@ export default function LoginClient() {
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
           <p className="text-muted-foreground mt-1 text-sm">Inicia sesión en tu familia</p>
         </div>
+
+        {confirmationFailed && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-center mb-4">
+            El enlace de confirmación no es válido o ha expirado. Inicia sesión si ya confirmaste tu email.
+          </p>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">

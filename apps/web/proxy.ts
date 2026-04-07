@@ -15,10 +15,17 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Las rutas /auth/* son route handlers de Next.js — no necesitan
+  // i18n ni protección de sesión, dejarlas pasar directamente.
+  if (pathname.startsWith("/auth/")) {
+    return;
+  }
+
   // 1. Refrescar sesión de Supabase
   const { response: supabaseResponse, user } = await refreshSession(request);
 
-  const { pathname } = request.nextUrl;
 
   // 2. Protección de rutas (activa cuando NEXT_PUBLIC_AUTH_ENABLED=true)
   if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
