@@ -45,7 +45,7 @@ export default function RewardsClient() {
       addClaim(claim);
       // If admin auto-approves: also sync points deduction to Supabase
       if (isAdmin) {
-        await approveClaim(claim.id, currentUser.id, confirmReward.pointsCost, currentUser.pointsBalance);
+        await approveClaim(claim.id, currentUser.id, confirmReward.pointsCost, currentUser.pointsBalance, confirmReward.title, confirmReward.emoji);
       }
       setConfirmReward(null);
       if (isAdmin) {

@@ -81,7 +81,7 @@ export default function AdminRewardsClient() {
     if (!reward || !user) return;
     storeUpdateClaim(claimId, "approved");
     try {
-      await approveClaim(claimId, claim.userId, reward.pointsCost, user.pointsBalance);
+      await approveClaim(claimId, claim.userId, reward.pointsCost, user.pointsBalance, reward.title, reward.emoji);
       toast.success("Solicitud aprobada");
     } catch {
       storeUpdateClaim(claimId, "pending"); // rollback

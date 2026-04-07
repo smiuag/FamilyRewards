@@ -71,7 +71,7 @@ export default function TasksClient() {
     updateTaskInstance(instance.id, resolvedState);
     const updatedUser = useAppStore.getState().users.find((u) => u.id === instance.userId);
     try {
-      await syncInstanceState(instance.id, resolvedState, pointsAwarded, instance.userId, updatedUser?.pointsBalance ?? 0);
+      await syncInstanceState(instance.id, resolvedState, pointsAwarded, instance.userId, updatedUser?.pointsBalance ?? 0, task?.title, instance.state);
     } catch {
       // Rollback
       updateTaskInstance(instance.id, instance.state);

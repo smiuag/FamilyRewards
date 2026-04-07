@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_POINTS_HISTORY } from "@/lib/mock-data";
+import { fetchUserTransactions } from "@/lib/api/transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,20 +15,60 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Star, Flame, Trophy, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export default function ProfileClient() {
   const t = useTranslations("profile");
-  const { currentUser } = useAppStore();
+  const { currentUser, transactions, taskInstances, loadTransactions } = useAppStore();
+
+  useEffect(() => {
+    if (!currentUser) return;
+    fetchUserTransactions(currentUser.id)
+      .then((txs) => {
+        loadTransactions([
+          ...useAppStore.getState().transactions.filter((t) => t.userId !== currentUser.id),
+          ...txs,
+        ]);
+      })
+      .catch(() => {});
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
-  const history = MOCK_POINTS_HISTORY.filter((h) => h.userId === currentUser.id)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Points history (last 50 for this user, newest first)
+  const history = transactions
+    .filter((tx) => tx.userId === currentUser.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 50);
 
-  const completedThisMonth = 12; // mock value
+  // Completed tasks this month
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const completedThisMonth = taskInstances.filter(
+    (ti) =>
+      ti.userId === currentUser.id &&
+      ti.state === "completed" &&
+      isWithinInterval(new Date(ti.date + "T12:00:00"), { start: monthStart, end: monthEnd })
+  ).length;
+
+  // Current streak: consecutive days (ending today) where user completed all their tasks
+  const today = format(now, "yyyy-MM-dd");
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dateStr = format(d, "yyyy-MM-dd");
+    if (dateStr > today) continue;
+    const dayInstances = taskInstances.filter(
+      (ti) => ti.userId === currentUser.id && ti.date === dateStr
+    );
+    if (dayInstances.length === 0) break;
+    if (dayInstances.every((ti) => ti.state === "completed")) streak++;
+    else break;
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -67,22 +108,22 @@ export default function ProfileClient() {
         <StatCard
           icon={<Flame className="w-5 h-5 text-orange-500" />}
           label={t("streak")}
-          value="7"
+          value={String(streak)}
           suffix={t("days")}
           bg="bg-orange-50"
         />
         <StatCard
           icon={<Trophy className="w-5 h-5 text-yellow-500" />}
-          label={t("bestStreak")}
-          value="14"
-          suffix={t("days")}
+          label={t("completedThisMonth")}
+          value={String(completedThisMonth)}
+          suffix="tareas"
           bg="bg-yellow-50"
         />
         <StatCard
           icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-          label={t("completedThisMonth")}
-          value={String(completedThisMonth)}
-          suffix="tareas"
+          label="Total transacciones"
+          value={String(history.length)}
+          suffix="movimientos"
           bg="bg-green-50"
           className="col-span-2 lg:col-span-1"
         />
@@ -108,23 +149,18 @@ export default function ProfileClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {history.map((entry) => (
-                  <TableRow key={entry.id}>
+                {history.map((tx) => (
+                  <TableRow key={tx.id}>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {format(new Date(entry.date), "d MMM", { locale: es })}
+                      {format(new Date(tx.createdAt), "d MMM", { locale: es })}
                     </TableCell>
                     <TableCell className="text-sm font-medium">
-                      {entry.reason}
+                      <span className="mr-1.5">{tx.emoji}</span>
+                      {tx.description}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span
-                        className={cn(
-                          "font-bold text-sm",
-                          entry.amount > 0 ? "text-green-600" : "text-red-500"
-                        )}
-                      >
-                        {entry.amount > 0 ? "+" : ""}
-                        {entry.amount}
+                      <span className={cn("font-bold text-sm", tx.amount > 0 ? "text-green-600" : "text-red-500")}>
+                        {tx.amount > 0 ? "+" : ""}{tx.amount}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -139,12 +175,7 @@ export default function ProfileClient() {
 }
 
 function StatCard({
-  icon,
-  label,
-  value,
-  suffix,
-  bg,
-  className,
+  icon, label, value, suffix, bg, className,
 }: {
   icon: React.ReactNode;
   label: string;

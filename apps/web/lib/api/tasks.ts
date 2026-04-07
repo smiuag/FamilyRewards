@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { recordTransaction } from "@/lib/api/transactions";
 import type { Task, TaskInstance, TaskState, DayOfWeek } from "@/lib/types";
 
 // ── Mappers ──────────────────────────────────────────────────
@@ -251,7 +252,9 @@ export async function syncInstanceState(
   state: TaskState,
   pointsAwarded: number,
   profileId: string,
-  newBalance: number
+  newBalance: number,
+  taskTitle?: string,
+  prevState?: TaskState
 ): Promise<void> {
   const supabase = createClient();
 
@@ -261,9 +264,26 @@ export async function syncInstanceState(
     .eq("id", instanceId);
   if (instanceError) throw instanceError;
 
-  const { error: balanceError } = await supabase
-    .from("profiles")
-    .update({ points_balance: newBalance })
-    .eq("id", profileId);
-  if (balanceError) throw balanceError;
+  const isNowCompleted = state === "completed";
+  const wasCompleted = prevState === "completed";
+  const pointsDelta = isNowCompleted ? pointsAwarded : wasCompleted ? -pointsAwarded : 0;
+
+  if (pointsDelta !== 0) {
+    const { error: balanceError } = await supabase
+      .from("profiles")
+      .update({ points_balance: newBalance })
+      .eq("id", profileId);
+    if (balanceError) throw balanceError;
+
+    await recordTransaction({
+      profileId,
+      amount: pointsDelta,
+      type: "task",
+      description: pointsDelta > 0
+        ? `Tarea completada: ${taskTitle ?? "Tarea"}`
+        : `Tarea desmarcada: ${taskTitle ?? "Tarea"}`,
+      emoji: pointsDelta > 0 ? "✅" : "↩️",
+      balanceAfter: newBalance,
+    }).catch(() => {}); // non-blocking — transaction is a nice-to-have
+  }
 }

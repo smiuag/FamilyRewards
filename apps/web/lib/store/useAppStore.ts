@@ -67,6 +67,7 @@ interface AppState {
   loadTaskInstances: (instances: TaskInstance[]) => void;
   loadRewards: (rewards: Reward[]) => void;
   loadClaims: (claims: RewardClaim[]) => void;
+  loadTransactions: (transactions: PointsTransaction[]) => void;
 
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   updateMember: (id: string, patch: Partial<User>) => void;
@@ -127,6 +128,7 @@ export const useAppStore = create<AppState>()(
       loadTaskInstances: (instances) => set({ taskInstances: instances }),
       loadRewards: (rewards) => set({ rewards }),
       loadClaims: (claims) => set({ claims }),
+      loadTransactions: (transactions) => set({ transactions }),
 
       markSetupVisited: (section) =>
         set((prev) => ({

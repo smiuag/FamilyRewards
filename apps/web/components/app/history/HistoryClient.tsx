@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchUserTransactions } from "@/lib/api/transactions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,12 +50,27 @@ function getMonthOptions() {
 }
 
 export default function HistoryClient() {
-  const { currentUser, users, transactions } = useAppStore();
+  const { currentUser, users, transactions, loadTransactions } = useAppStore();
   const isAdmin = currentUser?.role === "admin";
 
   const [selectedUserId, setSelectedUserId] = useState(currentUser?.id ?? "");
   const monthOptions = getMonthOptions();
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0].value);
+
+  const loadForUser = useCallback(async (userId: string) => {
+    try {
+      const txs = await fetchUserTransactions(userId);
+      // Merge: replace transactions for this user, keep others
+      loadTransactions([
+        ...useAppStore.getState().transactions.filter((t) => t.userId !== userId),
+        ...txs,
+      ]);
+    } catch {}
+  }, [loadTransactions]);
+
+  useEffect(() => {
+    if (selectedUserId) loadForUser(selectedUserId);
+  }, [selectedUserId]);
 
   const viewUser = users.find((u) => u.id === selectedUserId) ?? currentUser;
 

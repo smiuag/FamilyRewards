@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { recordTransaction } from "@/lib/api/transactions";
 import type { Reward, RewardClaim, ClaimStatus } from "@/lib/types";
 
 // ── Mappers ──────────────────────────────────────────────────
@@ -126,7 +127,9 @@ export async function approveClaim(
   claimId: string,
   profileId: string,
   pointsCost: number,
-  currentBalance: number
+  currentBalance: number,
+  rewardTitle?: string,
+  rewardEmoji?: string
 ): Promise<void> {
   const supabase = createClient();
   const newBalance = Math.max(0, currentBalance - pointsCost);
@@ -142,6 +145,15 @@ export async function approveClaim(
     .update({ points_balance: newBalance })
     .eq("id", profileId);
   if (balanceError) throw balanceError;
+
+  await recordTransaction({
+    profileId,
+    amount: -pointsCost,
+    type: "reward",
+    description: `Recompensa canjeada: ${rewardTitle ?? "Recompensa"}`,
+    emoji: rewardEmoji ?? "🎁",
+    balanceAfter: newBalance,
+  }).catch(() => {});
 }
 
 export async function rejectClaim(claimId: string): Promise<void> {
