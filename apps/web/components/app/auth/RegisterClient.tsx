@@ -74,6 +74,7 @@ export default function RegisterClient() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
         data: {
           name: name.trim(),
           avatar,
