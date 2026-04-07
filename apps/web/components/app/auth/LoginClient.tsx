@@ -1,96 +1,112 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAppStore } from "@/lib/store/useAppStore";
-import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Star, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-interface Props {
-  t: {
-    title: string;
-    subtitle: string;
-    description: string;
-    adminBadge: string;
-    memberBadge: string;
-  };
-}
-
-export default function LoginClient({ t }: Props) {
+export default function LoginClient() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
-  const { users, login } = useAppStore();
 
-  const handleLogin = (userId: string) => {
-    login(userId);
-    router.push(`/${locale}/dashboard`);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setError("Email o contraseña incorrectos.");
+      setLoading(false);
+      return;
+    }
+
+    router.push(`/${locale}/profile-select`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        {/* Logo / Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary shadow-lg shadow-primary/30 mb-4">
-            <Star className="w-10 h-10 text-white fill-white" />
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-4">
+            <Star className="w-8 h-8 text-white fill-white" />
           </div>
-          <h1 className="text-4xl font-extrabold text-foreground tracking-tight">
-            {t.title}
-          </h1>
-          <p className="text-2xl font-semibold text-primary mt-1">
-            {t.subtitle}
-          </p>
-          <p className="text-muted-foreground mt-2">{t.description}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Inicia sesión en tu familia</p>
         </div>
 
-        {/* User cards */}
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <button
-              key={user.id}
-              onClick={() => handleLogin(user.id)}
-              className="group relative flex items-center gap-5 p-5 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:border-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-200 text-left"
-            >
-              {/* Avatar */}
-              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center text-4xl shadow-inner">
-                {user.avatar}
-              </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@email.com"
+                required
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+              />
+            </div>
+          </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl font-bold text-foreground">
-                    {user.name}
-                  </span>
-                  <Badge
-                    variant={user.role === "admin" ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {user.role === "admin" ? t.adminBadge : t.memberBadge}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                  <span className="font-medium text-primary">
-                    {user.pointsBalance.toLocaleString()}
-                  </span>
-                  <span>puntos acumulados</span>
-                </div>
-              </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">Contraseña</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
 
-              {/* Arrow */}
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-          ))}
-        </div>
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+          )}
 
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          Familia García · FamilyRewards v1.0
+          <button
+            type="submit"
+            disabled={loading}
+            className={cn(
+              "w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
+              loading ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
+            )}
+          >
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-muted-foreground mt-5">
+          ¿Primera vez?{" "}
+          <Link href={`/${locale}/register`} className="text-primary font-semibold hover:underline">
+            Crea tu familia
+          </Link>
         </p>
       </div>
     </div>

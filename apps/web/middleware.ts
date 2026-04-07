@@ -6,7 +6,7 @@ import { refreshSession } from "@/lib/supabase/middleware";
 const handleI18n = createIntlMiddleware(routing);
 
 // Rutas que no requieren sesión activa
-const PUBLIC_PATHS = ["/login", "/register", "/join"];
+const PUBLIC_PATHS = ["/login", "/register", "/join", "/profile-select"];
 
 function isPublicPath(pathname: string): boolean {
   // Quita el prefijo de locale: /es/login → /login

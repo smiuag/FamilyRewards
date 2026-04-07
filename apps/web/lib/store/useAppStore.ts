@@ -54,6 +54,8 @@ interface AppState {
   streakAlert: { userId: string; userName: string; days: number } | null;
   clearStreakAlert: () => void;
 
+  setCurrentProfile: (profile: User) => void;
+
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
   updateTask: (taskId: string, patch: Partial<Task>) => void;
@@ -83,6 +85,9 @@ export const useAppStore = create<AppState>()(
       },
 
       logout: () => set({ currentUser: null }),
+
+      // Establece el perfil activo a partir de datos reales de Supabase
+      setCurrentProfile: (profile) => set({ currentUser: profile }),
 
       completeOnboarding: () => set({ onboardingCompleted: true }),
 
