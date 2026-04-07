@@ -56,6 +56,9 @@ interface AppState {
 
   setCurrentProfile: (profile: User) => void;
 
+  // Inicializa el store con datos reales de Supabase, borrando todo el mock data
+  initRealAuth: (profiles: User[], selectedProfile: User) => void;
+
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
   updateTask: (taskId: string, patch: Partial<Task>) => void;
@@ -88,6 +91,22 @@ export const useAppStore = create<AppState>()(
 
       // Establece el perfil activo a partir de datos reales de Supabase
       setCurrentProfile: (profile) => set({ currentUser: profile }),
+
+      // Limpia todo el mock data e inicializa con datos reales de Supabase
+      initRealAuth: (profiles, selectedProfile) => set({
+        currentUser: selectedProfile,
+        users: profiles,
+        tasks: [],
+        taskInstances: [],
+        rewards: [],
+        claims: [],
+        transactions: [],
+        onboardingCompleted: false,
+        targetRewardIds: [],
+        archivedClaimIds: [],
+        featuresUnlocked: [],
+        streakAlert: null,
+      }),
 
       completeOnboarding: () => set({ onboardingCompleted: true }),
 

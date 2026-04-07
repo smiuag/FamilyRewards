@@ -10,6 +10,7 @@ interface MultipliersState {
   updateMultiplier: (id: string, patch: Partial<PointMultiplier>) => void;
   deleteMultiplier: (id: string) => void;
   toggleActive: (id: string) => void;
+  reset: () => void;
 }
 
 export const useMultipliersStore = create<MultipliersState>()(
@@ -36,6 +37,8 @@ export const useMultipliersStore = create<MultipliersState>()(
             m.id === id ? { ...m, isActive: !m.isActive } : m
           ),
         })),
+
+      reset: () => set({ multipliers: [] }),
     }),
     { name: "family-rewards-multipliers" }
   )

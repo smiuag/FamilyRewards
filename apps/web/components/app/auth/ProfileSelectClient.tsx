@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 import { Star, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
@@ -38,7 +39,8 @@ export default function ProfileSelectClient() {
   const locale = (params?.locale as string) ?? "es";
   const next = searchParams.get("next") ?? `/${locale}/dashboard`;
 
-  const { setCurrentProfile } = useAppStore();
+  const { initRealAuth } = useAppStore();
+  const { reset: resetMultipliers } = useMultipliersStore();
 
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
   const [familyName, setFamilyName] = useState("");
@@ -84,7 +86,9 @@ export default function ProfileSelectClient() {
   }, [locale, router]);
 
   const handleSelect = (profile: SupabaseProfile) => {
-    setCurrentProfile(toUser(profile));
+    const allUsers = profiles.map(toUser);
+    initRealAuth(allUsers, toUser(profile));
+    resetMultipliers();
     router.push(next);
   };
 
