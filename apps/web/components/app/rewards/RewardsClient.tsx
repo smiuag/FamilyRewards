@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchFamilyRewards, fetchFamilyClaims, createClaim, approveClaim } from "@/lib/api/rewards";
 import type { RewardClaim } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +16,17 @@ import type { Reward } from "@/lib/types";
 
 export default function RewardsClient() {
   const t = useTranslations("rewards");
-  const { currentUser, rewards, claims, addClaim, updateClaim, targetRewardIds, toggleTargetReward, archivedClaimIds, archiveClaim } = useAppStore();
+  const { currentUser, rewards, claims, addClaim, updateClaim, loadRewards, loadClaims, targetRewardIds, toggleTargetReward, archivedClaimIds, archiveClaim } = useAppStore();
   const [confirmReward, setConfirmReward] = useState<Reward | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    Promise.all([fetchFamilyRewards(), fetchFamilyClaims()])
+      .then(([r, c]) => { loadRewards(r); loadClaims(c); })
+      .catch(() => {});
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
@@ -26,27 +35,32 @@ export default function RewardsClient() {
   const getClaimForReward = (rewardId: string) =>
     userClaims.filter((c) => c.rewardId === rewardId).at(-1);
 
-  const handleRedeem = () => {
+  const handleRedeem = async () => {
     if (!confirmReward) return;
     const isAdmin = currentUser.role === "admin";
-    const claimId = `c-${Date.now()}`;
-    const newClaim: RewardClaim = {
-      id: claimId,
-      rewardId: confirmReward.id,
-      userId: currentUser.id,
-      requestedAt: new Date().toISOString(),
-      status: isAdmin ? "approved" : "pending",
-    };
-    addClaim(newClaim);
-    setConfirmReward(null);
-    if (isAdmin) {
-      toast.success(`¡${confirmReward.emoji} ${confirmReward.title} canjeada!`, {
-        description: "Como administrador, el canje se ha aplicado directamente.",
-      });
-    } else {
-      toast.success("Solicitud enviada", {
-        description: "Un administrador revisará tu solicitud pronto.",
-      });
+    setRedeeming(true);
+    try {
+      const status = isAdmin ? "approved" : "pending";
+      const claim = await createClaim(confirmReward.id, currentUser.id, status);
+      addClaim(claim);
+      // If admin auto-approves: also sync points deduction to Supabase
+      if (isAdmin) {
+        await approveClaim(claim.id, currentUser.id, confirmReward.pointsCost, currentUser.pointsBalance);
+      }
+      setConfirmReward(null);
+      if (isAdmin) {
+        toast.success(`¡${confirmReward.emoji} ${confirmReward.title} canjeada!`, {
+          description: "Como administrador, el canje se ha aplicado directamente.",
+        });
+      } else {
+        toast.success("Solicitud enviada", {
+          description: "Un administrador revisará tu solicitud pronto.",
+        });
+      }
+    } catch {
+      toast.error("Error al procesar el canje. Inténtalo de nuevo.");
+    } finally {
+      setRedeeming(false);
     }
   };
 
@@ -280,10 +294,10 @@ export default function RewardsClient() {
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setConfirmReward(null)}>Cancelar</Button>
-          <Button onClick={handleRedeem}>
+          <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={redeeming}>Cancelar</Button>
+          <Button onClick={handleRedeem} disabled={redeeming}>
             <Gift className="w-4 h-4 mr-1.5" />
-            Confirmar solicitud
+            {redeeming ? "Procesando..." : "Confirmar solicitud"}
           </Button>
         </AppModalFooter>
       </AppModal>

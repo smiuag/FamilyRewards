@@ -8,6 +8,7 @@ import {
   type CatalogReward,
 } from "@/lib/catalog/rewards-catalog";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { createReward } from "@/lib/api/rewards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ const TIER_CONFIG = {
 const MAX_POINTS = 20000;
 
 export default function CatalogRewardsClient() {
-  const { addReward, setupVisited, markSetupVisited } = useAppStore();
+  const { setupVisited, markSetupVisited, currentUser } = useAppStore();
   useEffect(() => { markSetupVisited("catalogRewards"); }, []);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<RewardCategory | "all">("all");
@@ -45,6 +46,7 @@ export default function CatalogRewardsClient() {
   const [showFilters, setShowFilters] = useState(false);
   const [confirmReward, setConfirmReward] = useState<CatalogReward | null>(null);
   const [confirmPoints, setConfirmPoints] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Custom reward creation
   const [customOpen, setCustomOpen] = useState(false);
@@ -66,35 +68,54 @@ export default function CatalogRewardsClient() {
     setConfirmPoints(String(reward.suggestedPoints));
   };
 
-  const handleCustomSave = () => {
-    if (!customForm.title.trim()) return;
-    addReward({
-      title: customForm.title,
-      description: customForm.description,
-      emoji: customForm.emoji,
-      pointsCost: parseInt(customForm.points) || 100,
-      status: "available",
-    });
-    toast.success(`"${customForm.title}" añadida al catálogo`);
-    setCustomOpen(false);
-    setCustomForm({ emoji: "🎁", title: "", description: "", points: "100" });
+  const saveReward = async (data: { title: string; description?: string; emoji: string; pointsCost: number }) => {
+    if (!currentUser?.familyId) throw new Error("No family");
+    const newReward = await createReward(currentUser.familyId, { ...data, status: "available" });
+    useAppStore.setState((prev) => ({ rewards: [...prev.rewards, newReward] }));
+    return newReward;
   };
 
-  const handleConfirmAdd = () => {
+  const handleCustomSave = async () => {
+    if (!customForm.title.trim()) return;
+    setSaving(true);
+    try {
+      await saveReward({
+        title: customForm.title,
+        description: customForm.description,
+        emoji: customForm.emoji,
+        pointsCost: parseInt(customForm.points) || 100,
+      });
+      toast.success(`"${customForm.title}" añadida al catálogo`);
+      setCustomOpen(false);
+      setCustomForm({ emoji: "🎁", title: "", description: "", points: "100" });
+    } catch {
+      toast.error("Error al crear la recompensa. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmAdd = async () => {
     if (!confirmReward) return;
     const points = parseInt(confirmPoints) || confirmReward.suggestedPoints;
-    addReward({
-      title: confirmReward.title,
-      description: confirmReward.description,
-      emoji: confirmReward.emoji,
-      pointsCost: points,
-      status: "available",
-    });
-    setAddedIds((prev) => new Set([...prev, confirmReward.id]));
-    toast.success(`"${confirmReward.title}" añadida al catálogo familiar`, {
-      description: `${points.toLocaleString()} puntos`,
-    });
-    setConfirmReward(null);
+    setSaving(true);
+    try {
+      await saveReward({
+        title: confirmReward.title,
+        description: confirmReward.description,
+        emoji: confirmReward.emoji,
+        pointsCost: points,
+      });
+      setAddedIds((prev) => new Set([...prev, confirmReward.id]));
+      toast.success(`"${confirmReward.title}" añadida al catálogo familiar`, {
+        description: `${points.toLocaleString()} puntos`,
+      });
+      setConfirmReward(null);
+    } catch {
+      toast.error("Error al añadir la recompensa. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const categories = Object.entries(REWARD_CATEGORIES) as [RewardCategory, typeof REWARD_CATEGORIES[RewardCategory]][];
@@ -328,10 +349,10 @@ export default function CatalogRewardsClient() {
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setCustomOpen(false)}>Cancelar</Button>
-          <Button onClick={handleCustomSave} disabled={!customForm.title.trim()}>
+          <Button variant="outline" onClick={() => setCustomOpen(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleCustomSave} disabled={saving || !customForm.title.trim()}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Crear recompensa
+            {saving ? "Creando..." : "Crear recompensa"}
           </Button>
         </AppModalFooter>
       </AppModal>
@@ -366,10 +387,10 @@ export default function CatalogRewardsClient() {
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setConfirmReward(null)}>Cancelar</Button>
-          <Button onClick={handleConfirmAdd}>
+          <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleConfirmAdd} disabled={saving}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Añadir al catálogo
+            {saving ? "Añadiendo..." : "Añadir al catálogo"}
           </Button>
         </AppModalFooter>
       </AppModal>
