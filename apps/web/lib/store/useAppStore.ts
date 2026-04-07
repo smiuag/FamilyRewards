@@ -63,6 +63,9 @@ interface AppState {
   // Inicializa el store con datos reales de Supabase, borrando todo el mock data
   initRealAuth: (profiles: User[], selectedProfile: User) => void;
 
+  loadTasks: (tasks: Task[]) => void;
+  loadTaskInstances: (instances: TaskInstance[]) => void;
+
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   updateMember: (id: string, patch: Partial<User>) => void;
   addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
@@ -117,6 +120,9 @@ export const useAppStore = create<AppState>()(
       })),
 
       completeOnboarding: () => set({ onboardingCompleted: true }),
+
+      loadTasks: (tasks) => set({ tasks }),
+      loadTaskInstances: (instances) => set({ taskInstances: instances }),
 
       markSetupVisited: (section) =>
         set((prev) => ({

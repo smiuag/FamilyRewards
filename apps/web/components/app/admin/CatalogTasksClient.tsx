@@ -7,8 +7,8 @@ import {
   type TaskCategory,
   type CatalogTask,
 } from "@/lib/catalog/tasks-catalog";
-import { MOCK_USERS } from "@/lib/mock-data";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { createTask } from "@/lib/api/tasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,13 +44,14 @@ const DAY_MAP: Record<string, string> = {
 };
 
 export default function CatalogTasksClient() {
-  const { setupVisited, markSetupVisited } = useAppStore();
+  const { setupVisited, markSetupVisited, users, currentUser } = useAppStore();
   useEffect(() => { markSetupVisited("catalogTasks"); }, []);
 
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<TaskCategory | "all">("all");
   const [configuringTask, setConfiguringTask] = useState<CatalogTask | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
 
   // Quick-add form state
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -74,17 +75,33 @@ export default function CatalogTasksClient() {
     setCustomPoints(String(task.suggestedPoints));
   };
 
-  const handleConfirmAdd = () => {
+  const handleConfirmAdd = async () => {
     if (!configuringTask) return;
-    if (selectedUsers.length === 0) {
-      toast.error("Selecciona al menos un miembro");
-      return;
+    if (selectedUsers.length === 0) { toast.error("Selecciona al menos un miembro"); return; }
+    if (!currentUser?.familyId) { toast.error("No se pudo determinar la familia"); return; }
+    setSaving(true);
+    try {
+      const recurringPattern = makeRecurring && configuringTask.suggestedDays?.length
+        ? { daysOfWeek: configuringTask.suggestedDays as import("@/lib/types").DayOfWeek[], time: configuringTask.suggestedTime, defaultState: "pending" as const }
+        : undefined;
+      await createTask(currentUser.familyId, currentUser.id, {
+        title: configuringTask.title,
+        description: configuringTask.description,
+        points: parseInt(customPoints) || configuringTask.suggestedPoints,
+        assignedTo: selectedUsers,
+        isRecurring: makeRecurring && !!configuringTask.suggestedDays?.length,
+        recurringPattern,
+      });
+      setAddedIds((prev) => new Set([...prev, configuringTask.id]));
+      setConfiguringTask(null);
+      toast.success(`"${configuringTask.title}" añadida`, {
+        description: `Asignada a ${selectedUsers.length} miembro(s) · ${customPoints || configuringTask.suggestedPoints} pts`,
+      });
+    } catch {
+      toast.error("Error al añadir la tarea. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
     }
-    setAddedIds((prev) => new Set([...prev, configuringTask.id]));
-    setConfiguringTask(null);
-    toast.success(`"${configuringTask.title}" añadida`, {
-      description: `Asignada a ${selectedUsers.length} miembro(s) · ${customPoints || configuringTask.suggestedPoints} pts`,
-    });
   };
 
   const toggleUser = (uid: string) => {
@@ -258,7 +275,7 @@ export default function CatalogTasksClient() {
                 Asignar a
               </Label>
               <div className="flex flex-wrap gap-2">
-                {MOCK_USERS.map((user) => (
+                {users.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => toggleUser(user.id)}
@@ -313,12 +330,12 @@ export default function CatalogTasksClient() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfiguringTask(null)}>
+            <Button variant="outline" onClick={() => setConfiguringTask(null)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleConfirmAdd}>
+            <Button onClick={handleConfirmAdd} disabled={saving}>
               <Plus className="w-4 h-4 mr-1.5" />
-              Añadir tarea
+              {saving ? "Añadiendo..." : "Añadir tarea"}
             </Button>
           </DialogFooter>
         </DialogContent>

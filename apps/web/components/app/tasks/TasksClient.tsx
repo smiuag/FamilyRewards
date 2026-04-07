@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { ensureTodayInstances, syncInstanceState, fetchFamilyTasks } from "@/lib/api/tasks";
+import { toast } from "sonner";
 import type { Task, TaskState, TaskInstance } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +20,33 @@ type Filter = "all" | "pending" | "completed";
 
 export default function TasksClient() {
   const t = useTranslations("tasks");
-  const { currentUser, tasks, taskInstances, updateTaskInstance, streakAlert, clearStreakAlert, unlockFeature, adjustPoints } = useAppStore();
+  const { currentUser, tasks, taskInstances, updateTaskInstance, loadTasks, loadTaskInstances, streakAlert, clearStreakAlert, unlockFeature, adjustPoints } = useAppStore();
   const [filter, setFilter] = useState<Filter>("all");
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const loadData = async () => {
+      try {
+        // Load tasks if not yet loaded from Supabase
+        let activeTasks = tasks;
+        if (tasks.length === 0) {
+          activeTasks = await fetchFamilyTasks();
+          loadTasks(activeTasks);
+        }
+        // Ensure today's instances exist for this user
+        const instances = await ensureTodayInstances(activeTasks, currentUser.id);
+        loadTaskInstances([
+          ...useAppStore.getState().taskInstances.filter(
+            (ti) => !(ti.userId === currentUser.id && ti.date === new Date().toISOString().split("T")[0])
+          ),
+          ...instances,
+        ]);
+      } catch {
+        toast.error("Error al cargar las tareas de hoy");
+      }
+    };
+    loadData();
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
@@ -36,9 +63,20 @@ export default function TasksClient() {
     return true;
   });
 
-  const handleStateChange = (instance: TaskInstance, newState: TaskState) => {
-    const isSameState = instance.state === newState;
-    updateTaskInstance(instance.id, isSameState ? "pending" : newState);
+  const handleStateChange = async (instance: TaskInstance, newState: TaskState) => {
+    const resolvedState: TaskState = instance.state === newState ? "pending" : newState;
+    const task = tasks.find((t) => t.id === instance.taskId);
+    const pointsAwarded = resolvedState === "completed" ? (task?.points ?? 0) : 0;
+    // Optimistic update
+    updateTaskInstance(instance.id, resolvedState);
+    const updatedUser = useAppStore.getState().users.find((u) => u.id === instance.userId);
+    try {
+      await syncInstanceState(instance.id, resolvedState, pointsAwarded, instance.userId, updatedUser?.pointsBalance ?? 0);
+    } catch {
+      // Rollback
+      updateTaskInstance(instance.id, instance.state);
+      toast.error("Error al guardar el estado de la tarea");
+    }
   };
 
   return (

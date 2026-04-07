@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
-import { MOCK_TASKS } from "@/lib/mock-data";
 import { getHolidaysForMonth, getHolidayForDate } from "@/lib/holidays";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 export default function CalendarClient() {
   const t = useTranslations("calendar");
-  const { currentUser, taskInstances } = useAppStore();
+  const { currentUser, tasks, taskInstances } = useAppStore();
   const { country, region, city } = useSettingsStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
@@ -212,7 +211,7 @@ export default function CalendarClient() {
                 </p>
               ) : (
                 selectedInstances.map((ti) => {
-                  const task = MOCK_TASKS.find((tk) => tk.id === ti.taskId);
+                  const task = tasks.find((tk) => tk.id === ti.taskId);
                   return (
                     <div key={ti.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                       {ti.state === "completed" && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
