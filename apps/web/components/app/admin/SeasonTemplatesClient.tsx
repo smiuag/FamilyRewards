@@ -4,6 +4,8 @@ import { useState } from "react";
 import { SEASON_TEMPLATES } from "@/lib/catalog/season-templates";
 import type { SeasonTemplate } from "@/lib/catalog/season-templates";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { createTask } from "@/lib/api/tasks";
+import { createReward } from "@/lib/api/rewards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,9 +16,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function SeasonTemplatesClient() {
-  const { users, addTask, addReward } = useAppStore();
+  const { users, currentUser } = useAppStore();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
 
   // Apply modal state
   const [applyTemplate, setApplyTemplate] = useState<SeasonTemplate | null>(null);
@@ -35,41 +38,54 @@ export default function SeasonTemplatesClient() {
     );
   };
 
-  const handleConfirmApply = () => {
+  const handleConfirmApply = async () => {
     if (!applyTemplate) return;
-    if (selectedMembers.length === 0) {
-      toast.error("Selecciona al menos un miembro");
-      return;
+    if (selectedMembers.length === 0) { toast.error("Selecciona al menos un miembro"); return; }
+    const familyId = currentUser?.familyId;
+    const adminId = currentUser?.id ?? users.find((u) => u.role === "admin")?.id;
+    if (!familyId || !adminId) { toast.error("No se pudo determinar la familia"); return; }
+
+    setSaving(true);
+    try {
+      const taskPromises = applyTemplate.tasks.map((task) =>
+        createTask(familyId, adminId, {
+          title: task.title,
+          description: task.description,
+          points: task.suggestedPoints,
+          assignedTo: selectedMembers,
+          isRecurring: false,
+        })
+      );
+      const rewardPromises = applyTemplate.rewards.map((reward) =>
+        createReward(familyId, {
+          title: reward.title,
+          description: reward.description ?? "",
+          emoji: reward.emoji,
+          pointsCost: reward.suggestedPoints,
+          status: "available",
+        })
+      );
+
+      const [createdTasks, createdRewards] = await Promise.all([
+        Promise.all(taskPromises),
+        Promise.all(rewardPromises),
+      ]);
+
+      useAppStore.setState((prev) => ({
+        tasks: [...prev.tasks, ...createdTasks],
+        rewards: [...prev.rewards, ...createdRewards],
+      }));
+
+      setAppliedIds((prev) => new Set([...prev, applyTemplate.id]));
+      toast.success(`Pack "${applyTemplate.title}" aplicado`, {
+        description: `${createdTasks.length} tareas y ${createdRewards.length} recompensas añadidas`,
+      });
+      setApplyTemplate(null);
+    } catch {
+      toast.error("Error al aplicar el pack. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
     }
-    const adminId = users.find((u) => u.role === "admin")?.id ?? "u1";
-
-    applyTemplate.tasks.forEach((task) => {
-      addTask({
-        title: task.title,
-        description: task.description,
-        points: task.suggestedPoints,
-        assignedTo: selectedMembers,
-        createdBy: adminId,
-        isRecurring: false,
-        isActive: true,
-      });
-    });
-
-    applyTemplate.rewards.forEach((reward) => {
-      addReward({
-        title: reward.title,
-        description: reward.description ?? "",
-        emoji: reward.emoji,
-        pointsCost: reward.suggestedPoints,
-        status: "available",
-      });
-    });
-
-    setAppliedIds((prev) => new Set([...prev, applyTemplate.id]));
-    toast.success(`Pack "${applyTemplate.title}" aplicado`, {
-      description: `${applyTemplate.tasks.length} tareas y ${applyTemplate.rewards.length} recompensas añadidas`,
-    });
-    setApplyTemplate(null);
   };
 
   return (
@@ -238,9 +254,9 @@ export default function SeasonTemplatesClient() {
         </AppModalBody>
         <AppModalFooter>
           <Button variant="outline" onClick={() => setApplyTemplate(null)}>Cancelar</Button>
-          <Button onClick={handleConfirmApply} disabled={selectedMembers.length === 0}>
+          <Button onClick={handleConfirmApply} disabled={selectedMembers.length === 0 || saving}>
             <Check className="w-4 h-4 mr-1.5" />
-            Aplicar pack
+            {saving ? "Aplicando..." : "Aplicar pack"}
           </Button>
         </AppModalFooter>
       </AppModal>

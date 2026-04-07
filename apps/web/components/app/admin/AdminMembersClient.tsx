@@ -54,7 +54,7 @@ export default function AdminMembersClient() {
   const t = useTranslations("admin.members");
   const {
     users, currentUser, taskInstances,
-    addMember, updateMember, adjustPoints,
+    updateMember, adjustPoints,
     setupVisited, markSetupVisited,
   } = useAppStore();
 

@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRouter, useParams } from "next/navigation";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
+import { addManagedProfile } from "@/lib/api/members";
+import { createTask } from "@/lib/api/tasks";
+import { createReward } from "@/lib/api/rewards";
 import { TASKS_CATALOG } from "@/lib/catalog/tasks-catalog";
 import { REWARDS_CATALOG } from "@/lib/catalog/rewards-catalog";
 import { Button } from "@/components/ui/button";
@@ -41,7 +44,7 @@ const AVATARS = ["👦","👧","👨","👩","👴","👵","🧒","🧑","👱",
 
 export default function OnboardingWizard() {
   const t = useTranslations("onboarding");
-  const { currentUser, users, addMember, addTask, addReward, completeOnboarding } = useAppStore();
+  const { currentUser, users, completeOnboarding } = useAppStore();
   const { setPostalCode } = useSettingsStore();
   const router = useRouter();
   const params = useParams();
@@ -63,6 +66,7 @@ export default function OnboardingWizard() {
   const [newName, setNewName] = useState("");
   const [newAvatar, setNewAvatar] = useState("👦");
   const [newRole, setNewRole] = useState<"admin" | "member">("member");
+  const [addingMember, setAddingMember] = useState(false);
 
   // Location step
   const [postalCode, setPostalCodeInput] = useState("");
@@ -76,61 +80,100 @@ export default function OnboardingWizard() {
   };
 
   const handleSaveTask = () => {
-    if (selectedTaskId === CUSTOM_ID && customTaskName.trim()) {
-      addTask({
-        title: customTaskName.trim(),
-        points: parseInt(customTaskPts) || 20,
-        assignedTo: currentUser ? [currentUser.id] : [],
-        createdBy: currentUser?.id ?? "",
-        isRecurring: false,
-        isActive: true,
-      });
-    } else {
-      const cat = TASKS_CATALOG.find((c) => c.id === selectedTaskId);
-      if (cat) {
-        addTask({
-          title: cat.title,
-          description: cat.description,
-          points: cat.suggestedPoints,
-          assignedTo: currentUser ? [currentUser.id] : [],
-          createdBy: currentUser?.id ?? "",
+    // Fire-and-forget: persist to Supabase without blocking wizard navigation
+    if (currentUser?.familyId && currentUser?.id) {
+      const familyId = currentUser.familyId;
+      const createdBy = currentUser.id;
+      if (selectedTaskId === CUSTOM_ID && customTaskName.trim()) {
+        createTask(familyId, createdBy, {
+          title: customTaskName.trim(),
+          points: parseInt(customTaskPts) || 20,
+          assignedTo: [currentUser.id],
           isRecurring: false,
-          isActive: true,
-        });
+        }).then((t) => {
+          useAppStore.setState((prev) => ({ tasks: [...prev.tasks, t] }));
+        }).catch(() => {});
+      } else {
+        const cat = TASKS_CATALOG.find((c) => c.id === selectedTaskId);
+        if (cat) {
+          createTask(familyId, createdBy, {
+            title: cat.title,
+            description: cat.description,
+            points: cat.suggestedPoints,
+            assignedTo: [currentUser.id],
+            isRecurring: false,
+          }).then((t) => {
+            useAppStore.setState((prev) => ({ tasks: [...prev.tasks, t] }));
+          }).catch(() => {});
+        }
       }
     }
     goNext();
   };
 
   const handleSaveReward = () => {
-    if (selectedRewardId === CUSTOM_ID && customRewardName.trim()) {
-      addReward({
-        title: customRewardName.trim(),
-        emoji: "🎁",
-        pointsCost: parseInt(customRewardPts) || 200,
-        status: "available",
-      });
-    } else {
-      const cat = REWARDS_CATALOG.find((c) => c.id === selectedRewardId);
-      if (cat) {
-        addReward({
-          title: cat.title,
-          description: cat.description,
-          emoji: cat.emoji,
-          pointsCost: cat.suggestedPoints,
+    // Fire-and-forget: persist to Supabase without blocking wizard navigation
+    if (currentUser?.familyId) {
+      const familyId = currentUser.familyId;
+      if (selectedRewardId === CUSTOM_ID && customRewardName.trim()) {
+        createReward(familyId, {
+          title: customRewardName.trim(),
+          emoji: "🎁",
+          pointsCost: parseInt(customRewardPts) || 200,
           status: "available",
-        });
+        }).then((r) => {
+          useAppStore.setState((prev) => ({ rewards: [...prev.rewards, r] }));
+        }).catch(() => {});
+      } else {
+        const cat = REWARDS_CATALOG.find((c) => c.id === selectedRewardId);
+        if (cat) {
+          createReward(familyId, {
+            title: cat.title,
+            description: cat.description,
+            emoji: cat.emoji,
+            pointsCost: cat.suggestedPoints,
+            status: "available",
+          }).then((r) => {
+            useAppStore.setState((prev) => ({ rewards: [...prev.rewards, r] }));
+          }).catch(() => {});
+        }
       }
     }
     goNext();
   };
 
-  const handleAddMember = () => {
-    if (!newName.trim()) return;
-    addMember({ name: newName.trim(), avatar: newAvatar, role: newRole, pointsBalance: 0 });
-    setNewName("");
-    setNewAvatar("👦");
-    setNewRole("member");
+  const handleAddMember = async () => {
+    if (!newName.trim() || !currentUser?.familyId) return;
+    setAddingMember(true);
+    try {
+      const newUser = await addManagedProfile(currentUser.familyId, {
+        name: newName.trim(),
+        avatar: newAvatar,
+        role: newRole,
+      });
+      useAppStore.setState((prev) => ({ users: [...prev.users, newUser] }));
+      setNewName("");
+      setNewAvatar("👦");
+      setNewRole("member");
+    } catch {
+      // If Supabase fails, add locally so the wizard still works
+      useAppStore.setState((prev) => ({
+        users: [...prev.users, {
+          id: `u-${Date.now()}`,
+          familyId: currentUser.familyId!,
+          name: newName.trim(),
+          avatar: newAvatar,
+          role: newRole,
+          pointsBalance: 0,
+          createdAt: new Date().toISOString(),
+        }],
+      }));
+      setNewName("");
+      setNewAvatar("👦");
+      setNewRole("member");
+    } finally {
+      setAddingMember(false);
+    }
   };
 
   const handleSaveLocation = () => {
@@ -385,9 +428,9 @@ export default function OnboardingWizard() {
                     </button>
                   ))}
                 </div>
-                <Button size="sm" variant="outline" onClick={handleAddMember} disabled={!newName.trim()} className="w-full">
+                <Button size="sm" variant="outline" onClick={handleAddMember} disabled={!newName.trim() || addingMember} className="w-full">
                   <Plus className="w-3.5 h-3.5 mr-1.5" />
-                  Añadir a la familia
+                  {addingMember ? "Añadiendo..." : "Añadir a la familia"}
                 </Button>
               </div>
 

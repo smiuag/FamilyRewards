@@ -3,13 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User, Task, TaskInstance, Reward, RewardClaim, PointsTransaction } from "@/lib/types";
-import {
-  MOCK_USERS,
-  MOCK_TASKS,
-  MOCK_TASK_INSTANCES,
-  MOCK_CLAIMS,
-  MOCK_REWARDS,
-} from "@/lib/mock-data";
 
 interface AppState {
   // Session
@@ -69,11 +62,8 @@ interface AppState {
   loadClaims: (claims: RewardClaim[]) => void;
   loadTransactions: (transactions: PointsTransaction[]) => void;
 
-  addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   updateMember: (id: string, patch: Partial<User>) => void;
-  addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
   updateTask: (taskId: string, patch: Partial<Task>) => void;
-  addReward: (reward: Omit<Reward, "id" | "familyId">) => void;
   updateReward: (rewardId: string, patch: Partial<Reward>) => void;
 }
 
@@ -81,11 +71,11 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       currentUser: null,
-      users: MOCK_USERS,
-      tasks: MOCK_TASKS,
-      taskInstances: MOCK_TASK_INSTANCES,
-      rewards: MOCK_REWARDS,
-      claims: MOCK_CLAIMS,
+      users: [],
+      tasks: [],
+      taskInstances: [],
+      rewards: [],
+      claims: [],
       transactions: [],
       onboardingCompleted: false,
       setupVisited: { members: false, catalogTasks: false, catalogRewards: false },
@@ -359,19 +349,6 @@ export const useAppStore = create<AppState>()(
 
       clearStreakAlert: () => set({ streakAlert: null }),
 
-      addMember: (member) =>
-        set((prev) => ({
-          users: [
-            ...prev.users,
-            {
-              ...member,
-              id: `u-${Date.now()}`,
-              familyId: "f1",
-              createdAt: new Date().toISOString().split("T")[0],
-            },
-          ],
-        })),
-
       updateMember: (id, patch) =>
         set((prev) => ({
           users: prev.users.map((u) => (u.id === id ? { ...u, ...patch } : u)),
@@ -381,34 +358,9 @@ export const useAppStore = create<AppState>()(
               : prev.currentUser,
         })),
 
-      addTask: (task) =>
-        set((prev) => ({
-          tasks: [
-            ...prev.tasks,
-            {
-              ...task,
-              id: `t-${Date.now()}`,
-              familyId: "f1",
-              createdAt: new Date().toISOString().split("T")[0],
-            },
-          ],
-        })),
-
       updateTask: (taskId, patch) =>
         set((prev) => ({
           tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
-        })),
-
-      addReward: (reward) =>
-        set((prev) => ({
-          rewards: [
-            ...prev.rewards,
-            {
-              ...reward,
-              id: `r-${Date.now()}`,
-              familyId: "f1",
-            },
-          ],
         })),
 
       updateReward: (rewardId, patch) =>
