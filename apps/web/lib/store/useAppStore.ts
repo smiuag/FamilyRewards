@@ -64,6 +64,7 @@ interface AppState {
   initRealAuth: (profiles: User[], selectedProfile: User) => void;
 
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
+  updateMember: (id: string, patch: Partial<User>) => void;
   addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
   updateTask: (taskId: string, patch: Partial<Task>) => void;
   addReward: (reward: Omit<Reward, "id" | "familyId">) => void;
@@ -357,6 +358,15 @@ export const useAppStore = create<AppState>()(
               createdAt: new Date().toISOString().split("T")[0],
             },
           ],
+        })),
+
+      updateMember: (id, patch) =>
+        set((prev) => ({
+          users: prev.users.map((u) => (u.id === id ? { ...u, ...patch } : u)),
+          currentUser:
+            prev.currentUser?.id === id
+              ? { ...prev.currentUser, ...patch }
+              : prev.currentUser,
         })),
 
       addTask: (task) =>
