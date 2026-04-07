@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, MinusCircle, RefreshCw, Star } from "lucide-react";
+import { CheckCircle2, XCircle, MinusCircle, RefreshCw, Star, Flame } from "lucide-react";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -17,7 +18,7 @@ type Filter = "all" | "pending" | "completed";
 
 export default function TasksClient() {
   const t = useTranslations("tasks");
-  const { currentUser, tasks, taskInstances, updateTaskInstance } = useAppStore();
+  const { currentUser, tasks, taskInstances, updateTaskInstance, streakAlert, clearStreakAlert, unlockFeature, adjustPoints } = useAppStore();
   const [filter, setFilter] = useState<Filter>("all");
 
   if (!currentUser) return null;
@@ -56,6 +57,47 @@ export default function TasksClient() {
           <TabsTrigger value="completed" className="flex-1">{t("filterCompleted")}</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {/* Streak unlock modal (admin only) */}
+      <AppModal open={!!streakAlert} onOpenChange={() => clearStreakAlert()}>
+        <AppModalHeader
+          emoji="🔥"
+          title="¡Racha increíble!"
+          description={`${streakAlert?.userName} lleva ${streakAlert?.days} días completando todas sus tareas`}
+          color="bg-gradient-to-br from-orange-500 to-red-600"
+          onClose={clearStreakAlert}
+        />
+        <AppModalBody>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            ¿Quieres bonificar esta racha y activar el <strong>sistema de rachas</strong>?
+            A partir de ahora los miembros verán su progreso de días consecutivos y
+            recibirán bonificaciones automáticas por mantener la racha.
+          </p>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
+            <Flame className="w-5 h-5 text-orange-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-orange-800">Bonus de racha</p>
+              <p className="text-xs text-orange-600">+50 puntos por 7 días · +100 por 14 días · +250 por 30 días</p>
+            </div>
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={clearStreakAlert}>Ahora no</Button>
+          <Button
+            className="bg-orange-500 hover:bg-orange-600"
+            onClick={() => {
+              if (streakAlert) {
+                adjustPoints(streakAlert.userId, 50, `Bonus de racha — ${streakAlert.days} días consecutivos`);
+                unlockFeature("streaks");
+              }
+              clearStreakAlert();
+            }}
+          >
+            <Flame className="w-4 h-4 mr-1.5" />
+            Activar y bonificar (+50 pts)
+          </Button>
+        </AppModalFooter>
+      </AppModal>
 
       {/* Task list */}
       <div className="space-y-3">

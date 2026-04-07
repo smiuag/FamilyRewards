@@ -8,17 +8,16 @@ import {
   type CatalogReward,
 } from "@/lib/catalog/rewards-catalog";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { MOCK_REWARDS } from "@/lib/mock-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import { Search, Plus, Check, Star, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { Reward } from "@/lib/types";
 
 const TIER_CONFIG = {
   easy:   { label: "Fácil",    color: "bg-green-100 text-green-700",  dot: "bg-green-500" },
@@ -30,11 +29,18 @@ const TIER_CONFIG = {
 const MAX_POINTS = 20000;
 
 export default function CatalogRewardsClient() {
+  const { addReward } = useAppStore();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<RewardCategory | "all">("all");
   const [pointRange, setPointRange] = useState<[number, number]>([0, MAX_POINTS]);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [confirmReward, setConfirmReward] = useState<CatalogReward | null>(null);
+  const [confirmPoints, setConfirmPoints] = useState("");
+
+  // Custom reward creation
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customForm, setCustomForm] = useState({ emoji: "🎁", title: "", description: "", points: "100" });
 
   const filtered = useMemo(() => {
     return REWARDS_CATALOG.filter((r) => {
@@ -47,12 +53,40 @@ export default function CatalogRewardsClient() {
     });
   }, [search, activeCategory, pointRange]);
 
-  const handleAdd = (reward: CatalogReward) => {
-    // In a real app this would call an API
-    setAddedIds((prev) => new Set([...prev, reward.id]));
-    toast.success(`"${reward.title}" añadida al catálogo familiar`, {
-      description: `${reward.suggestedPoints} puntos`,
+  const openConfirm = (reward: CatalogReward) => {
+    setConfirmReward(reward);
+    setConfirmPoints(String(reward.suggestedPoints));
+  };
+
+  const handleCustomSave = () => {
+    if (!customForm.title.trim()) return;
+    addReward({
+      title: customForm.title,
+      description: customForm.description,
+      emoji: customForm.emoji,
+      pointsCost: parseInt(customForm.points) || 100,
+      status: "available",
     });
+    toast.success(`"${customForm.title}" añadida al catálogo`);
+    setCustomOpen(false);
+    setCustomForm({ emoji: "🎁", title: "", description: "", points: "100" });
+  };
+
+  const handleConfirmAdd = () => {
+    if (!confirmReward) return;
+    const points = parseInt(confirmPoints) || confirmReward.suggestedPoints;
+    addReward({
+      title: confirmReward.title,
+      description: confirmReward.description,
+      emoji: confirmReward.emoji,
+      pointsCost: points,
+      status: "available",
+    });
+    setAddedIds((prev) => new Set([...prev, confirmReward.id]));
+    toast.success(`"${confirmReward.title}" añadida al catálogo familiar`, {
+      description: `${points.toLocaleString()} puntos`,
+    });
+    setConfirmReward(null);
   };
 
   const categories = Object.entries(REWARD_CATEGORIES) as [RewardCategory, typeof REWARD_CATEGORIES[RewardCategory]][];
@@ -65,6 +99,14 @@ export default function CatalogRewardsClient() {
         <p className="text-muted-foreground text-sm mt-0.5">
           Selecciona recompensas del catálogo para añadirlas a tu familia
         </p>
+      </div>
+
+      {/* Actions row */}
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={() => setCustomOpen(true)}>
+          <Plus className="w-4 h-4 mr-1.5" />
+          Crear personalizada
+        </Button>
       </div>
 
       {/* Search + filter toggle */}
@@ -191,8 +233,8 @@ export default function CatalogRewardsClient() {
                 </div>
 
                 {/* Title */}
-                <h3 className="font-bold text-sm leading-tight mb-1">{reward.title}</h3>
-                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                <h3 className="font-bold text-sm leading-tight mb-1 line-clamp-1">{reward.title}</h3>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed line-clamp-1">
                   {reward.description}
                 </p>
 
@@ -217,7 +259,7 @@ export default function CatalogRewardsClient() {
                 <Button
                   size="sm"
                   className={cn("w-full mt-3 h-8 text-xs", isAdded && "bg-green-500 hover:bg-green-600")}
-                  onClick={() => !isAdded && handleAdd(reward)}
+                  onClick={() => !isAdded && openConfirm(reward)}
                   disabled={isAdded}
                 >
                   {isAdded ? (
@@ -245,6 +287,92 @@ export default function CatalogRewardsClient() {
           <p className="text-sm">Prueba con otro término o categoría</p>
         </div>
       )}
+
+      {/* Custom reward modal */}
+      <AppModal open={customOpen} onOpenChange={setCustomOpen}>
+        <AppModalHeader
+          emoji={customForm.emoji || "🎁"}
+          title="Crear recompensa personalizada"
+          color="bg-gradient-to-br from-violet-500 to-purple-600"
+          onClose={() => setCustomOpen(false)}
+        />
+        <AppModalBody>
+          <div className="grid grid-cols-5 gap-3">
+            <div className="col-span-1">
+              <Label>Emoji</Label>
+              <Input value={customForm.emoji}
+                onChange={(e) => setCustomForm({ ...customForm, emoji: e.target.value })}
+                className="text-center text-xl mt-1.5" maxLength={2} />
+            </div>
+            <div className="col-span-4">
+              <Label>Nombre</Label>
+              <Input value={customForm.title}
+                onChange={(e) => setCustomForm({ ...customForm, title: e.target.value })}
+                placeholder="Nombre de la recompensa" className="mt-1.5" />
+            </div>
+          </div>
+          <div>
+            <Label>Descripción (opcional)</Label>
+            <Input value={customForm.description}
+              onChange={(e) => setCustomForm({ ...customForm, description: e.target.value })}
+              placeholder="Breve descripción" className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Puntos</Label>
+            <div className="flex items-center gap-2 mt-1.5">
+              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" />
+              <Input type="number" value={customForm.points}
+                onChange={(e) => setCustomForm({ ...customForm, points: e.target.value })}
+                className="font-bold text-primary" />
+            </div>
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setCustomOpen(false)}>Cancelar</Button>
+          <Button onClick={handleCustomSave} disabled={!customForm.title.trim()}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Crear recompensa
+          </Button>
+        </AppModalFooter>
+      </AppModal>
+
+      {/* Confirm add modal */}
+      <AppModal open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
+        <AppModalHeader
+          emoji={confirmReward?.emoji}
+          title="Añadir al catálogo"
+          description={confirmReward?.title}
+          color="bg-gradient-to-br from-blue-500 to-indigo-600"
+          onClose={() => setConfirmReward(null)}
+        />
+        <AppModalBody>
+          <p className="text-sm text-muted-foreground">
+            {confirmReward?.description}
+          </p>
+          <div>
+            <Label>Puntos para tu familia</Label>
+            <div className="flex items-center gap-2 mt-1.5">
+              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" />
+              <Input
+                type="number"
+                value={confirmPoints}
+                onChange={(e) => setConfirmPoints(e.target.value)}
+                className="font-bold text-primary"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Sugerido: {confirmReward?.suggestedPoints.toLocaleString()} pts
+            </p>
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setConfirmReward(null)}>Cancelar</Button>
+          <Button onClick={handleConfirmAdd}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Añadir al catálogo
+          </Button>
+        </AppModalFooter>
+      </AppModal>
     </div>
   );
 }

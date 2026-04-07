@@ -83,3 +83,16 @@ export interface PointsHistoryEntry {
   source: PointsSource;
   date: string;
 }
+
+export type TransactionType = "task" | "reward" | "adjustment" | "streak";
+
+export interface PointsTransaction {
+  id: string;
+  userId: string;
+  amount: number; // positive or negative
+  type: TransactionType;
+  description: string;
+  emoji: string;
+  createdAt: string; // ISO datetime
+  balanceAfter: number;
+}

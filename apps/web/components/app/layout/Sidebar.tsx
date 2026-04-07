@@ -10,7 +10,7 @@ import {
   CheckSquare,
   Calendar,
   Gift,
-  User,
+  History,
   LogOut,
   Star,
   ChevronDown,
@@ -40,21 +40,21 @@ export default function Sidebar() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
-  const { currentUser, users, taskInstances, logout } = useAppStore();
+  const { currentUser, users, taskInstances, logout, featuresUnlocked } = useAppStore();
 
   const isAdminRoute = pathname.startsWith(`/${locale}/admin`);
   const isMemberRoute = pathname.startsWith(`/${locale}/members`);
 
-  const [openSection, setOpenSection] = useState<Section>(
-    isAdminRoute ? "admin" : isMemberRoute ? "family" : "me"
-  );
+  const activeSection: Section = isAdminRoute ? "admin" : isMemberRoute ? "family" : "me";
+
+  const [openSection, setOpenSection] = useState<Section>(activeSection);
 
   const meItems: NavItem[] = [
     { href: `/${locale}/dashboard`, icon: Home, label: t("dashboard") },
     { href: `/${locale}/tasks`, icon: CheckSquare, label: t("tasks") },
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
-    { href: `/${locale}/profile`, icon: User, label: t("profile") },
+    { href: `/${locale}/history`, icon: History, label: t("history") },
   ];
 
   const adminItems: NavItem[] = [
@@ -62,8 +62,10 @@ export default function Sidebar() {
     { href: `/${locale}/admin/tasks`, icon: ClipboardList, label: t("adminTasks") },
     { href: `/${locale}/admin/rewards`, icon: Gift, label: t("adminRewards") },
     { href: `/${locale}/admin/stats`, icon: BarChart3, label: t("adminStats") },
-    { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
-    { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
+    ...(featuresUnlocked.includes("streaks") ? [
+      { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
+      { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
+    ] : []),
     { href: `/${locale}/admin/catalog/tasks`, icon: BookOpen, label: t("adminCatalogTasks") },
     { href: `/${locale}/admin/catalog/rewards`, icon: BookOpen, label: t("adminCatalogRewards") },
     { href: `/${locale}/admin/templates`, icon: Layers, label: t("adminTemplates") },
@@ -99,9 +101,10 @@ export default function Sidebar() {
 
         {/* ── YO ── */}
         <SectionHeader
-          label={currentUser?.name ?? "Yo"}
+          label="Mi perfil"
           emoji={currentUser?.avatar}
           open={openSection === "me"}
+          active={activeSection === "me"}
           onClick={() => setOpenSection("me")}
           badge={currentUser ? `${currentUser.pointsBalance.toLocaleString()} pts` : undefined}
         />
@@ -119,10 +122,12 @@ export default function Sidebar() {
         )}
 
         {/* ── FAMILIA ── */}
+        <div className="border-t border-sidebar-border mx-1 my-2" />
         <SectionHeader
           label={t("members")}
           emoji="👨‍👩‍👧"
           open={openSection === "family"}
+          active={activeSection === "family"}
           onClick={() => setOpenSection("family")}
           badge={`${users.length}`}
         />
@@ -143,7 +148,7 @@ export default function Sidebar() {
                   className={cn(
                     "flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm transition-all",
                     isActive(href)
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary/15 text-primary font-semibold"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                 >
@@ -162,23 +167,18 @@ export default function Sidebar() {
                 </button>
               );
             })}
-            <button
-              onClick={() => router.push(`/${locale}/members`)}
-              className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
-            >
-              <Users className="w-3.5 h-3.5" />
-              Ver todos los miembros
-            </button>
           </div>
         )}
 
         {/* ── ADMINISTRACIÓN ── */}
         {currentUser?.role === "admin" && (
           <>
+            <div className="border-t border-sidebar-border mx-1 my-2" />
             <SectionHeader
               label={t("admin")}
               emoji="⚙️"
               open={openSection === "admin"}
+              active={activeSection === "admin"}
               onClick={() => setOpenSection("admin")}
             />
             {openSection === "admin" && (
@@ -215,12 +215,14 @@ function SectionHeader({
   label,
   emoji,
   open,
+  active,
   onClick,
   badge,
 }: {
   label: string;
   emoji?: string;
   open: boolean;
+  active: boolean;
   onClick: () => void;
   badge?: string;
 }) {
@@ -229,15 +231,20 @@ function SectionHeader({
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
-        open
+        active
+          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+          : open
           ? "text-sidebar-foreground bg-sidebar-accent"
-          : "text-sidebar-foreground/40 hover:text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+          : "text-sidebar-foreground/60 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
       )}
     >
       {emoji && <span className="text-sm">{emoji}</span>}
       <span className="flex-1 text-left">{label}</span>
       {badge && (
-        <span className="text-[10px] font-semibold bg-sidebar-border px-1.5 py-0.5 rounded-full">
+        <span className={cn(
+          "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+          active ? "bg-white/20 text-white" : "bg-sidebar-border"
+        )}>
           {badge}
         </span>
       )}
@@ -264,7 +271,7 @@ function NavBtn({
       className={cn(
         "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
         active
-          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+          ? "bg-primary/15 text-primary font-semibold"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
       )}
     >

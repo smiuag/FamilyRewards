@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   Flame,
   Trophy,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -90,14 +91,23 @@ export default function MemberDetailClient() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-5">
-      {/* Back */}
-      <button
-        onClick={() => router.push(`/${locale}/members`)}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Familia
-      </button>
+      {/* Breadcrumb */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Familia
+        </button>
+        <button
+          onClick={() => router.push(`/${locale}/members`)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Users className="w-4 h-4" />
+          Ver todos los miembros
+        </button>
+      </div>
 
       {/* Header */}
       <div className="flex items-center gap-4">

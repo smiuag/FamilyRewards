@@ -57,6 +57,7 @@
     "adminTemplates": "Templates",
     "adminChallenges": "Family challenges",
     "adminMultipliers": "Multipliers",
+    "history": "History",
     "logout": "Log out"
   },
   "login": {

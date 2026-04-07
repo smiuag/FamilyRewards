@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { User, Task, TaskInstance, Reward, RewardClaim } from "@/lib/types";
+import type { User, Task, TaskInstance, Reward, RewardClaim, PointsTransaction } from "@/lib/types";
 import {
   MOCK_USERS,
   MOCK_TASKS,
@@ -24,6 +24,9 @@ interface AppState {
   rewards: Reward[];
   claims: RewardClaim[];
 
+  // Points history
+  transactions: PointsTransaction[];
+
   // Onboarding
   onboardingCompleted: boolean;
 
@@ -37,7 +40,19 @@ interface AppState {
 
   addClaim: (claim: RewardClaim) => void;
   updateClaim: (claimId: string, status: RewardClaim["status"]) => void;
-  adjustPoints: (userId: string, amount: number) => void;
+  adjustPoints: (userId: string, amount: number, description?: string) => void;
+
+  targetRewardIds: string[];
+  toggleTargetReward: (rewardId: string) => void;
+
+  archivedClaimIds: string[];
+  archiveClaim: (claimId: string) => void;
+
+  featuresUnlocked: string[];
+  unlockFeature: (feature: string) => void;
+
+  streakAlert: { userId: string; userName: string; days: number } | null;
+  clearStreakAlert: () => void;
 
   addMember: (member: Omit<User, "id" | "familyId" | "createdAt">) => void;
   addTask: (task: Omit<Task, "id" | "familyId" | "createdAt">) => void;
@@ -55,7 +70,12 @@ export const useAppStore = create<AppState>()(
       taskInstances: MOCK_TASK_INSTANCES,
       rewards: MOCK_REWARDS,
       claims: MOCK_CLAIMS,
+      transactions: [],
       onboardingCompleted: false,
+      targetRewardIds: [],
+      archivedClaimIds: [],
+      featuresUnlocked: [],
+      streakAlert: null,
 
       login: (userId) => {
         const user = get().users.find((u) => u.id === userId) ?? null;
@@ -97,7 +117,51 @@ export const useAppStore = create<AppState>()(
                 }
               : prev.currentUser;
 
-          return { taskInstances: instances, users, currentUser };
+          // Check for 7-day streak milestone to unlock "streaks" feature
+          let streakAlert = prev.streakAlert;
+          if (
+            isNowCompleted &&
+            !prev.featuresUnlocked.includes("streaks") &&
+            prev.currentUser?.role === "admin"
+          ) {
+            const userId = oldInstance.userId;
+            const today = new Date();
+            let streak = 0;
+            for (let i = 0; i < 30; i++) {
+              const d = new Date(today);
+              d.setDate(today.getDate() - i);
+              const dateStr = d.toISOString().split("T")[0];
+              const dayInstances = instances.filter((ti) => ti.userId === userId && ti.date === dateStr);
+              if (dayInstances.length === 0) break;
+              if (dayInstances.every((ti) => ti.state === "completed")) streak++;
+              else break;
+            }
+            if (streak >= 7) {
+              const userName = prev.users.find((u) => u.id === userId)?.name ?? "Usuario";
+              streakAlert = { userId, userName, days: streak };
+            }
+          }
+
+          // Record transaction
+          const newTransactions = [...prev.transactions];
+          if (pointsDelta !== 0) {
+            const updatedUser = users.find((u) => u.id === oldInstance.userId);
+            const task = prev.tasks.find((t) => t.id === oldInstance.taskId);
+            newTransactions.push({
+              id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              userId: oldInstance.userId,
+              amount: pointsDelta,
+              type: "task",
+              description: pointsDelta > 0
+                ? `Tarea completada: ${task?.title ?? "Tarea"}`
+                : `Tarea desmarcada: ${task?.title ?? "Tarea"}`,
+              emoji: pointsDelta > 0 ? "✅" : "↩️",
+              createdAt: new Date().toISOString(),
+              balanceAfter: updatedUser?.pointsBalance ?? 0,
+            });
+          }
+
+          return { taskInstances: instances, users, currentUser, streakAlert, transactions: newTransactions };
         });
       },
 
@@ -135,25 +199,116 @@ export const useAppStore = create<AppState>()(
       },
 
       addClaim: (claim) =>
-        set((prev) => ({ claims: [...prev.claims, claim] })),
+        set((prev) => {
+          const newClaims = [...prev.claims, claim];
+          if (claim.status !== "approved") return { claims: newClaims };
+
+          // Auto-approved (admin redeeming): deduct points + record transaction
+          const reward = prev.rewards.find((r) => r.id === claim.rewardId);
+          const cost = reward?.pointsCost ?? 0;
+          const users = prev.users.map((u) =>
+            u.id === claim.userId ? { ...u, pointsBalance: Math.max(0, u.pointsBalance - cost) } : u
+          );
+          const currentUser =
+            prev.currentUser?.id === claim.userId
+              ? { ...prev.currentUser, pointsBalance: Math.max(0, prev.currentUser.pointsBalance - cost) }
+              : prev.currentUser;
+          const updatedUser = users.find((u) => u.id === claim.userId);
+          const tx: PointsTransaction = {
+            id: `tx-${Date.now()}`,
+            userId: claim.userId,
+            amount: -cost,
+            type: "reward",
+            description: `Recompensa canjeada: ${reward?.title ?? "Recompensa"}`,
+            emoji: reward?.emoji ?? "🎁",
+            createdAt: new Date().toISOString(),
+            balanceAfter: updatedUser?.pointsBalance ?? 0,
+          };
+          return { claims: newClaims, users, currentUser, transactions: [...prev.transactions, tx] };
+        }),
 
       updateClaim: (claimId, status) =>
-        set((prev) => ({
-          claims: prev.claims.map((c) =>
+        set((prev) => {
+          const claim = prev.claims.find((c) => c.id === claimId);
+          const claims = prev.claims.map((c) =>
             c.id === claimId ? { ...c, status, resolvedAt: new Date().toISOString() } : c
-          ),
-        })),
+          );
 
-      adjustPoints: (userId, amount) =>
-        set((prev) => ({
-          users: prev.users.map((u) =>
+          if (status !== "approved" || !claim) return { claims };
+
+          const reward = prev.rewards.find((r) => r.id === claim.rewardId);
+          const cost = reward?.pointsCost ?? 0;
+
+          const users = prev.users.map((u) =>
+            u.id === claim.userId
+              ? { ...u, pointsBalance: Math.max(0, u.pointsBalance - cost) }
+              : u
+          );
+          const currentUser =
+            prev.currentUser?.id === claim.userId
+              ? { ...prev.currentUser, pointsBalance: Math.max(0, prev.currentUser.pointsBalance - cost) }
+              : prev.currentUser;
+
+          const updatedUser = users.find((u) => u.id === claim.userId);
+          const tx: PointsTransaction = {
+            id: `tx-${Date.now()}`,
+            userId: claim.userId,
+            amount: -cost,
+            type: "reward",
+            description: `Recompensa canjeada: ${reward?.title ?? "Recompensa"}`,
+            emoji: reward?.emoji ?? "🎁",
+            createdAt: new Date().toISOString(),
+            balanceAfter: updatedUser?.pointsBalance ?? 0,
+          };
+
+          return { claims, users, currentUser, transactions: [...prev.transactions, tx] };
+        }),
+
+      adjustPoints: (userId, amount, description?: string) =>
+        set((prev) => {
+          const users = prev.users.map((u) =>
             u.id === userId ? { ...u, pointsBalance: Math.max(0, u.pointsBalance + amount) } : u
-          ),
-          currentUser:
+          );
+          const currentUser =
             prev.currentUser?.id === userId
               ? { ...prev.currentUser, pointsBalance: Math.max(0, prev.currentUser.pointsBalance + amount) }
-              : prev.currentUser,
+              : prev.currentUser;
+          const updatedUser = users.find((u) => u.id === userId);
+          const tx: PointsTransaction = {
+            id: `tx-${Date.now()}`,
+            userId,
+            amount,
+            type: amount > 0 && description?.includes("racha") ? "streak" : "adjustment",
+            description: description ?? (amount > 0 ? "Ajuste manual positivo" : "Ajuste manual"),
+            emoji: amount > 0 ? (description?.includes("racha") ? "🔥" : "⭐") : "➖",
+            createdAt: new Date().toISOString(),
+            balanceAfter: updatedUser?.pointsBalance ?? 0,
+          };
+          return { users, currentUser, transactions: [...prev.transactions, tx] };
+        }),
+
+      toggleTargetReward: (rewardId) =>
+        set((prev) => ({
+          targetRewardIds: prev.targetRewardIds.includes(rewardId)
+            ? prev.targetRewardIds.filter((id) => id !== rewardId)
+            : [...prev.targetRewardIds, rewardId],
         })),
+
+      archiveClaim: (claimId) =>
+        set((prev) => ({
+          archivedClaimIds: prev.archivedClaimIds.includes(claimId)
+            ? prev.archivedClaimIds
+            : [...prev.archivedClaimIds, claimId],
+        })),
+
+      unlockFeature: (feature) =>
+        set((prev) => ({
+          featuresUnlocked: prev.featuresUnlocked.includes(feature)
+            ? prev.featuresUnlocked
+            : [...prev.featuresUnlocked, feature],
+        })),
+
+      clearStreakAlert: () => set({ streakAlert: null }),
 
       addMember: (member) =>
         set((prev) => ({
@@ -213,6 +368,10 @@ export const useAppStore = create<AppState>()(
         rewards: state.rewards,
         claims: state.claims,
         onboardingCompleted: state.onboardingCompleted,
+        targetRewardIds: state.targetRewardIds,
+        archivedClaimIds: state.archivedClaimIds,
+        featuresUnlocked: state.featuresUnlocked,
+        transactions: state.transactions,
       }),
     }
   )
