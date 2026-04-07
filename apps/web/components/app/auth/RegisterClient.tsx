@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Star, Mail, Lock, Eye, EyeOff, User, Home, ArrowRight, ArrowLeft } from "lucide-react";
+import { Star, Mail, Lock, Eye, EyeOff, User, Home, ArrowRight, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ const AVATARS = [
   "🧑","🧕","🦸","🧙","👮","🧑‍🍳","🧑‍🎨","🧑‍💻","🥷","🧑‍🚀",
 ];
 
-type Step = "family" | "you";
+type Step = "family" | "you" | "confirming";
 
 export default function RegisterClient() {
   const router = useRouter();
@@ -21,10 +21,7 @@ export default function RegisterClient() {
 
   const [step, setStep] = useState<Step>("family");
 
-  // Step 1: family
   const [familyName, setFamilyName] = useState("");
-
-  // Step 2: you
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("👨");
   const [email, setEmail] = useState("");
@@ -33,6 +30,28 @@ export default function RegisterClient() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Escucha cambios de sesión mientras esperamos la confirmación
+  useEffect(() => {
+    if (step !== "confirming") return;
+
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
+        router.push(`/${locale}/profile-select`);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [step, locale, router]);
+
+  // Cuenta atrás del botón reenviar
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +70,7 @@ export default function RegisterClient() {
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -73,7 +92,23 @@ export default function RegisterClient() {
       return;
     }
 
-    router.push(`/${locale}/profile-select`);
+    // Si Supabase devuelve sesión directamente (confirmación desactivada)
+    // vamos al selector de perfil sin pasar por login
+    if (data.session) {
+      router.push(`/${locale}/profile-select`);
+      return;
+    }
+
+    // Si requiere confirmación de email, mostramos la pantalla de espera
+    setLoading(false);
+    setResendCooldown(60);
+    setStep("confirming");
+  };
+
+  const handleResend = async () => {
+    const supabase = createClient();
+    await supabase.auth.resend({ type: "signup", email });
+    setResendCooldown(60);
   };
 
   return (
@@ -87,23 +122,18 @@ export default function RegisterClient() {
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
 
-          {/* Step indicators */}
-          <div className="flex items-center justify-center gap-2 mt-3">
-            <div className={cn(
-              "w-2 h-2 rounded-full transition-all",
-              step === "family" ? "bg-primary w-5" : "bg-primary/30"
-            )} />
-            <div className={cn(
-              "w-2 h-2 rounded-full transition-all",
-              step === "you" ? "bg-primary w-5" : "bg-muted"
-            )} />
-          </div>
+          {step !== "confirming" && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <div className={cn("h-2 rounded-full transition-all duration-300", step === "family" ? "w-5 bg-primary" : "w-2 bg-primary/30")} />
+              <div className={cn("h-2 rounded-full transition-all duration-300", step === "you" ? "w-5 bg-primary" : "w-2 bg-muted")} />
+            </div>
+          )}
         </div>
 
-        {/* STEP 1: Family */}
+        {/* PASO 1: Familia */}
         {step === "family" && (
           <form onSubmit={handleNext} className="bg-white rounded-2xl shadow-sm border p-6 space-y-5">
-            <div className="space-y-1">
+            <div>
               <h2 className="text-lg font-extrabold">Tu familia</h2>
               <p className="text-sm text-muted-foreground">¿Cómo se llama vuestra familia?</p>
             </div>
@@ -132,131 +162,136 @@ export default function RegisterClient() {
                 !familyName.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
               )}
             >
-              Siguiente
-              <ArrowRight className="w-4 h-4" />
+              Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           </form>
         )}
 
-        {/* STEP 2: You */}
+        {/* PASO 2: Tú */}
         {step === "you" && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
             <div className="flex items-center gap-2 mb-1">
-              <button
-                type="button"
-                onClick={() => { setStep("family"); setError(null); }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <button type="button" onClick={() => { setStep("family"); setError(null); }} className="text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <div>
                 <h2 className="text-lg font-extrabold leading-tight">Tú</h2>
                 <p className="text-xs text-muted-foreground">
-                  El primer administrador de{" "}
-                  <span className="font-semibold text-foreground">{familyName}</span>
+                  Primer administrador de <span className="font-semibold text-foreground">{familyName}</span>
                 </p>
               </div>
             </div>
 
-            {/* Avatar */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tu avatar</label>
               <div className="grid grid-cols-10 gap-1">
                 {AVATARS.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => setAvatar(a)}
-                    className={cn(
-                      "text-xl p-1 rounded-lg transition-all",
-                      avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted"
-                    )}
-                  >
+                  <button key={a} type="button" onClick={() => setAvatar(a)}
+                    className={cn("text-xl p-1 rounded-lg transition-all", avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted")}>
                     {a}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Name */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Tu nombre</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ana"
-                  required
-                  autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  placeholder="Ana" required autoFocus
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
-                  required
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com" required
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Contraseña</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres" required
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={loading || !name.trim()}
-              className={cn(
-                "w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
-                loading || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
-              )}
-            >
+            <button type="submit" disabled={loading || !name.trim()}
+              className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
+                loading || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
               {loading ? "Creando familia..." : "Crear familia"}
             </button>
           </form>
         )}
 
-        <p className="text-center text-sm text-muted-foreground mt-5">
-          ¿Ya tienes cuenta?{" "}
-          <Link href={`/${locale}/login`} className="text-primary font-semibold hover:underline">
-            Inicia sesión
-          </Link>
-        </p>
+        {/* PASO 3: Confirmar email */}
+        {step === "confirming" && (
+          <div className="bg-white rounded-2xl shadow-sm border p-6 space-y-5 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <Mail className="w-7 h-7 text-primary" />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-extrabold">Confirma tu email</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Hemos enviado un enlace de confirmación a
+              </p>
+              <p className="font-semibold text-sm mt-0.5">{email}</p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left space-y-1.5">
+              <p className="text-xs font-semibold text-amber-800">¿No ves el email?</p>
+              <p className="text-xs text-amber-700">· Revisa la carpeta de <strong>spam o correo no deseado</strong></p>
+              <p className="text-xs text-amber-700">· Puede tardar unos minutos en llegar</p>
+            </div>
+
+            {/* Indicador de espera */}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              Esperando confirmación...
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              En cuanto confirmes el email, esta pantalla avanzará sola.
+            </p>
+
+            {/* Reenviar */}
+            <button
+              onClick={handleResend}
+              disabled={resendCooldown > 0}
+              className={cn(
+                "flex items-center gap-1.5 mx-auto text-sm font-medium transition-colors",
+                resendCooldown > 0 ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:underline"
+              )}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {resendCooldown > 0 ? `Reenviar en ${resendCooldown}s` : "Reenviar correo"}
+            </button>
+          </div>
+        )}
+
+        {step !== "confirming" && (
+          <p className="text-center text-sm text-muted-foreground mt-5">
+            ¿Ya tienes cuenta?{" "}
+            <Link href={`/${locale}/login`} className="text-primary font-semibold hover:underline">
+              Inicia sesión
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );
