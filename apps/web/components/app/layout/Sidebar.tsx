@@ -68,7 +68,6 @@ export default function Sidebar() {
       { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
     ] : []),
     { href: `/${locale}/admin/catalog/tasks`, icon: BookOpen, label: t("adminCatalogTasks"), alert: !setupVisited.catalogTasks },
-    { href: `/${locale}/admin/catalog/rewards`, icon: BookOpen, label: t("adminCatalogRewards"), alert: !setupVisited.catalogRewards },
     { href: `/${locale}/admin/templates`, icon: Layers, label: t("adminTemplates") },
     { href: `/${locale}/settings`, icon: MapPin, label: t("settings") },
     { href: `/${locale}/help`, icon: HelpCircle, label: t("help") },
