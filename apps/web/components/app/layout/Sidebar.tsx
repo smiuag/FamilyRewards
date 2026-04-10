@@ -18,7 +18,6 @@ import {
   Settings,
   BarChart3,
   ClipboardList,
-  Layers,
   Zap,
   Flag,
   MapPin,
@@ -91,7 +90,6 @@ export default function Sidebar() {
       { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
       { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
     ] : []),
-    { href: `/${locale}/admin/templates`, icon: Layers, label: t("adminTemplates") },
     { href: `/${locale}/settings`, icon: MapPin, label: t("settings") },
     { href: `/${locale}/help`, icon: HelpCircle, label: t("help") },
   ];

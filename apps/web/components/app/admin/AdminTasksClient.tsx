@@ -188,6 +188,8 @@ export default function AdminTasksClient() {
 
   const visibleTasks = filterMember === "all"
     ? storeTasks
+    : filterMember === "unassigned"
+    ? storeTasks.filter((t) => t.assignedTo.length === 0)
     : storeTasks.filter((t) => t.assignedTo.includes(filterMember));
 
   return (
@@ -200,11 +202,14 @@ export default function AdminTasksClient() {
               <span className="text-sm truncate">
                 {filterMember === "all"
                   ? "Todos los miembros"
+                  : filterMember === "unassigned"
+                  ? "🙋 Sin asignar"
                   : (() => { const u = users.find((u) => u.id === filterMember); return u ? `${u.avatar} ${u.name}` : "Todos"; })()}
               </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los miembros</SelectItem>
+              <SelectItem value="unassigned">🙋 Sin asignar</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>{u.avatar} {u.name}</SelectItem>
               ))}

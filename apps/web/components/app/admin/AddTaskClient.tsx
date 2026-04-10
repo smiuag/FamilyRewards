@@ -100,7 +100,6 @@ export default function AddTaskClient() {
 
   const handleConfirmCatalog = async () => {
     if (!configuringTask) return;
-    if (selectedUsers.length === 0) { toast.error("Selecciona al menos un miembro"); return; }
     if (!currentUser?.familyId) return;
     setSaving(true);
     try {
@@ -117,7 +116,9 @@ export default function AddTaskClient() {
       });
       setAddedIds((prev) => new Set([...prev, configuringTask.id]));
       toast.success(`"${configuringTask.title}" añadida`, {
-        description: `Asignada a ${selectedUsers.length} miembro(s) · ${customPoints || configuringTask.suggestedPoints} pts`,
+        description: selectedUsers.length > 0
+          ? `Asignada a ${selectedUsers.length} miembro(s) · ${customPoints || configuringTask.suggestedPoints} pts`
+          : `Sin asignar (reclamable) · ${customPoints || configuringTask.suggestedPoints} pts`,
       });
       setConfiguringTask(null);
     } catch {

@@ -79,6 +79,27 @@ export interface RewardClaim {
   resolvedAt?: string;
 }
 
+export interface TaskTemplate {
+  id: string;
+  familyId: string;
+  name: string;
+  description?: string;
+  emoji: string;
+  createdBy: string;
+  createdAt: string;
+  items: TaskTemplateItem[];
+}
+
+export interface TaskTemplateItem {
+  id: string;
+  templateId: string;
+  title: string;
+  description?: string;
+  points: number;
+  recurringPattern: RecurringPattern;
+  penaltyPoints?: number;
+}
+
 export interface PointsHistoryEntry {
   id: string;
   userId: string;

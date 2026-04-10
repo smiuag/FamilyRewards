@@ -1,5 +1,5 @@
-import SeasonTemplatesClient from "@/components/app/admin/SeasonTemplatesClient";
+import TemplatesClient from "@/components/app/admin/TemplatesClient";
 
-export default function SeasonTemplatesPage() {
-  return <SeasonTemplatesClient />;
+export default function TemplatesPage() {
+  return <TemplatesClient />;
 }

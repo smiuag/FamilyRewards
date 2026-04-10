@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
@@ -129,8 +129,25 @@ export default function DashboardClient() {
   // Map task instances to tasks for display
   const todayTasksWithInfo = todayInstances.slice(0, 4).map((ti) => {
     const task = tasks.find((t) => t.id === ti.taskId);
-    return { instance: ti, task };
+    return { instance: ti, task, isClaimable: false as boolean };
   });
+
+  // Add claimable tasks (unassigned, no instance yet for today)
+  const claimableTasks = tasks.filter((t) => {
+    if (!t.isActive || t.assignedTo.length > 0) return false;
+    const dow = ["sun","mon","tue","wed","thu","fri","sat"][new Date().getDay()];
+    if (t.isRecurring) return (t.recurringPattern?.daysOfWeek ?? []).includes(dow as import("@/lib/types").DayOfWeek);
+    return t.createdAt.slice(0, 10) === today;
+  }).filter((t) =>
+    // Not already claimed by anyone today
+    !taskInstances.some((ti) => ti.taskId === t.id && ti.date === today)
+  ).slice(0, 2);
+
+  for (const ct of claimableTasks) {
+    if (todayTasksWithInfo.length < 4) {
+      todayTasksWithInfo.push({ instance: null as unknown as typeof todayInstances[0], task: ct, isClaimable: true });
+    }
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -237,17 +254,35 @@ export default function DashboardClient() {
                 {t("noTasksToday")}
               </p>
             ) : (
-              todayTasksWithInfo.map(({ instance, task }) => (
+              todayTasksWithInfo.map(({ instance, task, isClaimable }) => (
                 <div
-                  key={instance.id}
+                  key={isClaimable ? `claim-${task?.id}` : instance.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
                 >
-                  <div className="text-xl">{instance.state === "completed" ? "✅" : "⏰"}</div>
+                  <div className="text-xl">
+                    {isClaimable ? "🙋" : instance.state === "completed" ? "✅" : "⏰"}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task?.title ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">+{task?.points ?? 0} pts</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">+{task?.points ?? 0} pts</p>
+                      {isClaimable && (
+                        <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px] px-1.5 py-0">
+                          Sin asignar
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  {instance.state === "pending" && (
+                  {isClaimable ? (
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-amber-500 hover:bg-amber-600"
+                      onClick={() => router.push(`/${locale}/tasks`)}
+                    >
+                      <Hand className="w-3 h-3 mr-1" />
+                      Reclamar
+                    </Button>
+                  ) : instance.state === "pending" ? (
                     <Button
                       size="sm"
                       className="h-7 text-xs"
@@ -255,12 +290,11 @@ export default function DashboardClient() {
                     >
                       {t("quickComplete")}
                     </Button>
-                  )}
-                  {instance.state === "completed" && (
+                  ) : instance.state === "completed" ? (
                     <Badge variant="secondary" className="text-green-600 bg-green-100 border-0 text-xs">
                       ✓ Hecho
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
               ))
             )}

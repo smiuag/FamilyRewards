@@ -388,6 +388,97 @@ export async function fetchInstancesForDate(profileId: string, date: string): Pr
   return (data ?? []).map((ti) => toInstance(ti as SupabaseInstance));
 }
 
+// ── Claim an unassigned task ─────────────────────────────────
+// Creates instance as completed + awards points. Returns the new instance.
+// Fails silently if someone already claimed it (unique constraint).
+export async function claimTask(
+  task: Task,
+  profileId: string,
+  date: string,
+): Promise<TaskInstance | null> {
+  const supabase = createClient();
+
+  // Check if anyone already claimed this task for this date
+  const { data: existing } = await supabase
+    .from("task_instances")
+    .select("id")
+    .eq("task_id", task.id)
+    .eq("date", date)
+    .limit(1);
+
+  if (existing && existing.length > 0) return null; // already claimed
+
+  const pointsAwarded = task.points;
+  const { data: instance, error } = await supabase
+    .from("task_instances")
+    .insert({
+      task_id: task.id,
+      profile_id: profileId,
+      date,
+      state: "completed",
+      points_awarded: pointsAwarded,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    // Likely unique constraint violation — someone claimed it concurrently
+    if (error.code === "23505") return null;
+    throw error;
+  }
+
+  // Also add assignment so it shows in the user's history
+  await supabase
+    .from("task_assignments")
+    .upsert({ task_id: task.id, profile_id: profileId }, { onConflict: "task_id,profile_id", ignoreDuplicates: true });
+
+  // Award points
+  const balance = await fetchBalance(supabase, profileId);
+  await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea reclamada: ${task.title}`, "🙋");
+
+  return toInstance(instance as SupabaseInstance);
+}
+
+// ── Share points with a helper ──────────��────────────────────
+// Transfers `amount` points from the completer to the helper.
+export async function shareTaskPoints(
+  fromProfileId: string,
+  toProfileId: string,
+  amount: number,
+  taskTitle: string,
+  helperName: string,
+  giverName: string,
+): Promise<void> {
+  const supabase = createClient();
+  if (amount <= 0) return;
+
+  // Deduct from giver
+  const giverBalance = await fetchBalance(supabase, fromProfileId);
+  const newGiverBalance = Math.max(0, giverBalance - amount);
+  await supabase.from("profiles").update({ points_balance: newGiverBalance }).eq("id", fromProfileId);
+  await recordTransaction({
+    profileId: fromProfileId,
+    amount: -amount,
+    type: "task",
+    description: `Puntos compartidos con ${helperName}: ${taskTitle}`,
+    emoji: "🤝",
+    balanceAfter: newGiverBalance,
+  }).catch(() => {});
+
+  // Add to helper
+  const helperBalance = await fetchBalance(supabase, toProfileId);
+  const newHelperBalance = helperBalance + amount;
+  await supabase.from("profiles").update({ points_balance: newHelperBalance }).eq("id", toProfileId);
+  await recordTransaction({
+    profileId: toProfileId,
+    amount,
+    type: "task",
+    description: `Ayuda en tarea de ${giverName}: ${taskTitle}`,
+    emoji: "🤝",
+    balanceAfter: newHelperBalance,
+  }).catch(() => {});
+}
+
 // ── C7: syncInstanceState with 4-state transition table ──
 //
 // Transition table (pointsDelta):
