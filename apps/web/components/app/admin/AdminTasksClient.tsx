@@ -232,64 +232,26 @@ export default function AdminTasksClient() {
           {visibleTasks.map((task) => (
             <Card key={task.id} className={cn("shadow-sm transition-all", !task.isActive && "opacity-60")}>
               <CardContent className="py-4">
-                <div className="flex gap-4">
-                  {/* Left col: type icon + user avatars stacked */}
-                  <div className="flex flex-col gap-2 flex-shrink-0 items-center">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
-                      task.isRecurring ? "bg-blue-100" : "bg-orange-100")}>
-                      {task.isRecurring
-                        ? <RefreshCw className="w-5 h-5 text-blue-500" />
-                        : <Star className="w-5 h-5 text-orange-500" />}
-                    </div>
-                    {task.assignedTo.length > 0
-                      ? task.assignedTo.map((uid) => {
-                          const u = users.find((u) => u.id === uid);
-                          return u ? (
-                            <div key={uid} className="w-10 h-10 flex items-center justify-center text-xl">{u.avatar}</div>
-                          ) : null;
-                        })
-                      : <div className="w-10 h-10 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                    }
+                <div className="flex items-start gap-4">
+                  {/* Type icon */}
+                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                    task.isRecurring ? "bg-blue-100" : "bg-orange-100")}>
+                    {task.isRecurring
+                      ? <RefreshCw className="w-5 h-5 text-blue-500" />
+                      : <Star className="w-5 h-5 text-orange-500" />}
                   </div>
 
-                  {/* Right content */}
+                  {/* Main content */}
                   <div className="flex-1 min-w-0">
-                    {/* Title row + actions top-right */}
-                    <div className="flex items-start justify-between gap-2 h-10">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">{task.title}</span>
-                        <span className="text-sm text-muted-foreground">({task.points} pts)</span>
-                        {!task.isActive && (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">Desactivada</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setTaskToDelete(task)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold">{task.title}</span>
+                      {!task.isActive && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Desactivada</Badge>
+                      )}
                     </div>
 
-                    {/* User name rows aligned with avatars */}
-                    {task.assignedTo.length > 0
-                      ? task.assignedTo.map((uid) => {
-                          const u = users.find((u) => u.id === uid);
-                          return u ? (
-                            <div key={uid} className="h-10 flex items-center text-sm text-muted-foreground">{u.name}</div>
-                          ) : null;
-                        })
-                      : <div className="h-10 flex items-center text-sm text-muted-foreground">Sin asignar</div>
-                    }
-
-                    {/* Recurring pattern */}
                     {task.isRecurring && task.recurringPattern && (
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <div className="flex gap-1">
                           {ALL_DAYS.map((d) => (
                             <span key={d} className={cn(
@@ -311,11 +273,42 @@ export default function AdminTasksClient() {
                       </div>
                     )}
 
-                    {/* Switch bottom-right (recurring only) */}
+                    {/* Assigned + points */}
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1.5 text-sm">
+                        {task.assignedTo.length > 0
+                          ? task.assignedTo.map((uid) => {
+                              const u = users.find((u) => u.id === uid);
+                              return u ? (
+                                <span key={uid} className="flex items-center gap-1">
+                                  <span className="text-base">{u.avatar}</span>
+                                  <span className="font-medium text-foreground">{u.name}</span>
+                                </span>
+                              ) : null;
+                            })
+                          : <span className="text-muted-foreground">Sin asignar</span>
+                        }
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                        <span className="text-primary font-semibold">{task.points} pts</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right actions column */}
+                  <div className="flex flex-col items-end justify-between gap-3 flex-shrink-0 self-stretch">
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setTaskToDelete(task)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                     {task.isRecurring && (
-                      <div className="flex justify-end mt-2">
-                        <Switch checked={task.isActive} onCheckedChange={() => toggleActive(task)} />
-                      </div>
+                      <Switch checked={task.isActive} onCheckedChange={() => toggleActive(task)} />
                     )}
                   </div>
                 </div>
