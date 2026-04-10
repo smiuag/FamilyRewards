@@ -24,6 +24,23 @@
 
 ---
 
+## 🟡 Accesibilidad (a11y) para invidentes
+
+- [ ] **Roles ARIA y landmarks** — añadir `role="main"`, `role="navigation"`, `role="banner"` en el layout principal; `role="list"` / `role="listitem"` donde corresponda.
+- [ ] **Etiquetas para lectores de pantalla** — todos los botones icono (sin texto visible) necesitan `aria-label`. Revisar especialmente: botones de ajuste de puntos (+/-), botón de copiar enlace, botones de avatar en selectores.
+- [ ] **Formularios accesibles** — asociar cada `<Label>` con su input mediante `htmlFor` / `id` si no lo está ya. Los inputs sin label visible deben tener `aria-label`.
+- [ ] **Focus visible** — verificar que el foco de teclado sea siempre visible (outline). Tailwind v4 puede sobreescribir el outline por defecto; revisar que `focus-visible:ring` esté presente en todos los elementos interactivos.
+- [ ] **Navegación por teclado** — todo el flujo crítico (login → dashboard → completar tarea → canjear recompensa) debe ser completamente operable solo con teclado (Tab, Enter, Space, Escape para cerrar modales).
+- [ ] **Modales y diálogos** — los `AppModal` deben atrapar el foco mientras están abiertos (`aria-modal="true"`, focus trap) y devolverlo al elemento disparador al cerrar.
+- [ ] **Selectores de emoji/avatar** — la cuadrícula de avatares es inaccesible para lectores de pantalla; cada botón necesita `aria-label` con el nombre del emoji (ej. `aria-label="Niño"`).
+- [ ] **Tablas** — las `<Table>` del admin deben tener `<caption>` o `aria-label` descriptivo.
+- [ ] **Textos alternativos** — los emojis usados como iconos decorativos deben tener `aria-hidden="true"`; los usados como información deben tener `aria-label`.
+- [ ] **Contraste de color** — revisar que los colores oklch del tema cumplan WCAG AA (ratio 4.5:1 para texto normal, 3:1 para texto grande). Especialmente los grises de `text-muted-foreground`.
+- [ ] **Anuncios dinámicos** — acciones como "tarea completada" o "puntos ajustados" deben anunciarse a lectores de pantalla con `aria-live="polite"` o usando los toasts de Sonner con soporte ARIA.
+- [ ] **Orden de lectura** — verificar que el orden DOM coincida con el orden visual en todas las páginas (especialmente en grids con Tailwind `order-*`).
+
+---
+
 ## 🟡 APK de pruebas (TWA)
 Pasos pendientes una vez el deploy de Vercel funcione:
 1. Añadir `manifest.json` y meta PWA a la web (iconos, theme-color, display: standalone)
