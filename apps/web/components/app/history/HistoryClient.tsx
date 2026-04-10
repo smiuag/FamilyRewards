@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Star, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -114,7 +113,7 @@ export default function HistoryClient() {
         {isAdmin && (
           <Select value={selectedUserId} onValueChange={(v) => setSelectedUserId(v ?? currentUser?.id ?? "")}>
             <SelectTrigger className="w-44 h-9 text-sm">
-              <SelectValue />
+              <span className="text-sm truncate">{(() => { const u = users.find((u) => u.id === selectedUserId); return u ? `${u.avatar} ${u.name}` : ""; })()}</span>
             </SelectTrigger>
             <SelectContent>
               {users.map((u) => (
@@ -127,7 +126,7 @@ export default function HistoryClient() {
         )}
         <Select value={selectedMonth} onValueChange={(v) => setSelectedMonth(v ?? monthOptions[0].value)}>
           <SelectTrigger className="w-44 h-9 text-sm">
-            <SelectValue />
+            <span className="text-sm capitalize">{monthOptions.find((m) => m.value === selectedMonth)?.label ?? ""}</span>
           </SelectTrigger>
           <SelectContent>
             {monthOptions.map((m) => (

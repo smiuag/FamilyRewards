@@ -19,7 +19,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
@@ -406,7 +405,7 @@ export default function OnboardingWizard() {
                   />
                   <Select value={newRole} onValueChange={(v) => setNewRole((v ?? "member") as "admin" | "member")}>
                     <SelectTrigger className="w-32">
-                      <SelectValue />
+                      <span>{newRole === "member" ? "Miembro" : "Admin"}</span>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="member">Miembro</SelectItem>

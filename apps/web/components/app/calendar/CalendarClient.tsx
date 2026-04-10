@@ -8,7 +8,7 @@ import { getHolidaysForMonth, getHolidayForDate } from "@/lib/holidays";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock, MinusCircle, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Clock, MinusCircle, XCircle, MapPin } from "lucide-react";
 import {
   format,
   startOfMonth,
@@ -64,8 +64,8 @@ export default function CalendarClient() {
   const stateColors: Record<string, string> = {
     completed: "bg-green-500",
     pending: "bg-amber-400",
-    not_completed: "bg-red-400",
-    omitted: "bg-gray-300",
+    failed: "bg-red-400",
+    cancelled: "bg-gray-300",
   };
 
   const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -216,7 +216,8 @@ export default function CalendarClient() {
                     <div key={ti.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                       {ti.state === "completed" && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
                       {ti.state === "pending" && <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />}
-                      {(ti.state === "omitted" || ti.state === "not_completed") && <MinusCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                      {ti.state === "failed" && <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                      {ti.state === "cancelled" && <MinusCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{task?.title}</p>
                         <p className="text-xs text-muted-foreground">+{task?.points} pts</p>
@@ -226,15 +227,15 @@ export default function CalendarClient() {
                         className={cn(
                           "text-xs border-0",
                           ti.state === "completed" && "bg-green-100 text-green-700",
-                          ti.state === "pending" && "bg-amber-100 text-amber-700",
-                          ti.state === "omitted" && "bg-gray-100 text-gray-500",
-                          ti.state === "not_completed" && "bg-red-100 text-red-600"
+                          ti.state === "pending"   && "bg-amber-100 text-amber-700",
+                          ti.state === "failed"    && "bg-red-100 text-red-600",
+                          ti.state === "cancelled" && "bg-gray-100 text-gray-500",
                         )}
                       >
                         {ti.state === "completed" && "✓"}
-                        {ti.state === "pending" && "⏳"}
-                        {ti.state === "omitted" && "—"}
-                        {ti.state === "not_completed" && "✗"}
+                        {ti.state === "pending"   && "⏳"}
+                        {ti.state === "failed"    && "✗"}
+                        {ti.state === "cancelled" && "—"}
                       </Badge>
                     </div>
                   );

@@ -230,7 +230,7 @@ export default function ReportsClient() {
                 <tr className="text-xs text-muted-foreground border-b border-border">
                   <th className="text-left pb-2 font-medium">Miembro</th>
                   <th className="text-right pb-2 font-medium">Completadas</th>
-                  <th className="text-right pb-2 font-medium">Omitidas</th>
+                  <th className="text-right pb-2 font-medium">No realizadas</th>
                   <th className="text-right pb-2 font-medium">Tasa</th>
                   <th className="text-right pb-2 font-medium">Puntos</th>
                 </tr>
@@ -253,7 +253,7 @@ export default function ReportsClient() {
                         {r.totalCompleted}
                       </td>
                       <td className="text-right py-2.5 text-muted-foreground">
-                        {r.totalOmitted}
+                        {r.totalFailed}
                       </td>
                       <td className="text-right py-2.5">
                         <span

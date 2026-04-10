@@ -1,42 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRouter, useParams } from "next/navigation";
+import { backfillInstances, fetchInstancesForDate, syncInstanceState } from "@/lib/api/tasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  CheckCircle2,
-  XCircle,
-  MinusCircle,
-  Clock,
-  Star,
-  ArrowLeft,
-  Flame,
-  Trophy,
-  Users,
+  CheckCircle2, XCircle, MinusCircle, Clock, Star,
+  ArrowLeft, Trophy, Users, ChevronLeft, ChevronRight, CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
+import type { TaskState, TaskInstance } from "@/lib/types";
 
-type Period = "today" | "week" | "month";
+const DOW_MAP = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+function dateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
+function getDow(d: Date) { return DOW_MAP[d.getDay()]; }
 
 export default function MemberDetailClient() {
   const t = useTranslations("members");
-  const tCommon = useTranslations("common");
-  const { users, tasks, taskInstances } = useAppStore();
+  const { users, tasks, taskInstances, currentUser, updateTaskInstance, loadTaskInstances } = useAppStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
   const userId = params?.userId as string;
 
-  const [period, setPeriod] = useState<Period>("today");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [loading, setLoading] = useState(false);
+
+  const selectedDateStr = dateStr(selectedDate);
+  const todayStr = dateStr(today);
+  const isFutureDay = selectedDateStr > todayStr;
 
   const user = users.find((u) => u.id === userId);
+
+  // Backfill / load instances when date changes
+  useEffect(() => {
+    if (!user || isFutureDay) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const instances = await backfillInstances(tasks, userId, selectedDate);
+        loadTaskInstances([
+          ...useAppStore.getState().taskInstances.filter((ti) => ti.userId !== userId),
+          ...instances,
+        ]);
+      } catch {
+        toast.error("Error al cargar las tareas");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [userId, selectedDateStr]);
+
   if (!user) {
     return (
       <div className="p-6 text-center text-muted-foreground">
@@ -46,70 +75,75 @@ export default function MemberDetailClient() {
     );
   }
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const getDateRange = (): [string, string] => {
-    if (period === "today") return [today, today];
-    if (period === "week") {
-      const start = new Date();
-      start.setDate(start.getDate() - start.getDay() + 1); // Monday
-      return [start.toISOString().split("T")[0], today];
+  // Tasks that should appear this day
+  const dow = getDow(selectedDate);
+  const dayTasks = tasks.filter((task) => {
+    if (!task.assignedTo.includes(userId)) return false;
+    if (!task.isActive) return false;
+    if (task.isRecurring) return (task.recurringPattern?.daysOfWeek ?? []).includes(dow);
+    if (task.deadline) {
+      const created = task.createdAt.slice(0, 10);
+      return selectedDateStr >= created && selectedDateStr <= task.deadline;
     }
-    // month
-    const start = new Date();
-    start.setDate(1);
-    return [start.toISOString().split("T")[0], today];
+    return task.createdAt.slice(0, 10) === selectedDateStr;
+  });
+
+  // Pair task with instance
+  const entries = dayTasks.map((task) => {
+    const instance = taskInstances.find((ti) =>
+      ti.userId === userId &&
+      ti.taskId === task.id &&
+      (task.isRecurring ? ti.date === selectedDateStr : true)
+    ) ?? null;
+    return { task, instance };
+  });
+
+  // Summary
+  const dayInstances = taskInstances.filter((ti) => ti.userId === userId && ti.date === selectedDateStr);
+  const completed  = dayInstances.filter((ti) => ti.state === "completed");
+  const failed     = dayInstances.filter((ti) => ti.state === "failed");
+  const cancelled  = dayInstances.filter((ti) => ti.state === "cancelled");
+  const ptsEarned  = dayInstances.reduce((a, ti) => a + ti.pointsAwarded, 0);
+
+  const handleStateChange = async (instance: TaskInstance, newState: TaskState) => {
+    const task = tasks.find((t) => t.id === instance.taskId);
+    if (!task) return;
+    const prev = instance.state;
+    updateTaskInstance(instance.id, newState);
+    try {
+      await syncInstanceState(instance.id, newState, task, userId, prev);
+    } catch {
+      updateTaskInstance(instance.id, prev);
+      toast.error("Error al cambiar el estado");
+    }
   };
 
-  const [dateFrom, dateTo] = getDateRange();
-
-  const periodInstances = taskInstances.filter(
-    (ti) => ti.userId === userId && ti.date >= dateFrom && ti.date <= dateTo
-  );
-
-  const completed = periodInstances.filter((ti) => ti.state === "completed");
-  const pending = periodInstances.filter((ti) => ti.state === "pending");
-  const notCompleted = periodInstances.filter((ti) => ti.state === "not_completed");
-  const omitted = periodInstances.filter((ti) => ti.state === "omitted");
-  const ptsEarned = completed.reduce((a, ti) => a + ti.pointsAwarded, 0);
-
-  const stateConfig = {
-    completed: { icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50 border-green-200", label: "Completada" },
-    pending: { icon: Clock, color: "text-amber-500", bg: "bg-amber-50 border-amber-200", label: "Pendiente" },
-    not_completed: { icon: XCircle, color: "text-red-400", bg: "bg-red-50 border-red-200", label: "No completada" },
-    omitted: { icon: MinusCircle, color: "text-gray-400", bg: "bg-gray-50 border-gray-200", label: "Omitida" },
+  const stateConfig: Record<TaskState, { icon: React.ComponentType<{ className?: string }>; color: string; label: string; btnClass: string }> = {
+    completed: { icon: CheckCircle2, color: "text-green-500", label: "Realizada",    btnClass: "bg-green-500 text-white hover:bg-green-600" },
+    pending:   { icon: Clock,        color: "text-amber-500", label: "Pendiente",    btnClass: "bg-amber-100 text-amber-700 hover:bg-amber-200" },
+    failed:    { icon: XCircle,      color: "text-red-400",   label: "No realizada", btnClass: "bg-red-500 text-white hover:bg-red-600" },
+    cancelled: { icon: MinusCircle,  color: "text-gray-400",  label: "Cancelada",    btnClass: "bg-gray-200 text-gray-600 hover:bg-gray-300" },
   };
 
-  // Group by date for week/month
-  const byDate = periodInstances.reduce<Record<string, typeof periodInstances>>((acc, ti) => {
-    acc[ti.date] = acc[ti.date] ?? [];
-    acc[ti.date].push(ti);
-    return acc;
-  }, {});
-
-  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+  const dayLabel = isToday(selectedDate)
+    ? "Hoy"
+    : format(selectedDate, "EEEE d MMM", { locale: es });
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-5">
       {/* Breadcrumb */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Familia
+        <button onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Familia
         </button>
-        <button
-          onClick={() => router.push(`/${locale}/members`)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Users className="w-4 h-4" />
-          Ver todos los miembros
+        <button onClick={() => router.push(`/${locale}/members`)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Users className="w-4 h-4" /> Ver todos
         </button>
       </div>
 
-      {/* Header */}
+      {/* Member header */}
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-4xl">
           {user.avatar}
@@ -129,118 +163,100 @@ export default function MemberDetailClient() {
         </div>
       </div>
 
-      {/* Period selector */}
-      <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
-        <TabsList className="w-full">
-          <TabsTrigger value="today" className="flex-1">{tCommon("today")}</TabsTrigger>
-          <TabsTrigger value="week" className="flex-1">{tCommon("week")}</TabsTrigger>
-          <TabsTrigger value="month" className="flex-1">{tCommon("month")}</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Day navigator */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold capitalize text-muted-foreground">{dayLabel}</p>
+        <div className="flex items-center gap-1 bg-muted rounded-xl p-1">
+          <button onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+            className="p-1.5 rounded-lg hover:bg-background transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button onClick={() => setSelectedDate(today)}
+            className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1",
+              isToday(selectedDate) ? "bg-primary text-primary-foreground" : "hover:bg-background")}>
+            <CalendarDays className="w-3.5 h-3.5" /> Hoy
+          </button>
+          <button onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+            className="p-1.5 rounded-lg hover:bg-background transition-colors">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard
-          icon={<CheckCircle2 className="w-4 h-4 text-green-500" />}
-          label="Completadas"
-          value={completed.length}
-          bg="bg-green-50"
-        />
-        <SummaryCard
-          icon={<Clock className="w-4 h-4 text-amber-500" />}
-          label="Pendientes"
-          value={pending.length}
-          bg="bg-amber-50"
-        />
+      {/* Summary */}
+      <div className="grid grid-cols-4 gap-2">
+        <SummaryCard icon={<CheckCircle2 className="w-4 h-4 text-green-500" />} label="Realizadas" value={completed.length} bg="bg-green-50" />
+        <SummaryCard icon={<XCircle className="w-4 h-4 text-red-400" />}       label="No realizadas" value={failed.length}    bg="bg-red-50" />
+        <SummaryCard icon={<MinusCircle className="w-4 h-4 text-gray-400" />}  label="Canceladas"    value={cancelled.length} bg="bg-gray-50" />
         <SummaryCard
           icon={<Star className="w-4 h-4 text-primary fill-primary" />}
-          label="Pts ganados"
-          value={ptsEarned}
+          label="Puntos del día"
+          value={ptsEarned >= 0 ? `+${ptsEarned}` : String(ptsEarned)}
           bg="bg-orange-50"
-        />
-        <SummaryCard
-          icon={<Trophy className="w-4 h-4 text-purple-500" />}
-          label="Tasa"
-          value={
-            periodInstances.length > 0
-              ? `${Math.round((completed.length / periodInstances.length) * 100)}%`
-              : "—"
-          }
-          bg="bg-purple-50"
         />
       </div>
 
       {/* Task list */}
-      {periodInstances.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      ) : entries.length === 0 ? (
         <Card className="shadow-sm">
           <CardContent className="py-10 text-center text-muted-foreground text-sm">
-            {t("noTasks")}
-          </CardContent>
-        </Card>
-      ) : period === "today" ? (
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Tareas de hoy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 pt-0">
-            {periodInstances.map((ti) => {
-              const task = tasks.find((t) => t.id === ti.taskId);
-              const cfg = stateConfig[ti.state];
-              const Icon = cfg.icon;
-              return (
-                <div
-                  key={ti.id}
-                  className={cn("flex items-center gap-3 p-3 rounded-xl border", cfg.bg)}
-                >
-                  <Icon className={cn("w-4 h-4 flex-shrink-0", cfg.color)} />
-                  <span className="flex-1 text-sm font-medium">{task?.title ?? "Tarea"}</span>
-                  {ti.state === "completed" && ti.pointsAwarded > 0 && (
-                    <span className="text-xs font-bold text-primary">+{ti.pointsAwarded} pts</span>
-                  )}
-                  <Badge variant="outline" className="text-xs">{cfg.label}</Badge>
-                </div>
-              );
-            })}
+            {isFutureDay ? "Sin tareas previstas para este día" : t("noTasks")}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {sortedDates.map((date) => {
-            const dayInstances = byDate[date];
-            const dayCompleted = dayInstances.filter((ti) => ti.state === "completed");
-            const dayPts = dayCompleted.reduce((a, ti) => a + ti.pointsAwarded, 0);
+        <div className="space-y-2">
+          {entries.map(({ task, instance }) => {
+            const state: TaskState = instance?.state ?? "pending";
+            const cfg = stateConfig[state];
+            const Icon = cfg.icon;
+            const penalty = task.penaltyPoints ?? task.points;
+
             return (
-              <Card key={date} className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold capitalize">
-                      {format(new Date(date + "T12:00:00"), "EEEE, d MMM", { locale: es })}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{dayCompleted.length}/{dayInstances.length}</span>
-                      {dayPts > 0 && (
-                        <span className="font-bold text-primary">+{dayPts} pts</span>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-1.5 pt-0">
-                  {dayInstances.map((ti) => {
-                    const task = tasks.find((t) => t.id === ti.taskId);
-                    const cfg = stateConfig[ti.state];
-                    const Icon = cfg.icon;
-                    return (
-                      <div key={ti.id} className="flex items-center gap-2 text-sm">
-                        <Icon className={cn("w-4 h-4 flex-shrink-0", cfg.color)} />
-                        <span className="flex-1 text-muted-foreground">{task?.title ?? "Tarea"}</span>
-                        {ti.state === "completed" && ti.pointsAwarded > 0 && (
-                          <span className="text-xs font-semibold text-primary">+{ti.pointsAwarded}</span>
+              <Card key={task.id + selectedDateStr} className="shadow-sm">
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-3">
+                    <Icon className={cn("w-4 h-4 flex-shrink-0", cfg.color)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{task.title}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <span className="text-primary font-medium">+{task.points} pts</span>
+                        {penalty > 0 && <span className="text-red-500">/ -{penalty}</span>}
+                        {task.deadline && (
+                          <span className={cn("font-medium",
+                            task.deadline < selectedDateStr && state !== "completed" ? "text-red-600" : "text-amber-600")}>
+                            Límite: {format(parseISO(task.deadline), "d MMM", { locale: es })}
+                          </span>
                         )}
                       </div>
-                    );
-                  })}
+                    </div>
+
+                    {/* State selector — only for past/today with real instance */}
+                    {!isFutureDay && instance ? (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {(["completed", "pending", "failed", "cancelled"] as TaskState[]).map((s) => {
+                          const c = stateConfig[s];
+                          const SIcon = c.icon;
+                          return (
+                            <button key={s} title={c.label}
+                              onClick={() => state !== s && handleStateChange(instance, s)}
+                              className={cn("w-7 h-7 rounded-lg flex items-center justify-center transition-all text-xs",
+                                state === s ? c.btnClass : "bg-muted text-muted-foreground hover:bg-muted/70"
+                              )}>
+                              <SIcon className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic flex-shrink-0">
+                        {isFutureDay ? "Futuro" : "—"}
+                      </span>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -251,22 +267,12 @@ export default function MemberDetailClient() {
   );
 }
 
-function SummaryCard({
-  icon,
-  label,
-  value,
-  bg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  bg: string;
-}) {
+function SummaryCard({ icon, label, value, bg }: { icon: React.ReactNode; label: string; value: number | string; bg: string }) {
   return (
     <Card className="shadow-sm">
-      <CardContent className="pt-4 pb-3">
-        <div className={cn("inline-flex p-1.5 rounded-lg mb-2", bg)}>{icon}</div>
-        <p className="text-xl font-extrabold">{value}</p>
+      <CardContent className="pt-3 pb-2">
+        <div className={cn("inline-flex p-1.5 rounded-lg mb-1.5", bg)}>{icon}</div>
+        <p className="text-lg font-extrabold">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </CardContent>
     </Card>

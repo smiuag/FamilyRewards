@@ -4,14 +4,15 @@ export interface DailyReport {
   date: string;
   completed: number;
   pending: number;
-  omitted: number;
+  failed: number;
+  cancelled: number;
   points: number;
 }
 
 export interface MemberReport {
   user: User;
   totalCompleted: number;
-  totalOmitted: number;
+  totalFailed: number;
   totalPoints: number;
   completionRate: number; // 0–100
   dailyBreakdown: DailyReport[];
@@ -53,8 +54,8 @@ export function buildMemberReport(
   );
 
   const completed = userInstances.filter((ti) => ti.state === "completed");
-  const omitted = userInstances.filter((ti) => ti.state === "omitted");
-  const totalPoints = completed.reduce((s, ti) => s + ti.pointsAwarded, 0);
+  const failed = userInstances.filter((ti) => ti.state === "failed");
+  const totalPoints = userInstances.reduce((s, ti) => s + ti.pointsAwarded, 0);
   const completionRate =
     userInstances.length > 0
       ? Math.round((completed.length / userInstances.length) * 100)
@@ -77,7 +78,8 @@ export function buildMemberReport(
       date,
       completed: dayInstances.filter((ti) => ti.state === "completed").length,
       pending: dayInstances.filter((ti) => ti.state === "pending").length,
-      omitted: dayInstances.filter((ti) => ti.state === "omitted").length,
+      failed: dayInstances.filter((ti) => ti.state === "failed").length,
+      cancelled: dayInstances.filter((ti) => ti.state === "cancelled").length,
       points: dayInstances
         .filter((ti) => ti.state === "completed")
         .reduce((s, ti) => s + ti.pointsAwarded, 0),
@@ -87,7 +89,7 @@ export function buildMemberReport(
   return {
     user,
     totalCompleted: completed.length,
-    totalOmitted: omitted.length,
+    totalFailed: failed.length,
     totalPoints,
     completionRate,
     dailyBreakdown,

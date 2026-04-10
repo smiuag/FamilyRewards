@@ -1,6 +1,6 @@
 export type Role = "admin" | "member";
 
-export type TaskState = "pending" | "completed" | "not_completed" | "omitted";
+export type TaskState = "pending" | "completed" | "failed" | "cancelled";
 
 export type RewardStatus = "available" | "disabled";
 
@@ -44,7 +44,10 @@ export interface Task {
   createdBy: string;
   isRecurring: boolean;
   recurringPattern?: RecurringPattern;
-  isActive: boolean; // for recurring tasks
+  defaultState?: "pending" | "completed"; // for non-recurring tasks; recurring uses recurringPattern.defaultState
+  deadline?: string;      // "YYYY-MM-DD", only for non-recurring tasks
+  penaltyPoints?: number; // points deducted if failed; null/undefined = same as points; 0 = no penalty
+  isActive: boolean;      // for recurring tasks
   createdAt: string;
 }
 

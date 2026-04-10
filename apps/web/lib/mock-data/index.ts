@@ -194,7 +194,7 @@ export const MOCK_TASK_INSTANCES: TaskInstance[] = [
     taskId: "t4",
     userId: "u3",
     date: today,
-    state: "omitted",
+    state: "cancelled",
     pointsAwarded: 0,
   },
   // Yesterday — Ana (completed)

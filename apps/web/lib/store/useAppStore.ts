@@ -164,7 +164,7 @@ export const useAppStore = create<AppState>()(
           // Check for 7-day streak milestone to unlock "streaks" feature
           let streakAlert = prev.streakAlert;
           if (
-            isNowCompleted &&
+            newState === "completed" &&
             !prev.featuresUnlocked.includes("streaks") &&
             prev.currentUser?.role === "admin"
           ) {

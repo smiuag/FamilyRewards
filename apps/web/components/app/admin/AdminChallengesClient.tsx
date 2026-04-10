@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Trophy, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -272,7 +271,11 @@ export default function AdminChallengesClient() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <span>{
+                      form.goalType === "collective_points" ? "Puntos colectivos" :
+                      form.goalType === "completion_count" ? "Tareas completadas" :
+                      "Racha de todos"
+                    }</span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="collective_points">Puntos colectivos</SelectItem>
