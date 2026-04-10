@@ -239,9 +239,3 @@ export const CATEGORY_CONFIG: Record<AchievementCategory, { label: string; emoji
   special: { label: "Especiales",  emoji: "⭐" },
 };
 
-// Mock: simulate which achievements are unlocked based on mock stats
-export const MOCK_USER_STATS: Record<string, UserStats> = {
-  u1: { totalTasksCompleted: 87, currentStreak: 7,  bestStreak: 14, totalPoints: 2100, rewardsClaimed: 1, perfectWeeks: 2, totalPointsEarned: 4200, daysActive: 42 },
-  u2: { totalTasksCompleted: 34, currentStreak: 7,  bestStreak: 7,  totalPoints: 1250, rewardsClaimed: 2, perfectWeeks: 1, totalPointsEarned: 1850, daysActive: 28 },
-  u3: { totalTasksCompleted: 18, currentStreak: 3,  bestStreak: 5,  totalPoints: 840,  rewardsClaimed: 0, perfectWeeks: 0, totalPointsEarned: 840,  daysActive: 15 },
-};

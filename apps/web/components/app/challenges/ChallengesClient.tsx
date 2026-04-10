@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
-import { MOCK_USERS } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +19,7 @@ const STATUS_CONFIG = {
 };
 
 export default function ChallengesClient() {
-  const { currentUser } = useAppStore();
+  const { currentUser, users } = useAppStore();
   const { challenges, contribute } = useChallengesStore();
   const [filter, setFilter] = useState<"active" | "completed" | "all">("active");
 
@@ -162,7 +161,7 @@ function ChallengeCard({
           </p>
           <div className="flex flex-wrap gap-2">
             {c.contributions.map((con) => {
-              const user = MOCK_USERS.find((u) => u.id === con.userId);
+              const user = users.find((u) => u.id === con.userId);
               if (!user) return null;
               return (
                 <div

@@ -2,22 +2,7 @@
 
 ---
 
-## 🔴 Datos mock pendientes de eliminar
 
-### Dashboard — datos hardcodeados
-- [ ] **`DashboardClient.tsx:59`** — `MOCK_USER_STATS[currentUser.id]` para mostrar logros recientes. Debe calcular las estadísticas reales igual que hace `AchievementsClient` (ya tiene la función `computeUserStats` con `useMemo`). Si no tiene el ID real (familia nueva), la sección de logros debe quedar vacía o mostrar "aún no hay logros".
-- [ ] **`DashboardClient.tsx:65`** — `MOCK_BOARD_MESSAGES.slice(0,2)` para el widget de mensajes recientes del tablón. El tablón (`BoardClient`) usa estado local sin persistencia → hace falta un store o tabla Supabase `board_messages` para que el dashboard pueda leer los mensajes reales.
-- [ ] **`DashboardClient.tsx:319`** — `MOCK_USERS.find(...)` para resolver el autor del mensaje en el widget del tablón. Cambiar a `users.find(...)` del store (ya disponible en el componente).
-
-### Challenges — datos hardcodeados
-- [ ] **`ChallengesClient.tsx:165`** — `MOCK_USERS.find(...)` para mostrar el avatar/nombre del contribuyente en cada reto. Cambiar a `users.find(...)` del store (`useAppStore`).
-
-### Datos mock definidos pero nunca usados (dead code a eliminar)
-- [ ] **`lib/challenges/index.ts`** — `MOCK_CHALLENGES` (3 retos con IDs u1/u2/u3 hardcodeados). El store arranca vacío → este array es dead code puro.
-- [ ] **`lib/multipliers/index.ts`** — `MOCK_MULTIPLIERS` (3 multiplicadores con IDs u1/u2/u3 hardcodeados). Mismo caso, nunca importado.
-- [ ] **`lib/mock-data/index.ts`** — `MOCK_USERS`, `MOCK_TASKS`, `MOCK_TASK_INSTANCES`, `MOCK_REWARDS`, `MOCK_CLAIMS`, `MOCK_POINTS_HISTORY`, `MOCK_FAMILY`. Todas importadas solo por `DashboardClient` (`MOCK_USERS`) y dead code en el resto. Al migrar Dashboard, se puede borrar el fichero entero.
-- [ ] **`lib/mock-data/board.ts`** — `MOCK_BOARD_MESSAGES` con 7 mensajes usando IDs u1/u2/u3. Solo lo usa `DashboardClient`. Eliminar cuando se migre el widget del tablón.
-- [ ] **`lib/achievements/index.ts`** — `MOCK_USER_STATS` (estadísticas hardcodeadas de u1/u2/u3). Solo lo usa `DashboardClient`. Eliminar al computar stats reales.
 
 ### Posible dato persistido en localStorage
 - [ ] Si al añadir una tarea o en cualquier selector de miembros aparecen "María", "Ana" o "Pablo", es que el Zustand store tiene datos del template original persistidos en `localStorage`. La solución es que `initRealAuth` sobrescriba siempre el array `users` con lo que devuelve Supabase (verificar que no haya merge parcial). Como workaround temporal: borrar `localStorage` desde las DevTools del navegador.
@@ -51,11 +36,11 @@ Pasos pendientes una vez el deploy de Vercel funcione:
 
 ## 🟠 Autenticación con Google (OAuth)
 - [ ] Habilitar proveedor Google en Supabase Dashboard (Authentication → Providers)
-- [ ] Añadir `NEXT_PUBLIC_GOOGLE_CLIENT_ID` y secret en variables de entorno
-- [ ] LoginClient: añadir botón "Continuar con Google" → `supabase.auth.signInWithOAuth({ provider: 'google' })`
-- [ ] RegisterClient: mismo botón en el flujo de registro
-- [ ] Gestionar callback OAuth en `/auth/confirm` (ya existe, Supabase lo maneja automáticamente)
-- [ ] Al primer login con Google: si no tiene perfil en `profiles`, redirigir a onboarding/creación de familia
+- [ ] Añadir Client ID y secret de Google en Supabase Dashboard (no se necesita variable de entorno en el cliente)
+- [x] LoginClient: botón "Continuar con Google" → `signInWithOAuth({ provider: 'google' })`
+- [x] RegisterClient: botón Google en el paso "family" (alternativa al flujo email/password)
+- [x] Callback OAuth en `/auth/confirm` — ya existía y maneja PKCE automáticamente
+- [x] Al primer login con Google: el trigger `handle_new_auth_user` crea familia ("Mi familia") y perfil (nombre de Google, avatar 😊) automáticamente → el OnboardingWizard guía el setup inicial
 
 ## 🟢 Mejoras UI pendientes
 - [ ] Botones sin handler pendientes de revisar (profile edit, settings save, board pin/delete mensajes)
@@ -88,6 +73,14 @@ Pasos pendientes una vez el deploy de Vercel funcione:
 - [x] **FASE 7 — Challenges/Multipliers**: stores arrancan vacíos (sin MOCK data), persistidos en Zustand
 - [x] **FASE 7 — Reports**: `buildMemberReport`/`buildFamilyReport` usan `tasks[]` del store en vez de MOCK_TASKS
 - [x] **FASE 7 — Admin → Challenges/Multipliers**: usan store users/tasks en vez de MOCK
+
+### Instancias de tareas, penalizaciones y navegación por días
+- [x] **A** — Migración SQL: `penalty_points`, `default_state`, estados `failed/cancelled` en `task_instances` (`supabase/migrations/20260410000001_task_states_and_penalty.sql`) — **pendiente aplicar en Supabase (`supabase db push`)**
+- [x] **B** — Tipos TypeScript: `TaskState` 4 estados, `penaltyPoints` en `Task` (`lib/types/index.ts`)
+- [x] **C** — API completa: `backfillInstances` (C6+C8), `syncInstanceState` con tabla de transiciones (C7), mappers y CRUD con `penalty_points` (`lib/api/tasks.ts`)
+- [x] **D** — `TasksClient.tsx`: lista única, navegador de días, preview días futuros, tareas con deadline
+- [x] **E** — `MemberDetailClient.tsx`: navegador de días, selector 4 estados, backfill al cambiar día
+- [x] **F** — Formularios: campo `penaltyPoints` en `AdminTasksClient` y `AddTaskClient`
 
 ### UI / Funcionalidades
 - [x] Sidebar: secciones colapsables, jerarquía visual, separadores

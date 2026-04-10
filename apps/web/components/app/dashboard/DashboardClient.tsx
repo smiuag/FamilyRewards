@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +11,13 @@ import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSqua
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
-import { ACHIEVEMENTS, MOCK_USER_STATS, RARITY_CONFIG } from "@/lib/achievements";
-import { MOCK_BOARD_MESSAGES } from "@/lib/mock-data/board";
-import { MOCK_USERS } from "@/lib/mock-data";
+import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
-  const { currentUser, tasks, rewards, taskInstances, updateTaskInstance } = useAppStore();
+  const { currentUser, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance } = useAppStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
@@ -55,14 +54,28 @@ export default function DashboardClient() {
     (m) => m.isActive && m.startDate <= today && m.endDate >= today
   );
 
-  // Achievements
-  const stats = MOCK_USER_STATS[currentUser.id];
-  const recentAchievements = stats
-    ? ACHIEVEMENTS.filter((a) => a.condition(stats)).slice(-3).reverse()
-    : [];
+  // Achievements — computed from real data
+  const stats = useMemo(() => {
+    const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
+    const completed = myInstances.filter((ti) => ti.state === "completed");
+    const totalPointsEarned = completed.reduce((s, ti) => s + ti.pointsAwarded, 0);
+    const completedDays = new Set(completed.map((ti) => ti.date));
+    let currentStreak = 0;
+    const now = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const ds = d.toISOString().split("T")[0];
+      if (completedDays.has(ds)) { currentStreak++; } else if (i > 0) { break; }
+    }
+    const rewardsClaimed = claims.filter((c) => c.userId === currentUser.id && c.status === "approved").length;
+    return {
+      totalTasksCompleted: completed.length, currentStreak, bestStreak: currentStreak,
+      totalPoints: currentUser.pointsBalance, rewardsClaimed, perfectWeeks: 0,
+      totalPointsEarned, daysActive: completedDays.size,
+    };
+  }, [currentUser, taskInstances, claims, transactions]);
 
-  // Board
-  const recentBoardMessages = MOCK_BOARD_MESSAGES.slice(0, 2);
+  const recentAchievements = ACHIEVEMENTS.filter((a) => a.condition(stats)).slice(-3).reverse();
 
   // Map task instances to tasks for display
   const todayTasksWithInfo = todayInstances.slice(0, 4).map((ti) => {
@@ -314,26 +327,17 @@ export default function DashboardClient() {
               </button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {recentBoardMessages.map((msg) => {
-              const author = MOCK_USERS.find((u) => u.id === msg.userId);
-              const isSystem = msg.userId === "system";
-              return (
-                <div key={msg.id} className="flex gap-2.5 p-2.5 rounded-xl bg-muted/40">
-                  <div className="text-xl flex-shrink-0">
-                    {isSystem ? msg.emoji : author?.avatar}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground mb-0.5">
-                      {isSystem ? "FamilyRewards" : author?.name}
-                    </p>
-                    <p className="text-sm text-foreground leading-snug line-clamp-2">
-                      {msg.content.replace(/\*\*/g, "")}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+              <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">El tablón está vacío</p>
+              <button
+                onClick={() => router.push(`/${locale}/board`)}
+                className="text-xs text-primary hover:underline"
+              >
+                Sé el primero en escribir →
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>
