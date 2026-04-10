@@ -7,7 +7,6 @@ import {
   addManagedProfile,
   updateProfile,
   adjustProfilePoints,
-  createInvitation,
 } from "@/lib/api/members";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +74,8 @@ export default function AdminMembersClient() {
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "member">("admin");
+  const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
+  const [inviteProfileId, setInviteProfileId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -95,8 +95,14 @@ export default function AdminMembersClient() {
   const openAdd = () => {
     setSelectedUser(null); setFormName(""); setFormAvatar("👦"); setFormRole("member"); setMode("add");
   };
-  const openInvite = () => {
-    setInviteEmail(""); setInviteRole("admin"); setInviteLink(null); setCopied(false); setMode("invite");
+  const openInvite = (user: User) => {
+    setInviteEmail("");
+    setInviteRole(user.role);
+    setInviteProfileId(user.id);
+    setInviteLink(null);
+    setCopied(false);
+    setSelectedUser(user);
+    setMode("invite");
   };
   const closeDialog = () => { setMode(null); setSelectedUser(null); setInviteLink(null); };
 
@@ -166,14 +172,28 @@ export default function AdminMembersClient() {
     if (!currentUser?.familyId || !currentUser?.id) return;
     setSaving(true);
     try {
-      const token = await createInvitation(
-        currentUser.familyId, currentUser.id, inviteEmail.trim(), inviteRole
-      );
-      const link = `${window.location.origin}/${window.location.pathname.split("/")[1]}/join?token=${token}`;
-      setInviteLink(link);
-      toast.success("Invitación creada");
-    } catch {
-      toast.error("Error al crear la invitación. Inténtalo de nuevo.");
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyId: currentUser.familyId,
+          invitedByProfileId: currentUser.id,
+          email: inviteEmail.trim(),
+          role: inviteRole,
+          profileId: inviteProfileId,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error al enviar la invitación");
+
+      setInviteLink(json.link);
+      if (json.emailWarning) {
+        toast.warning("Invitación creada pero el email no se pudo enviar. Comparte el enlace manualmente.");
+      } else {
+        toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al crear la invitación. Inténtalo de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -191,16 +211,10 @@ export default function AdminMembersClient() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">{t("title")}</h1>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={openInvite}>
-            <Mail className="w-4 h-4 mr-1.5" />
-            Invitar administrador
-          </Button>
-          <Button size="sm" onClick={openAdd}>
-            <UserPlus className="w-4 h-4 mr-1.5" />
-            {t("addMember")}
-          </Button>
-        </div>
+        <Button size="sm" onClick={openAdd}>
+          <UserPlus className="w-4 h-4 mr-1.5" />
+          {t("addMember")}
+        </Button>
       </div>
 
       {!setupVisited.members && (
@@ -208,7 +222,7 @@ export default function AdminMembersClient() {
           <p className="font-semibold text-orange-800 text-sm">👥 Añade a tu familia</p>
           <p className="text-sm text-orange-700">
             Aquí puedes añadir a todos los miembros de tu familia y ajustar sus puntos.
-            Para dar acceso de administrador a otro adulto, usa <strong>Invitar administrador</strong>.
+            Para dar acceso a un miembro, usa el botón <strong>Enviar invitación</strong> en su fila.
           </p>
         </div>
       )}
@@ -262,6 +276,11 @@ export default function AdminMembersClient() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {!user.authUserId && (
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openInvite(user)}>
+                            <Mail className="w-3 h-3 mr-1" /> Enviar invitación
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(user)}>
                           <Pencil className="w-3 h-3 mr-1" /> Editar
                         </Button>
@@ -344,7 +363,9 @@ export default function AdminMembersClient() {
           <div>
             <Label>Rol</Label>
             <Select value={formRole} onValueChange={(v) => setFormRole(v as "admin" | "member")}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="mt-1.5">
+                <span>{formRole === "member" ? "Miembro" : "Administrador"}</span>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="member">Miembro</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
@@ -363,8 +384,8 @@ export default function AdminMembersClient() {
       {/* Invite admin modal */}
       <AppModal open={mode === "invite"} onOpenChange={closeDialog}>
         <AppModalHeader emoji="✉️"
-          title="Invitar a la familia"
-          description="Envía un enlace de acceso por email"
+          title={selectedUser ? `Invitar a ${selectedUser.name}` : "Enviar invitación"}
+          description="El invitado recibirá un correo para crear su cuenta"
           color="bg-gradient-to-br from-blue-500 to-indigo-600"
           onClose={closeDialog} />
         <AppModalBody>
@@ -378,7 +399,9 @@ export default function AdminMembersClient() {
               <div>
                 <Label>Rol</Label>
                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "admin" | "member")}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1.5">
+                    <span>{inviteRole === "member" ? "Miembro" : "Administrador"}</span>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="member">Miembro</SelectItem>

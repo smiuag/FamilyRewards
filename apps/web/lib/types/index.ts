@@ -18,6 +18,7 @@ export interface User {
   role: Role;
   pointsBalance: number;
   createdAt: string;
+  authUserId?: string | null;
 }
 
 export interface Family {

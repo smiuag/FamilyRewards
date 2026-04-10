@@ -21,6 +21,7 @@ export function toUser(p: SupabaseProfile): User {
     role: p.role,
     pointsBalance: p.points_balance,
     createdAt: p.created_at,
+    authUserId: p.auth_user_id,
   };
 }
 
