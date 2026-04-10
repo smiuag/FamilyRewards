@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { updateFamilyName } from "@/lib/api/members";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -12,21 +13,24 @@ import {
   Gift,
   History,
   LogOut,
-  Star,
   ChevronDown,
   Users,
   Settings,
   BarChart3,
   ClipboardList,
-  BookOpen,
   Layers,
   Zap,
   Flag,
   MapPin,
   HelpCircle,
+  Pencil,
+  Check,
+  X,
+  ArrowLeftRight,
 } from "lucide-react";
+import { toast } from "sonner";
 
-type Section = "me" | "family" | "admin";
+type Section = "me" | "admin";
 
 interface NavItem {
   href: string;
@@ -41,14 +45,29 @@ export default function Sidebar() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
-  const { currentUser, users, taskInstances, logout, featuresUnlocked, setupVisited } = useAppStore();
+  const {
+    currentUser, users, tasks, rewards, logout,
+    featuresUnlocked,
+    familyName, setFamilyName, setCurrentProfile,
+  } = useAppStore();
 
   const isAdminRoute = pathname.startsWith(`/${locale}/admin`);
-  const isMemberRoute = pathname.startsWith(`/${locale}/members`);
 
-  const activeSection: Section = isAdminRoute ? "admin" : isMemberRoute ? "family" : "me";
+  const activeSection: Section = isAdminRoute ? "admin" : "me";
 
   const [openSection, setOpenSection] = useState<Section>(activeSection);
+
+  // Edición inline del nombre de familia
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(familyName);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Cambio de usuario
+  const [showSwitchUser, setShowSwitchUser] = useState(false);
+
+  useEffect(() => {
+    if (editingName) nameInputRef.current?.focus();
+  }, [editingName]);
 
   const meItems: NavItem[] = [
     { href: `/${locale}/dashboard`, icon: Home, label: t("dashboard") },
@@ -58,10 +77,15 @@ export default function Sidebar() {
     { href: `/${locale}/history`, icon: History, label: t("history") },
   ];
 
+  // Alertas dinámicas: mostrar ! cuando falta configuración esencial
+  const needsMembers = users.length < 2;
+  const needsTasks = tasks.length === 0;
+  const needsRewards = rewards.length === 0;
+
   const adminItems: NavItem[] = [
-    { href: `/${locale}/admin/members`, icon: Users, label: t("adminMembers"), alert: !setupVisited.members },
-    { href: `/${locale}/admin/tasks`, icon: ClipboardList, label: t("adminTasks") },
-    { href: `/${locale}/admin/rewards`, icon: Gift, label: t("adminRewards") },
+    { href: `/${locale}/admin/members`, icon: Users, label: t("adminMembers"), alert: needsMembers },
+    { href: `/${locale}/admin/tasks`, icon: ClipboardList, label: t("adminTasks"), alert: needsTasks },
+    { href: `/${locale}/admin/rewards`, icon: Gift, label: t("adminRewards"), alert: needsRewards },
     { href: `/${locale}/admin/stats`, icon: BarChart3, label: t("adminStats") },
     ...(featuresUnlocked.includes("streaks") ? [
       { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
@@ -75,30 +99,105 @@ export default function Sidebar() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  const toggle = (section: Section) =>
-    setOpenSection((prev) => (prev === section ? section : section));
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signOut();
     logout();
     router.push(`/${locale}/login`);
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const handleSaveName = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed || !currentUser?.familyId) {
+      setEditingName(false);
+      setNameValue(familyName);
+      return;
+    }
+    try {
+      await updateFamilyName(currentUser.familyId, trimmed);
+      setFamilyName(trimmed);
+      toast.success("Nombre de familia actualizado");
+    } catch {
+      toast.error("Error al actualizar el nombre");
+      setNameValue(familyName);
+    }
+    setEditingName(false);
+  };
+
+  const handleSwitchUser = (targetUserId: string) => {
+    const target = users.find((u) => u.id === targetUserId);
+    if (!target) return;
+    setCurrentProfile(target);
+    setShowSwitchUser(false);
+    router.push(`/${locale}/dashboard`);
+  };
 
   return (
     <div className="flex flex-col w-60 bg-sidebar text-sidebar-foreground h-full">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border flex-shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-          <Star className="w-5 h-5 text-white fill-white" />
-        </div>
-        <span className="text-lg font-extrabold tracking-tight">FamilyRewards</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icon-family.png"
+          alt="FamilyRewards"
+          width={36}
+          height={36}
+          className="rounded-xl shadow-sm flex-shrink-0"
+        />
+        {editingName ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <input
+              ref={nameInputRef}
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveName();
+                if (e.key === "Escape") {
+                  setEditingName(false);
+                  setNameValue(familyName);
+                }
+              }}
+              className="flex-1 min-w-0 text-sm font-bold bg-sidebar-accent px-2 py-1 rounded-lg border border-sidebar-border focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <button onClick={handleSaveName} className="text-green-600 hover:text-green-700 p-0.5">
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => { setEditingName(false); setNameValue(familyName); }}
+              className="text-muted-foreground hover:text-foreground p-0.5">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              if (currentUser?.role === "admin") {
+                setNameValue(familyName);
+                setEditingName(true);
+              }
+            }}
+            className={cn(
+              "font-extrabold tracking-tight text-left flex-1 min-w-0",
+              currentUser?.role === "admin" && "hover:text-primary transition-colors group",
+              familyName.length <= 14 ? "text-lg" :
+              familyName.length <= 20 ? "text-base" : "text-sm"
+            )}
+            title={currentUser?.role === "admin" ? "Editar nombre" : undefined}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="line-clamp-2 break-words">{familyName}</span>
+              {currentUser?.role === "admin" && (
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity flex-shrink-0" />
+              )}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Sections */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
 
-        {/* ── YO ── */}
+        {/* -- YO -- */}
         <SectionHeader
           label="Mi perfil"
           emoji={currentUser?.avatar}
@@ -120,56 +219,7 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* ── FAMILIA ── */}
-        <div className="border-t border-sidebar-border mx-1 my-2" />
-        <SectionHeader
-          label={t("members")}
-          emoji="👨‍👩‍👧"
-          open={openSection === "family"}
-          active={activeSection === "family"}
-          onClick={() => setOpenSection("family")}
-          badge={`${users.length}`}
-        />
-        {openSection === "family" && (
-          <div className="space-y-0.5 pb-1">
-            {users.map((u) => {
-              const href = `/${locale}/members/${u.id}`;
-              const todayDone = taskInstances.filter(
-                (ti) => ti.userId === u.id && ti.date === today && ti.state === "completed"
-              ).length;
-              const todayTotal = taskInstances.filter(
-                (ti) => ti.userId === u.id && ti.date === today
-              ).length;
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => router.push(href)}
-                  className={cn(
-                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm transition-all",
-                    isActive(href)
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  )}
-                >
-                  <span className="text-base flex-shrink-0">{u.avatar}</span>
-                  <span className="flex-1 font-medium truncate">{u.name}</span>
-                  {todayTotal > 0 && (
-                    <span className={cn(
-                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                      todayDone === todayTotal
-                        ? "bg-green-100 text-green-700"
-                        : "bg-amber-100 text-amber-700"
-                    )}>
-                      {todayDone}/{todayTotal}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── ADMINISTRACIÓN ── */}
+        {/* -- ADMINISTRACION -- */}
         {currentUser?.role === "admin" && (
           <>
             <div className="border-t border-sidebar-border mx-1 my-2" />
@@ -196,8 +246,39 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border flex-shrink-0">
+      {/* Footer: Switch user + Logout */}
+      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border flex-shrink-0 space-y-1">
+        {/* Switch user (admin only) */}
+        {currentUser?.role === "admin" && users.length > 1 && (
+          <div>
+            <button
+              onClick={() => setShowSwitchUser(!showSwitchUser)}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              <span>Cambiar de usuario</span>
+            </button>
+
+            {showSwitchUser && (
+              <div className="mt-1 bg-sidebar-accent rounded-xl p-2 space-y-1">
+                {users
+                  .filter((u) => u.id !== currentUser?.id)
+                  .map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleSwitchUser(u.id)}
+                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm hover:bg-background transition-colors"
+                    >
+                      <span className="text-base">{u.avatar}</span>
+                      <span className="flex-1 text-left font-medium truncate">{u.name}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Logout */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"

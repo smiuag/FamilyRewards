@@ -5,6 +5,9 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
+import { fetchFamilySettings } from "@/lib/api/members";
+import { fetchFamilyTasks } from "@/lib/api/tasks";
+import { fetchFamilyRewards } from "@/lib/api/rewards";
 import { Star, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
@@ -29,6 +32,7 @@ function toUser(p: SupabaseProfile): User {
     role: p.role,
     pointsBalance: p.points_balance,
     createdAt: p.created_at,
+    authUserId: p.auth_user_id,
   };
 }
 
@@ -39,15 +43,14 @@ export default function ProfileSelectClient() {
   const locale = (params?.locale as string) ?? "es";
   const next = searchParams.get("next") ?? `/${locale}/dashboard`;
 
-  const { initRealAuth } = useAppStore();
-  const { reset: resetMultipliers } = useMultipliersStore();
-
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       const supabase = createClient();
 
@@ -63,6 +66,8 @@ export default function ProfileSelectClient() {
         .select("*")
         .order("created_at", { ascending: true });
 
+      if (cancelled) return;
+
       if (profilesError || !profilesData?.length) {
         setError("No se pudieron cargar los perfiles. Inténtalo de nuevo.");
         setLoading(false);
@@ -71,24 +76,57 @@ export default function ProfileSelectClient() {
 
       // Cargar nombre de la familia
       const familyId = profilesData[0].family_id;
-      const { data: familyData } = await supabase
-        .from("families")
-        .select("name")
-        .eq("id", familyId)
-        .single();
 
+      // Cargar configuración de la familia (nombre + estado onboarding)
+      const familySettings = await fetchFamilySettings(familyId);
+
+      // Auto-login: buscar el perfil que corresponde al auth user
+      const myProfile = profilesData.find((p) => p.auth_user_id === user.id);
+      if (myProfile) {
+        const allUsers = profilesData.map(toUser);
+        const store = useAppStore.getState();
+        store.initRealAuth(allUsers, toUser(myProfile), familySettings.name);
+        // Cargar estado de onboarding desde BD
+        useAppStore.setState({
+          onboardingCompleted: familySettings.onboardingCompleted,
+          setupVisited: familySettings.setupVisited,
+        });
+        // Cargar tareas y recompensas para los badges del sidebar
+        const [familyTasks, familyRewards] = await Promise.all([
+          fetchFamilyTasks().catch(() => []),
+          fetchFamilyRewards().catch(() => []),
+        ]);
+        useAppStore.setState({ tasks: familyTasks, rewards: familyRewards });
+        useMultipliersStore.getState().reset();
+        router.replace(next);
+        return;
+      }
+
+      // Fallback: mostrar selector (no debería pasar normalmente)
       setProfiles(profilesData);
-      setFamilyName(familyData?.name ?? "Mi familia");
+      setFamilyName(familySettings.name);
       setLoading(false);
     }
 
     load();
-  }, [locale, router]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale, next]);
 
-  const handleSelect = (profile: SupabaseProfile) => {
+  const handleSelect = async (profile: SupabaseProfile) => {
     const allUsers = profiles.map(toUser);
-    initRealAuth(allUsers, toUser(profile));
-    resetMultipliers();
+    const familySettings = await fetchFamilySettings(profile.family_id);
+    useAppStore.getState().initRealAuth(allUsers, toUser(profile), familySettings.name);
+    useAppStore.setState({
+      onboardingCompleted: familySettings.onboardingCompleted,
+      setupVisited: familySettings.setupVisited,
+    });
+    const [familyTasks, familyRewards] = await Promise.all([
+      fetchFamilyTasks().catch(() => []),
+      fetchFamilyRewards().catch(() => []),
+    ]);
+    useAppStore.setState({ tasks: familyTasks, rewards: familyRewards });
+    useMultipliersStore.getState().reset();
     router.push(next);
   };
 
@@ -103,7 +141,7 @@ export default function ProfileSelectClient() {
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Cargando familia...</p>
+          <p className="text-sm text-muted-foreground">Entrando...</p>
         </div>
       </div>
     );
@@ -134,7 +172,7 @@ export default function ProfileSelectClient() {
             <Star className="w-8 h-8 text-white fill-white" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">{familyName}</h1>
-          <p className="text-muted-foreground mt-1 text-sm">¿Quién eres tú hoy?</p>
+          <p className="text-muted-foreground mt-1 text-sm">Selecciona tu perfil</p>
         </div>
 
         {/* Profiles */}

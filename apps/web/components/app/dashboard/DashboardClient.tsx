@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchBoardMessages } from "@/lib/api/board";
+import { fetchFamilyTransactions } from "@/lib/api/transactions";
+import type { BoardMessage } from "@/lib/api/board";
+import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -11,16 +15,61 @@ import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSqua
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
-  const { currentUser, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance } = useAppStore();
+  const { currentUser, users, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance } = useAppStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
+
+  // Feed del tablón: mensajes + transacciones recientes
+  const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; emoji?: string; userName?: string; amount?: number }>>([]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    async function loadFeed() {
+      try {
+        const [msgs, txs] = await Promise.all([
+          fetchBoardMessages(10),
+          fetchFamilyTransactions(),
+        ]);
+        const allUsers = useAppStore.getState().users;
+        const boardItems = msgs.slice(0, 5).map((m: BoardMessage) => {
+          const author = allUsers.find((u) => u.id === m.profileId);
+          return {
+            id: m.id,
+            type: "board" as const,
+            createdAt: m.createdAt,
+            content: m.content,
+            userName: author?.name ?? "Sistema",
+            emoji: author?.avatar,
+          };
+        });
+        const txItems = txs.slice(0, 5).map((tx: PointsTransaction) => {
+          const u = allUsers.find((u) => u.id === tx.userId);
+          return {
+            id: tx.id,
+            type: "tx" as const,
+            createdAt: tx.createdAt,
+            content: tx.description,
+            userName: u?.name ?? "Usuario",
+            emoji: tx.emoji,
+            amount: tx.amount,
+          };
+        });
+        const combined = [...boardItems, ...txItems]
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .slice(0, 5);
+        setFeedItems(combined);
+      } catch {}
+    }
+    loadFeed();
+  }, [currentUser]);
 
   if (!currentUser) return null;
 
@@ -328,16 +377,43 @@ export default function DashboardClient() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
-              <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">El tablón está vacío</p>
-              <button
-                onClick={() => router.push(`/${locale}/board`)}
-                className="text-xs text-primary hover:underline"
-              >
-                Sé el primero en escribir →
-              </button>
-            </div>
+            {feedItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+                <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">El tablón está vacío</p>
+                <button
+                  onClick={() => router.push(`/${locale}/board`)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Sé el primero en escribir →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {feedItems.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2.5">
+                    <span className="text-base flex-shrink-0 mt-0.5">{item.emoji ?? "💬"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm leading-snug">
+                        <span className="font-semibold">{item.userName}</span>
+                        {" "}
+                        <span className="text-muted-foreground">
+                          {item.type === "tx" ? item.content : item.content}
+                        </span>
+                      </p>
+                    </div>
+                    {item.amount != null && (
+                      <span className={cn(
+                        "text-xs font-bold flex-shrink-0",
+                        item.amount > 0 ? "text-green-600" : "text-orange-500"
+                      )}>
+                        {item.amount > 0 ? "+" : ""}{item.amount}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

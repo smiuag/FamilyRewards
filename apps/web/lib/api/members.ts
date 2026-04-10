@@ -61,6 +61,24 @@ export async function updateProfile(
   if (error) throw error;
 }
 
+export async function deleteProfile(id: string): Promise<{ authUserId: string | null }> {
+  const supabase = createClient();
+  // Obtener auth_user_id antes de borrar
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("auth_user_id")
+    .eq("id", id)
+    .single();
+  const authUserId = profile?.auth_user_id ?? null;
+
+  const { error } = await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+  return { authUserId };
+}
+
 export async function adjustProfilePoints(
   profileId: string,
   currentBalance: number,
@@ -89,6 +107,80 @@ export async function adjustProfilePoints(
   if (balanceError) throw balanceError;
 
   return newBalance;
+}
+
+export async function updateFamilyName(
+  familyId: string,
+  name: string
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("families")
+    .update({ name })
+    .eq("id", familyId);
+  if (error) throw error;
+}
+
+export async function fetchFamilyName(familyId: string): Promise<string> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("families")
+    .select("name")
+    .eq("id", familyId)
+    .single();
+  return data?.name ?? "Mi familia";
+}
+
+export interface FamilySettings {
+  name: string;
+  onboardingCompleted: boolean;
+  setupVisited: { members: boolean; catalogTasks: boolean; catalogRewards: boolean };
+}
+
+export async function fetchFamilySettings(familyId: string): Promise<FamilySettings> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("families")
+    .select("name, onboarding_completed, setup_visited_members, setup_visited_tasks, setup_visited_rewards")
+    .eq("id", familyId)
+    .single();
+  return {
+    name: data?.name ?? "Mi familia",
+    onboardingCompleted: data?.onboarding_completed ?? false,
+    setupVisited: {
+      members: data?.setup_visited_members ?? false,
+      catalogTasks: data?.setup_visited_tasks ?? false,
+      catalogRewards: data?.setup_visited_rewards ?? false,
+    },
+  };
+}
+
+export async function updateFamilyOnboarding(
+  familyId: string,
+  completed: boolean
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("families")
+    .update({ onboarding_completed: completed })
+    .eq("id", familyId);
+  if (error) throw error;
+}
+
+export async function updateFamilySetupVisited(
+  familyId: string,
+  section: "members" | "catalogTasks" | "catalogRewards"
+): Promise<void> {
+  const supabase = createClient();
+  const col =
+    section === "members" ? "setup_visited_members" :
+    section === "catalogTasks" ? "setup_visited_tasks" :
+    "setup_visited_rewards";
+  const { error } = await supabase
+    .from("families")
+    .update({ [col]: true })
+    .eq("id", familyId);
+  if (error) throw error;
 }
 
 export async function createInvitation(

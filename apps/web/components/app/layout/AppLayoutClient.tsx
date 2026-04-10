@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { Star } from "lucide-react";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
 import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
@@ -40,7 +41,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
             <span className="font-bold text-foreground">{currentUser.name}</span>
           </div>
           <div className="flex items-center gap-1 text-sm text-primary font-semibold">
-            <span>⭐</span>
+            <Star className="w-3.5 h-3.5 fill-primary" />
             <span>{currentUser.pointsBalance.toLocaleString()} pts</span>
           </div>
         </header>

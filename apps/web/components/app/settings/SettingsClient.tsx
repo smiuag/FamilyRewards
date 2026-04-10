@@ -168,22 +168,6 @@ export default function SettingsClient() {
         </CardContent>
       </Card>
 
-      {/* Info card */}
-      <Card className="shadow-sm bg-blue-50 border-blue-200">
-        <CardContent className="pt-5 pb-4">
-          <div className="flex gap-3">
-            <div className="text-2xl">📅</div>
-            <div>
-              <p className="font-semibold text-blue-800 text-sm">
-                Fiestas locales en el calendario
-              </p>
-              <p className="text-blue-600 text-xs mt-0.5">
-                Los días festivos aparecerán marcados en el calendario con su nombre e icono. Podrás configurar si esos días las tareas recurrentes se omiten automáticamente.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

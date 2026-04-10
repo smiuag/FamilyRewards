@@ -8,6 +8,7 @@ interface AppState {
   // Session
   currentUser: User | null;
   users: User[];
+  familyName: string;
 
   // Tasks
   tasks: Task[];
@@ -53,8 +54,10 @@ interface AppState {
 
   setCurrentProfile: (profile: User) => void;
 
+  setFamilyName: (name: string) => void;
+
   // Inicializa el store con datos reales de Supabase, borrando todo el mock data
-  initRealAuth: (profiles: User[], selectedProfile: User) => void;
+  initRealAuth: (profiles: User[], selectedProfile: User, familyName?: string) => void;
 
   loadTasks: (tasks: Task[]) => void;
   loadTaskInstances: (instances: TaskInstance[]) => void;
@@ -74,6 +77,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       currentUser: null,
       users: [],
+      familyName: "Mi familia",
       tasks: [],
       taskInstances: [],
       rewards: [],
@@ -96,25 +100,34 @@ export const useAppStore = create<AppState>()(
       // Establece el perfil activo a partir de datos reales de Supabase
       setCurrentProfile: (profile) => set({ currentUser: profile }),
 
+      setFamilyName: (name) => set({ familyName: name }),
+
       // Limpia todo el mock data e inicializa con datos reales de Supabase
-      initRealAuth: (profiles, selectedProfile) => set((prev) => ({
+      // onboardingCompleted y setupVisited se cargan aparte desde la BD
+      initRealAuth: (profiles, selectedProfile, familyName) => set({
         currentUser: selectedProfile,
         users: profiles,
+        familyName: familyName ?? "Mi familia",
         tasks: [],
         taskInstances: [],
         rewards: [],
         claims: [],
         transactions: [],
-        // Preservar onboardingCompleted y setupVisited entre sesiones
-        onboardingCompleted: prev.onboardingCompleted,
-        setupVisited: prev.setupVisited,
         targetRewardIds: [],
         archivedClaimIds: [],
         featuresUnlocked: [],
         streakAlert: null,
-      })),
+      }),
 
-      completeOnboarding: () => set({ onboardingCompleted: true }),
+      completeOnboarding: () => {
+        const familyId = get().currentUser?.familyId;
+        set({ onboardingCompleted: true });
+        if (familyId) {
+          import("@/lib/api/members").then(({ updateFamilyOnboarding }) =>
+            updateFamilyOnboarding(familyId, true).catch(() => {})
+          );
+        }
+      },
 
       loadTasks: (tasks) => set({ tasks }),
       loadTaskInstances: (instances) => set({ taskInstances: instances }),
@@ -122,10 +135,17 @@ export const useAppStore = create<AppState>()(
       loadClaims: (claims) => set({ claims }),
       loadTransactions: (transactions) => set({ transactions }),
 
-      markSetupVisited: (section) =>
+      markSetupVisited: (section) => {
+        const familyId = get().currentUser?.familyId;
         set((prev) => ({
           setupVisited: { ...prev.setupVisited, [section]: true },
-        })),
+        }));
+        if (familyId) {
+          import("@/lib/api/members").then(({ updateFamilySetupVisited }) =>
+            updateFamilySetupVisited(familyId, section).catch(() => {})
+          );
+        }
+      },
 
       updateTaskInstance: (instanceId, newState) => {
         set((prev) => {
@@ -392,12 +412,11 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         currentUser: state.currentUser,
         users: state.users,
+        familyName: state.familyName,
         tasks: state.tasks,
         taskInstances: state.taskInstances,
         rewards: state.rewards,
         claims: state.claims,
-        onboardingCompleted: state.onboardingCompleted,
-        setupVisited: state.setupVisited,
         targetRewardIds: state.targetRewardIds,
         archivedClaimIds: state.archivedClaimIds,
         featuresUnlocked: state.featuresUnlocked,

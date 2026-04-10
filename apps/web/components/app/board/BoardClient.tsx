@@ -1,62 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
-import type { BoardMessage } from "@/lib/mock-data/board";
+import { fetchBoardMessages, postBoardMessage } from "@/lib/api/board";
+import { fetchFamilyTransactions } from "@/lib/api/transactions";
+import type { BoardMessage } from "@/lib/api/board";
+import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Pin, Send, Megaphone, Trophy, Gift, MessageCircle } from "lucide-react";
+import {
+  Pin,
+  Send,
+  Megaphone,
+  Trophy,
+  Gift,
+  MessageCircle,
+  Star,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-const TYPE_CONFIG = {
+// Unión de mensajes del tablón + transacciones para el feed
+interface FeedItem {
+  id: string;
+  type: "board" | "transaction";
+  createdAt: string;
+  data: BoardMessage | PointsTransaction;
+}
+
+const MSG_TYPE_CONFIG = {
   message:      { icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   label: "Mensaje" },
   achievement:  { icon: Trophy,        color: "text-yellow-500", bg: "bg-yellow-50", label: "Logro" },
   reward:       { icon: Gift,          color: "text-purple-500", bg: "bg-purple-50", label: "Recompensa" },
   announcement: { icon: Megaphone,     color: "text-primary",    bg: "bg-orange-50", label: "Anuncio" },
+  points:       { icon: Star,          color: "text-primary",    bg: "bg-orange-50", label: "Puntos" },
 };
 
 export default function BoardClient() {
   const { currentUser, users } = useAppStore();
   const [messages, setMessages] = useState<BoardMessage[]>([]);
+  const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [msgs, txs] = await Promise.all([
+        fetchBoardMessages(100),
+        fetchFamilyTransactions(),
+      ]);
+      setMessages(msgs);
+      setTransactions(txs);
+    } catch (err) {
+      console.error("Error loading board data:", err);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   if (!currentUser) return null;
 
-  const handleLike = (msgId: string) => {
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id !== msgId) return m;
-        const hasLiked = m.likes.includes(currentUser.id);
-        return {
-          ...m,
-          likes: hasLiked
-            ? m.likes.filter((id) => id !== currentUser.id)
-            : [...m.likes, currentUser.id],
-        };
-      })
-    );
+  const handleSend = async () => {
+    const text = newMessage.trim();
+    if (!text || !currentUser.familyId) return;
+    setSending(true);
+    try {
+      const msg = await postBoardMessage({
+        familyId: currentUser.familyId,
+        profileId: currentUser.id,
+        content: text,
+      });
+      setMessages((prev) => [msg, ...prev]);
+      setNewMessage("");
+    } catch (err) {
+      console.error("Error posting message:", err);
+    }
+    setSending(false);
   };
 
-  const handleSend = () => {
-    const text = newMessage.trim();
-    if (!text) return;
-    const msg: BoardMessage = {
-      id: `bm-${Date.now()}`,
-      userId: currentUser.id,
-      type: "message",
-      content: text,
-      likes: [],
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [msg, ...prev]);
-    setNewMessage("");
-  };
+  // Combinar mensajes + transacciones en un feed único, ordenado por fecha
+  const feed: FeedItem[] = [
+    ...messages.map((m) => ({
+      id: m.id,
+      type: "board" as const,
+      createdAt: m.createdAt,
+      data: m,
+    })),
+    ...transactions.map((t) => ({
+      id: t.id,
+      type: "transaction" as const,
+      createdAt: t.createdAt,
+      data: t,
+    })),
+  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const pinnedMessages = messages.filter((m) => m.pinned);
-  const unpinnedMessages = messages.filter((m) => !m.pinned);
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-5">
@@ -79,9 +123,9 @@ export default function BoardClient() {
                 className="w-full text-sm resize-none bg-muted/50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
               />
               <div className="flex justify-end">
-                <Button size="sm" onClick={handleSend} disabled={!newMessage.trim()}>
+                <Button size="sm" onClick={handleSend} disabled={!newMessage.trim() || sending}>
                   <Send className="w-3.5 h-3.5 mr-1.5" />
-                  Publicar
+                  {sending ? "Publicando..." : "Publicar"}
                 </Button>
               </div>
             </div>
@@ -96,57 +140,62 @@ export default function BoardClient() {
             <Pin className="w-3 h-3" /> Anclado
           </div>
           {pinnedMessages.map((msg) => (
-            <MessageCard
-              key={msg.id}
-              msg={msg}
-              currentUserId={currentUser.id}
-              onLike={handleLike}
-              users={users}
-            />
+            <BoardMessageCard key={msg.id} msg={msg} users={users} />
           ))}
         </div>
       )}
 
-      {/* All messages */}
-      <div className="space-y-3">
-        {unpinnedMessages.map((msg) => (
-          <MessageCard
-            key={msg.id}
-            msg={msg}
-            currentUserId={currentUser.id}
-            onLike={handleLike}
-            users={users}
-          />
-        ))}
-      </div>
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-8">
+          <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        </div>
+      )}
+
+      {/* Feed */}
+      {!loading && (
+        <div className="space-y-3">
+          {feed.length === 0 && (
+            <Card className="shadow-sm">
+              <CardContent className="py-10 text-center text-muted-foreground">
+                <MessageCircle className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">El tablón está vacío</p>
+                <p className="text-sm mt-1">Escribe algo para empezar</p>
+              </CardContent>
+            </Card>
+          )}
+          {feed.map((item) =>
+            item.type === "board" ? (
+              <BoardMessageCard
+                key={item.id}
+                msg={item.data as BoardMessage}
+                users={users}
+              />
+            ) : (
+              <TransactionCard
+                key={item.id}
+                tx={item.data as PointsTransaction}
+                users={users}
+              />
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function MessageCard({
+function BoardMessageCard({
   msg,
-  currentUserId,
-  onLike,
   users,
 }: {
   msg: BoardMessage;
-  currentUserId: string;
-  onLike: (id: string) => void;
   users: ReturnType<typeof useAppStore.getState>["users"];
 }) {
-  const author = users.find((u) => u.id === msg.userId);
-  const isSystem = msg.userId === "system";
-  const typeConfig = TYPE_CONFIG[msg.type];
+  const author = users.find((u) => u.id === msg.profileId);
+  const isSystem = !msg.profileId;
+  const typeConfig = MSG_TYPE_CONFIG[msg.type] ?? MSG_TYPE_CONFIG.message;
   const TypeIcon = typeConfig.icon;
-  const hasLiked = msg.likes.includes(currentUserId);
-
-  // Parse **bold** in content
-  const renderContent = (text: string) => {
-    const parts = text.split(/\*\*(.+?)\*\*/g);
-    return parts.map((part, i) =>
-      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-    );
-  };
 
   return (
     <Card
@@ -158,7 +207,6 @@ function MessageCard({
     >
       <CardContent className="pt-4 pb-3">
         <div className="flex gap-3">
-          {/* Avatar */}
           <div
             className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
@@ -168,45 +216,78 @@ function MessageCard({
             {isSystem ? <TypeIcon className={cn("w-4 h-4", typeConfig.color)} /> : author?.avatar}
           </div>
 
-          {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-sm font-semibold">
-                {isSystem ? "FamilyRewards" : author?.name}
+                {isSystem ? "FamilyRewards" : author?.name ?? "Usuario"}
               </span>
-              {!isSystem && (
-                <Badge variant="outline" className={cn("text-[10px] border-0", typeConfig.bg, typeConfig.color)}>
-                  {typeConfig.label}
-                </Badge>
-              )}
+              <Badge variant="outline" className={cn("text-[10px] border-0", typeConfig.bg, typeConfig.color)}>
+                {typeConfig.label}
+              </Badge>
               <span className="text-xs text-muted-foreground ml-auto">
                 {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: es })}
               </span>
             </div>
-
-            <p className="text-sm text-foreground leading-relaxed">
-              {renderContent(msg.content)}
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+              {msg.content}
             </p>
+            {msg.pinned && (
+              <div className="flex items-center gap-1 text-xs text-primary mt-2">
+                <Pin className="w-3 h-3" />
+                <span>Anclado</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-            {/* Actions */}
-            <div className="flex items-center gap-3 mt-2">
-              <button
-                onClick={() => onLike(msg.id)}
-                className={cn(
-                  "flex items-center gap-1.5 text-xs transition-colors",
-                  hasLiked ? "text-red-500" : "text-muted-foreground hover:text-red-400"
-                )}
-              >
-                <Heart className={cn("w-3.5 h-3.5", hasLiked && "fill-current")} />
-                {msg.likes.length > 0 && <span>{msg.likes.length}</span>}
-              </button>
-              {msg.pinned && (
-                <div className="flex items-center gap-1 text-xs text-primary">
-                  <Pin className="w-3 h-3" />
-                  <span>Anclado</span>
-                </div>
-              )}
-            </div>
+function TransactionCard({
+  tx,
+  users,
+}: {
+  tx: PointsTransaction;
+  users: ReturnType<typeof useAppStore.getState>["users"];
+}) {
+  const user = users.find((u) => u.id === tx.userId);
+  const isPositive = tx.amount > 0;
+
+  return (
+    <Card className={cn("shadow-sm border-0", isPositive ? "bg-green-50/60" : "bg-orange-50/60")}>
+      <CardContent className="pt-3 pb-3">
+        <div className="flex gap-3 items-center">
+          <div className={cn(
+            "w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0",
+            isPositive ? "bg-green-100" : "bg-orange-100"
+          )}>
+            {tx.emoji}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-sm">
+              <span className="font-semibold">{user?.name ?? "Usuario"}</span>
+              {" "}
+              <span className="text-muted-foreground">{tx.description}</span>
+            </p>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(tx.createdAt), { addSuffix: true, locale: es })}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {isPositive ? (
+              <TrendingUp className="w-3.5 h-3.5 text-green-600" />
+            ) : (
+              <TrendingDown className="w-3.5 h-3.5 text-orange-500" />
+            )}
+            <span className={cn(
+              "font-bold text-sm",
+              isPositive ? "text-green-600" : "text-orange-500"
+            )}>
+              {isPositive ? "+" : ""}{tx.amount} pts
+            </span>
           </div>
         </div>
       </CardContent>

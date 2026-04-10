@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
 import {
   addManagedProfile,
   updateProfile,
   adjustProfilePoints,
+  deleteProfile,
 } from "@/lib/api/members";
+import { sendInviteAction } from "@/lib/actions/invite";
+import { deleteAuthUserAction } from "@/lib/actions/delete-auth-user";
+import { postBoardMessage } from "@/lib/api/board";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check } from "lucide-react";
+import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
 
@@ -47,17 +52,17 @@ const AVATARS = [
   "🤖", "👾", "👻", "💩", "🎃", "⭐", "🔥", "🌈", "🎸", "⚽",
 ];
 
-type DialogMode = "adjust" | "edit" | "add" | "invite" | null;
+type DialogMode = "adjust" | "edit" | "add" | "invite" | "delete" | null;
 
 export default function AdminMembersClient() {
   const t = useTranslations("admin.members");
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
   const {
     users, currentUser, taskInstances,
     updateMember, adjustPoints,
-    setupVisited, markSetupVisited,
   } = useAppStore();
-
-  useEffect(() => { markSetupVisited("members"); }, []);
 
   const [mode, setMode] = useState<DialogMode>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -104,6 +109,10 @@ export default function AdminMembersClient() {
     setSelectedUser(user);
     setMode("invite");
   };
+  const openDelete = (user: User) => {
+    setSelectedUser(user);
+    setMode("delete");
+  };
   const closeDialog = () => { setMode(null); setSelectedUser(null); setInviteLink(null); };
 
   const handleAdjust = async () => {
@@ -122,6 +131,17 @@ export default function AdminMembersClient() {
       adjustPoints(selectedUser.id, amount, adjustReason || "Ajuste manual");
       // Sync balance exacto desde Supabase
       updateMember(selectedUser.id, { pointsBalance: newBalance });
+      // Publicar en el tablón
+      if (currentUser?.familyId && currentUser?.id) {
+        const reason = adjustReason || "Ajuste manual";
+        postBoardMessage({
+          familyId: currentUser.familyId,
+          profileId: currentUser.id,
+          content: `Puntos ${amount > 0 ? "añadidos" : "restados"} a ${selectedUser.name}: ${amount > 0 ? "+" : ""}${amount} pts — ${reason}`,
+          type: "points",
+          emoji: amount > 0 ? "⭐" : "➖",
+        }).catch(() => {});
+      }
       toast.success(`${amount > 0 ? "+" : ""}${amount} pts a ${selectedUser.name}`, {
         description: adjustReason || "Ajuste manual",
       });
@@ -172,28 +192,44 @@ export default function AdminMembersClient() {
     if (!currentUser?.familyId || !currentUser?.id) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          familyId: currentUser.familyId,
-          invitedByProfileId: currentUser.id,
-          email: inviteEmail.trim(),
-          role: inviteRole,
-          profileId: inviteProfileId,
-        }),
+      const result = await sendInviteAction({
+        familyId: currentUser.familyId,
+        invitedByProfileId: currentUser.id,
+        profileId: inviteProfileId!,
+        email: inviteEmail.trim(),
+        role: inviteRole,
+        origin: window.location.origin,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Error al enviar la invitación");
 
-      setInviteLink(json.link);
-      if (json.emailWarning) {
+      setInviteLink(result.link);
+      if (result.emailWarning) {
         toast.warning("Invitación creada pero el email no se pudo enviar. Comparte el enlace manualmente.");
       } else {
         toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear la invitación. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      const { authUserId } = await deleteProfile(selectedUser.id);
+      // También borrar el auth user si existe
+      if (authUserId) {
+        await deleteAuthUserAction(authUserId).catch(() => {});
+      }
+      useAppStore.setState((prev) => ({
+        users: prev.users.filter((u) => u.id !== selectedUser.id),
+      }));
+      toast.success(`"${selectedUser.name}" eliminado de la familia`);
+      closeDialog();
+    } catch {
+      toast.error("Error al eliminar el miembro. Inténtalo de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -217,16 +253,6 @@ export default function AdminMembersClient() {
         </Button>
       </div>
 
-      {!setupVisited.members && (
-        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 space-y-1">
-          <p className="font-semibold text-orange-800 text-sm">👥 Añade a tu familia</p>
-          <p className="text-sm text-orange-700">
-            Aquí puedes añadir a todos los miembros de tu familia y ajustar sus puntos.
-            Para dar acceso a un miembro, usa el botón <strong>Enviar invitación</strong> en su fila.
-          </p>
-        </div>
-      )}
-
       {/* Members table */}
       <Card className="shadow-sm">
         <CardContent className="p-0">
@@ -247,12 +273,15 @@ export default function AdminMembersClient() {
                 return (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => router.push(`/${locale}/members/${user.id}`)}
+                        className="flex items-center gap-3 hover:text-primary transition-colors"
+                      >
                         <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-xl flex-shrink-0">
                           {user.avatar}
                         </div>
                         <span className="font-semibold">{user.name}</span>
-                      </div>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.role === "admin" ? "default" : "secondary"}>
@@ -287,6 +316,11 @@ export default function AdminMembersClient() {
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openAdjust(user)}>
                           <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" /> {t("adjustPoints")}
                         </Button>
+                        {user.id !== currentUser?.id && (
+                          <Button size="sm" variant="outline" className="h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => openDelete(user)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -432,6 +466,26 @@ export default function AdminMembersClient() {
               {saving ? "Creando..." : "Crear invitación"}
             </Button>
           )}
+        </AppModalFooter>
+      </AppModal>
+
+      {/* Delete member confirmation modal */}
+      <AppModal open={mode === "delete"} onOpenChange={closeDialog}>
+        <AppModalHeader emoji="⚠️"
+          title={`Eliminar a ${selectedUser?.name ?? ""}`}
+          description="Esta accion no se puede deshacer"
+          color="bg-gradient-to-br from-red-500 to-red-600"
+          onClose={closeDialog} />
+        <AppModalBody>
+          <p className="text-sm text-muted-foreground">
+            Se eliminara a <strong>{selectedUser?.name}</strong> de la familia, junto con todo su historial de tareas y puntos.
+          </p>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+            {saving ? "Eliminando..." : "Eliminar"}
+          </Button>
         </AppModalFooter>
       </AppModal>
     </div>
