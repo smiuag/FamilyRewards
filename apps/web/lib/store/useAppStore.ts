@@ -64,7 +64,9 @@ interface AppState {
 
   updateMember: (id: string, patch: Partial<User>) => void;
   updateTask: (taskId: string, patch: Partial<Task>) => void;
+  deleteTask: (taskId: string) => void;
   updateReward: (rewardId: string, patch: Partial<Reward>) => void;
+  deleteReward: (rewardId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -130,13 +132,16 @@ export const useAppStore = create<AppState>()(
           const oldInstance = prev.taskInstances.find((ti) => ti.id === instanceId);
           if (!oldInstance) return {};
 
-          const wasCompleted = oldInstance.state === "completed";
-          const isNowCompleted = newState === "completed";
-          const pointsDelta = isNowCompleted
-            ? oldInstance.pointsAwarded || 0
-            : wasCompleted
-            ? -(oldInstance.pointsAwarded || 0)
-            : 0;
+          const task = prev.tasks.find((t) => t.id === oldInstance.taskId);
+          const penalty = task?.penaltyPoints ?? task?.points ?? 0;
+
+          // Points awarded for each state
+          const pointsForState = (s: typeof newState) =>
+            s === "completed" ? (task?.points ?? 0) :
+            s === "failed"    ? -penalty :
+            0;
+
+          const pointsDelta = pointsForState(newState) - pointsForState(oldInstance.state);
 
           const instances = prev.taskInstances.map((ti) =>
             ti.id === instanceId ? { ...ti, state: newState } : ti
@@ -191,10 +196,12 @@ export const useAppStore = create<AppState>()(
               userId: oldInstance.userId,
               amount: pointsDelta,
               type: "task",
-              description: pointsDelta > 0
-                ? `Tarea completada: ${task?.title ?? "Tarea"}`
-                : `Tarea desmarcada: ${task?.title ?? "Tarea"}`,
-              emoji: pointsDelta > 0 ? "✅" : "↩️",
+              description:
+                newState === "completed" ? `Tarea completada: ${task?.title ?? "Tarea"}` :
+                newState === "failed"    ? `Tarea no realizada: ${task?.title ?? "Tarea"}` :
+                newState === "cancelled" ? `Tarea cancelada: ${task?.title ?? "Tarea"}` :
+                                          `Tarea revertida: ${task?.title ?? "Tarea"}`,
+              emoji: newState === "completed" ? "✅" : newState === "failed" ? "❌" : "↩️",
               createdAt: new Date().toISOString(),
               balanceAfter: updatedUser?.pointsBalance ?? 0,
             });
@@ -363,9 +370,21 @@ export const useAppStore = create<AppState>()(
           tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
         })),
 
+      deleteTask: (taskId) =>
+        set((prev) => ({
+          tasks: prev.tasks.filter((t) => t.id !== taskId),
+          // taskInstances are kept intentionally for history/reports
+        })),
+
       updateReward: (rewardId, patch) =>
         set((prev) => ({
           rewards: prev.rewards.map((r) => (r.id === rewardId ? { ...r, ...patch } : r)),
+        })),
+
+      deleteReward: (rewardId) =>
+        set((prev) => ({
+          rewards: prev.rewards.filter((r) => r.id !== rewardId),
+          // claims are kept intentionally for history
         })),
     }),
     {

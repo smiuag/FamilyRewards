@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { fetchFamilyTasks, createTask, updateTask } from "@/lib/api/tasks";
+import { fetchFamilyTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, RefreshCw, Star, Users, Pencil } from "lucide-react";
+import { Plus, RefreshCw, Star, Users, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Task, DayOfWeek } from "@/lib/types";
@@ -31,21 +32,29 @@ const emptyForm = () => ({
   title: "",
   description: "",
   points: "20",
+  penaltyPoints: "",
   assignedTo: [] as string[],
   isRecurring: false,
   daysOfWeek: [] as DayOfWeek[],
   time: "",
   defaultState: "pending" as "pending" | "completed",
+  deadline: "",
 });
 
 export default function AdminTasksClient() {
-  const { tasks: storeTasks, users, currentUser, loadTasks, updateTask: storeUpdateTask } = useAppStore();
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
+
+  const { tasks: storeTasks, users, currentUser, loadTasks, updateTask: storeUpdateTask, deleteTask: storeDeleteTask } = useAppStore();
   const [filterMember, setFilterMember] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchFamilyTasks()
@@ -53,6 +62,22 @@ export default function AdminTasksClient() {
       .catch(() => toast.error("Error al cargar las tareas"))
       .finally(() => setLoadingTasks(false));
   }, []);
+
+  const handleDelete = async () => {
+    if (!taskToDelete) return;
+    setDeleting(true);
+    storeDeleteTask(taskToDelete.id);
+    try {
+      await deleteTask(taskToDelete.id);
+      toast.success(`Tarea "${taskToDelete.title}" eliminada`);
+    } catch {
+      // Re-add on error is complex; just notify
+      toast.error("Error al eliminar la tarea");
+    } finally {
+      setDeleting(false);
+      setTaskToDelete(null);
+    }
+  };
 
   const toggleActive = async (task: Task) => {
     storeUpdateTask(task.id, { isActive: !task.isActive });
@@ -64,7 +89,7 @@ export default function AdminTasksClient() {
     }
   };
 
-  const openNew = () => { setEditingTask(null); setForm(emptyForm()); setOpen(true); };
+
 
   const openEdit = (task: Task) => {
     setEditingTask(task);
@@ -72,11 +97,13 @@ export default function AdminTasksClient() {
       title: task.title,
       description: task.description ?? "",
       points: String(task.points),
+      penaltyPoints: task.penaltyPoints !== undefined ? String(task.penaltyPoints) : "",
       assignedTo: task.assignedTo,
       isRecurring: task.isRecurring,
       daysOfWeek: task.recurringPattern?.daysOfWeek ?? [],
       time: task.recurringPattern?.time ?? "",
       defaultState: task.recurringPattern?.defaultState ?? "pending",
+      deadline: task.deadline ?? "",
     });
     setOpen(true);
   };
@@ -87,6 +114,9 @@ export default function AdminTasksClient() {
     const recurringPattern = form.isRecurring
       ? { daysOfWeek: form.daysOfWeek, time: form.time || undefined, defaultState: form.defaultState }
       : undefined;
+    const defaultState = !form.isRecurring ? form.defaultState : undefined;
+    const deadline = !form.isRecurring && form.deadline ? form.deadline : undefined;
+    const penaltyPoints = form.penaltyPoints !== "" ? parseInt(form.penaltyPoints) : undefined;
 
     try {
       if (editingTask) {
@@ -94,17 +124,23 @@ export default function AdminTasksClient() {
           title: form.title,
           description: form.description,
           points: parseInt(form.points) || 10,
+          penaltyPoints: penaltyPoints ?? null,
           assignedTo: form.assignedTo,
           isRecurring: form.isRecurring,
           recurringPattern,
+          defaultState,
+          deadline: deadline ?? null,
         });
         storeUpdateTask(editingTask.id, {
           title: form.title,
           description: form.description,
           points: parseInt(form.points) || 10,
+          penaltyPoints,
           assignedTo: form.assignedTo,
           isRecurring: form.isRecurring,
           recurringPattern,
+          defaultState,
+          deadline,
         });
         toast.success(`Tarea "${form.title}" actualizada`);
       } else {
@@ -113,9 +149,12 @@ export default function AdminTasksClient() {
           title: form.title,
           description: form.description,
           points: parseInt(form.points) || 10,
+          penaltyPoints,
           assignedTo: form.assignedTo,
           isRecurring: form.isRecurring,
           recurringPattern,
+          defaultState,
+          deadline,
         });
         useAppStore.setState((prev) => ({ tasks: [...prev.tasks, newTask] }));
         toast.success(`Tarea "${form.title}" creada`);
@@ -158,7 +197,11 @@ export default function AdminTasksClient() {
         <div className="flex items-center gap-2">
           <Select value={filterMember} onValueChange={(v) => setFilterMember(v ?? "all")}>
             <SelectTrigger className="w-40 h-8 text-sm">
-              <SelectValue placeholder="Todos los miembros" />
+              <span className="text-sm truncate">
+                {filterMember === "all"
+                  ? "Todos los miembros"
+                  : (() => { const u = users.find((u) => u.id === filterMember); return u ? `${u.avatar} ${u.name}` : "Todos"; })()}
+              </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los miembros</SelectItem>
@@ -167,9 +210,9 @@ export default function AdminTasksClient() {
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={openNew}>
+          <Button size="sm" onClick={() => router.push(`/${locale}/admin/tasks/add`)}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Nueva tarea
+            Añadir tarea
           </Button>
         </div>
       </div>
@@ -197,15 +240,15 @@ export default function AdminTasksClient() {
                       : <Star className="w-5 h-5 text-orange-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-semibold">{task.title}</span>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">{task.title}</span>
+                        {!task.isActive && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Desactivada</Badge>
+                        )}
+                      </div>
                       {task.isRecurring && (
-                        <Badge variant="secondary" className="text-xs">
-                          <RefreshCw className="w-2.5 h-2.5 mr-1" /> Recurrente
-                        </Badge>
-                      )}
-                      {!task.isActive && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">Desactivada</Badge>
+                        <Switch checked={task.isActive} onCheckedChange={() => toggleActive(task)} className="flex-shrink-0 mt-0.5" />
                       )}
                     </div>
                     {task.isRecurring && task.recurringPattern && (
@@ -230,24 +273,27 @@ export default function AdminTasksClient() {
                         </Badge>
                       </div>
                     )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {task.assignedTo.length > 0 ? getAssignedNames(task.assignedTo) : "Sin asignar"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-primary fill-primary" />
-                        <span className="text-primary font-semibold">{task.points} pts</span>
-                      </span>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {task.assignedTo.length > 0 ? getAssignedNames(task.assignedTo) : "Sin asignar"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-primary fill-primary" />
+                          <span className="text-primary font-semibold">{task.points} pts</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setTaskToDelete(task)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(task)}>
+                          <Pencil className="w-3 h-3 mr-1" /> Editar
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(task)}>
-                      <Pencil className="w-3 h-3 mr-1" /> Editar
-                    </Button>
-                    {task.isRecurring && (
-                      <Switch checked={task.isActive} onCheckedChange={() => toggleActive(task)} />
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -255,6 +301,30 @@ export default function AdminTasksClient() {
           ))}
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      <AppModal open={!!taskToDelete} onOpenChange={(v) => { if (!v) setTaskToDelete(null); }}>
+        <AppModalHeader
+          emoji="🗑️"
+          title="Eliminar tarea"
+          color="bg-gradient-to-br from-red-500 to-rose-600"
+          onClose={() => setTaskToDelete(null)}
+        />
+        <AppModalBody>
+          <p className="text-sm text-muted-foreground">
+            ¿Eliminar <strong className="text-foreground">{taskToDelete?.title}</strong>?
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            La tarea desaparecerá de la lista pero se mantendrá en el historial, informes y puntos anteriores.
+          </p>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setTaskToDelete(null)}>Cancelar</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            {deleting ? "Eliminando..." : "Eliminar"}
+          </Button>
+        </AppModalFooter>
+      </AppModal>
 
       {/* New / Edit task modal */}
       <AppModal open={open} onOpenChange={setOpen}>
@@ -275,10 +345,18 @@ export default function AdminTasksClient() {
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Breve descripción" className="mt-1.5" />
           </div>
-          <div>
-            <Label>Puntos</Label>
-            <Input type="number" value={form.points}
-              onChange={(e) => setForm({ ...form, points: e.target.value })} className="mt-1.5" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Puntos al completar</Label>
+              <Input type="number" value={form.points}
+                onChange={(e) => setForm({ ...form, points: e.target.value })} className="mt-1.5" />
+            </div>
+            <div>
+              <Label>Descuento si no se hace</Label>
+              <Input type="number" value={form.penaltyPoints} min={0}
+                onChange={(e) => setForm({ ...form, penaltyPoints: e.target.value })}
+                placeholder={`Por defecto ${form.points || "0"}`} className="mt-1.5" />
+            </div>
           </div>
           <div>
             <Label className="mb-2 block">Asignada a</Label>
@@ -301,6 +379,28 @@ export default function AdminTasksClient() {
             </div>
             <Switch checked={form.isRecurring} onCheckedChange={(v) => setForm({ ...form, isRecurring: v })} />
           </div>
+          {!form.isRecurring && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Fecha límite (opcional)</Label>
+                <Input type="date" value={form.deadline}
+                  onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Estado por defecto</Label>
+                <Select value={form.defaultState}
+                  onValueChange={(v) => setForm({ ...form, defaultState: v as "pending" | "completed" })}>
+                  <SelectTrigger className="mt-1.5">
+                    <span>{form.defaultState === "pending" ? "Pendiente" : "Completada"}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="completed">Completada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           {form.isRecurring && (
             <>
               <div>
@@ -327,7 +427,9 @@ export default function AdminTasksClient() {
                   <Label>Estado por defecto</Label>
                   <Select value={form.defaultState}
                     onValueChange={(v) => setForm({ ...form, defaultState: v as "pending" | "completed" })}>
-                    <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1.5">
+                      <span>{form.defaultState === "pending" ? "Pendiente" : "Completada"}</span>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pendiente</SelectItem>
                       <SelectItem value="completed">Completada</SelectItem>

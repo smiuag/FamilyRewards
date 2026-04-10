@@ -96,6 +96,13 @@ export async function updateReward(
   if (error) throw error;
 }
 
+export async function deleteReward(id: string): Promise<void> {
+  const supabase = createClient();
+  // Claims are kept for history; only the reward definition is removed
+  const { error } = await supabase.from("rewards").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ── Claims ─────────────────────────────────────────────────────
 
 export async function fetchFamilyClaims(): Promise<RewardClaim[]> {

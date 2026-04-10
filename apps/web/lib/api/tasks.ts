@@ -19,6 +19,9 @@ interface SupabaseTask {
     defaultState: "completed" | "pending";
   } | null;
   is_active: boolean;
+  deadline: string | null;
+  penalty_points: number | null;
+  default_state: "pending" | "completed";
   created_at: string;
   task_assignments: { profile_id: string }[];
 }
@@ -43,6 +46,9 @@ function toTask(t: SupabaseTask): Task {
     createdBy: t.created_by ?? "",
     isRecurring: t.is_recurring,
     recurringPattern: t.recurring_pattern ?? undefined,
+    defaultState: t.default_state ?? "pending",
+    deadline: t.deadline ?? undefined,
+    penaltyPoints: t.penalty_points ?? undefined,
     isActive: t.is_active,
     createdAt: t.created_at,
   };
@@ -81,6 +87,9 @@ export async function createTask(
     assignedTo: string[];
     isRecurring: boolean;
     recurringPattern?: Task["recurringPattern"];
+    defaultState?: "pending" | "completed";
+    deadline?: string;
+    penaltyPoints?: number;
   }
 ): Promise<Task> {
   const supabase = createClient();
@@ -95,6 +104,9 @@ export async function createTask(
       created_by: createdBy,
       is_recurring: data.isRecurring,
       recurring_pattern: data.recurringPattern ?? null,
+      default_state: data.defaultState ?? "pending",
+      deadline: data.deadline ?? null,
+      penalty_points: data.penaltyPoints ?? null,
       is_active: true,
     })
     .select()
@@ -109,10 +121,44 @@ export async function createTask(
     if (assignError) throw assignError;
   }
 
-  // Create today's instances for assigned profiles
-  await createTodayInstances(task.id, data.assignedTo, data.points, data.isRecurring, data.recurringPattern);
+  const fullTask = toTask({ ...task, task_assignments: data.assignedTo.map((p) => ({ profile_id: p })) } as SupabaseTask);
 
-  return toTask({ ...task, task_assignments: data.assignedTo.map((p) => ({ profile_id: p })) } as SupabaseTask);
+  if (data.isRecurring) {
+    // Recurring: create instance for today if it falls on the right day
+    const todayDow = getDow(new Date());
+    const days = data.recurringPattern?.daysOfWeek ?? [];
+    if (days.includes(todayDow)) {
+      const defaultState = data.recurringPattern?.defaultState ?? "pending";
+      const pointsAwarded = defaultState === "completed" ? data.points : 0;
+      await supabase.from("task_instances").upsert(
+        data.assignedTo.map((profileId) => ({
+          task_id: task.id, profile_id: profileId,
+          date: dateStr(new Date()), state: defaultState, points_awarded: pointsAwarded,
+        })),
+        { onConflict: "task_id,profile_id,date", ignoreDuplicates: true },
+      );
+      if (defaultState === "completed" && pointsAwarded > 0) {
+        for (const profileId of data.assignedTo) {
+          const balance = await fetchBalance(supabase, profileId);
+          await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea completada: ${data.title}`, "✅");
+        }
+      }
+    }
+  } else {
+    // Non-recurring: create one instance per assigned profile (C1)
+    for (const profileId of data.assignedTo) {
+      await createNonRecurringInstance(supabase, fullTask, profileId);
+    }
+  }
+
+  return fullTask;
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  const supabase = createClient();
+  // Assignments are deleted via cascade; instances are kept for history
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function updateTask(
@@ -124,6 +170,9 @@ export async function updateTask(
     assignedTo?: string[];
     isRecurring?: boolean;
     recurringPattern?: Task["recurringPattern"];
+    defaultState?: "pending" | "completed";
+    deadline?: string | null;
+    penaltyPoints?: number | null;
     isActive?: boolean;
   }
 ): Promise<void> {
@@ -135,6 +184,9 @@ export async function updateTask(
   if (data.points !== undefined) patch.points = data.points;
   if (data.isRecurring !== undefined) patch.is_recurring = data.isRecurring;
   if (data.recurringPattern !== undefined) patch.recurring_pattern = data.recurringPattern ?? null;
+  if (data.deadline !== undefined) patch.deadline = data.deadline ?? null;
+  if (data.defaultState !== undefined) patch.default_state = data.defaultState;
+  if (data.penaltyPoints !== undefined) patch.penalty_points = data.penaltyPoints ?? null;
   if (data.isActive !== undefined) patch.is_active = data.isActive;
 
   if (Object.keys(patch).length > 0) {
@@ -158,132 +210,237 @@ export async function updateTask(
 
 const DOW_MAP: DayOfWeek[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-function getTodayDow(): DayOfWeek {
-  return DOW_MAP[new Date().getDay()];
+function getDow(date: Date): DayOfWeek {
+  return DOW_MAP[date.getDay()];
 }
 
-async function createTodayInstances(
-  taskId: string,
-  profileIds: string[],
-  points: number,
-  isRecurring: boolean,
-  recurringPattern?: Task["recurringPattern"]
+function dateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+function addDays(base: Date, n: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+// Award or deduct points and record a transaction (fire-and-forget safe)
+async function applyBalanceDelta(
+  supabase: ReturnType<typeof createClient>,
+  profileId: string,
+  currentBalance: number,
+  delta: number,
+  description: string,
+  emoji: string,
+): Promise<number> {
+  if (delta === 0) return currentBalance;
+  const newBalance = currentBalance + delta;
+  await supabase.from("profiles").update({ points_balance: newBalance }).eq("id", profileId);
+  await recordTransaction({ profileId, amount: delta, type: "task", description, emoji, balanceAfter: newBalance })
+    .catch(() => {});
+  return newBalance;
+}
+
+// Fetch current points_balance for a profile
+async function fetchBalance(
+  supabase: ReturnType<typeof createClient>,
+  profileId: string,
+): Promise<number> {
+  const { data } = await supabase.from("profiles").select("points_balance").eq("id", profileId).single();
+  return (data as { points_balance: number } | null)?.points_balance ?? 0;
+}
+
+// ── C1: create instance for a non-recurring task just added ──
+async function createNonRecurringInstance(
+  supabase: ReturnType<typeof createClient>,
+  task: Task,
+  profileId: string,
 ): Promise<void> {
-  if (profileIds.length === 0) return;
+  const today = dateStr(new Date());
+  const defaultState = (task.defaultState ?? "pending") as TaskState;
+  const pointsAwarded = defaultState === "completed" ? task.points : 0;
 
-  const todayDow = getTodayDow();
-  const shouldCreate = !isRecurring || (recurringPattern?.daysOfWeek ?? []).includes(todayDow);
-  if (!shouldCreate) return;
-
-  const today = new Date().toISOString().split("T")[0];
-  const defaultState = recurringPattern?.defaultState ?? "pending";
-
-  const supabase = createClient();
-  await supabase.from("task_instances").upsert(
-    profileIds.map((profileId) => ({
-      task_id: taskId,
-      profile_id: profileId,
-      date: today,
-      state: defaultState,
-      points_awarded: defaultState === "completed" ? points : 0,
-    })),
-    { onConflict: "task_id,profile_id,date", ignoreDuplicates: true }
+  const { error } = await supabase.from("task_instances").upsert(
+    [{ task_id: task.id, profile_id: profileId, date: today, state: defaultState, points_awarded: pointsAwarded }],
+    { onConflict: "task_id,profile_id,date", ignoreDuplicates: true },
   );
+  if (error) throw error;
+
+  if (defaultState === "completed" && pointsAwarded > 0) {
+    const balance = await fetchBalance(supabase, profileId);
+    await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea completada: ${task.title}`, "✅");
+  }
 }
 
-export async function fetchTodayInstances(profileId: string): Promise<TaskInstance[]> {
-  const today = new Date().toISOString().split("T")[0];
+// ── C6+C8: backfill instances from task.createdAt to targetDate ──
+export async function backfillInstances(
+  tasks: Task[],
+  profileId: string,
+  targetDate: Date = new Date(),
+): Promise<TaskInstance[]> {
+  const supabase = createClient();
+  const today = dateStr(new Date());
+  const target = dateStr(targetDate);
+
+  // Fetch all existing instances for this profile up to targetDate
+  const { data: existing } = await supabase
+    .from("task_instances")
+    .select("id, task_id, date, state, points_awarded")
+    .eq("profile_id", profileId)
+    .lte("date", target);
+
+  type ExistingRow = { id: string; task_id: string; date: string; state: string; points_awarded: number };
+  const existingMap = new Map<string, ExistingRow>();
+  for (const row of (existing ?? []) as ExistingRow[]) {
+    existingMap.set(`${row.task_id}::${row.date}`, row);
+  }
+
+  const toInsert: { task_id: string; profile_id: string; date: string; state: string; points_awarded: number }[] = [];
+  const toPendingFail: { id: string; penaltyPoints: number; profileId: string; taskTitle: string }[] = [];
+
+  for (const task of tasks) {
+    if (!task.assignedTo.includes(profileId)) continue;
+    if (!task.isActive) continue;
+    if (!task.isRecurring) continue;
+
+    const days = task.recurringPattern?.daysOfWeek ?? [];
+    const defaultState = task.recurringPattern?.defaultState ?? "pending";
+    const taskStart = new Date(task.createdAt);
+    const taskStartStr = dateStr(taskStart);
+
+    // Iterate day by day from task creation to targetDate
+    let cur = new Date(taskStart);
+    cur.setHours(0, 0, 0, 0);
+    const end = new Date(targetDate);
+    end.setHours(0, 0, 0, 0);
+
+    while (cur <= end) {
+      const ds = dateStr(cur);
+      if (ds >= taskStartStr && days.includes(getDow(cur))) {
+        const key = `${task.id}::${ds}`;
+        const existing = existingMap.get(key);
+
+        if (!existing) {
+          // Missing instance — create it
+          const isPast = ds < today;
+          // Past days with defaultState=pending → create as failed directly
+          const state = isPast && defaultState === "pending" ? "failed" : defaultState;
+          const pointsAwarded = state === "completed" ? task.points
+            : state === "failed" ? -(task.penaltyPoints ?? task.points)
+            : 0;
+          toInsert.push({ task_id: task.id, profile_id: profileId, date: ds, state, points_awarded: pointsAwarded });
+        } else if (existing.state === "pending" && ds < today) {
+          // C8: existing pending instance from a past day → auto-fail
+          const penalty = task.penaltyPoints ?? task.points;
+          toPendingFail.push({ id: existing.id, penaltyPoints: penalty, profileId, taskTitle: task.title });
+        }
+      }
+      cur = addDays(cur, 1);
+    }
+  }
+
+  // Bulk insert new instances
+  if (toInsert.length > 0) {
+    await supabase.from("task_instances").insert(toInsert);
+    // Apply balance deltas for new completed/failed instances
+    for (const row of toInsert) {
+      if (row.points_awarded !== 0) {
+        const task = tasks.find((t) => t.id === row.task_id);
+        const balance = await fetchBalance(supabase, profileId);
+        const isCompleted = row.state === "completed";
+        await applyBalanceDelta(
+          supabase, profileId, balance, row.points_awarded,
+          isCompleted ? `Tarea completada: ${task?.title ?? ""}` : `Tarea no realizada: ${task?.title ?? ""}`,
+          isCompleted ? "✅" : "❌",
+        );
+      }
+    }
+  }
+
+  // Auto-fail existing pending instances from past days
+  for (const item of toPendingFail) {
+    const penalty = item.penaltyPoints;
+    await supabase.from("task_instances").update({ state: "failed", points_awarded: -penalty }).eq("id", item.id);
+    if (penalty > 0) {
+      const balance = await fetchBalance(supabase, profileId);
+      await applyBalanceDelta(supabase, profileId, balance, -penalty, `Tarea no realizada: ${item.taskTitle}`, "❌");
+    }
+  }
+
+  // Return all instances up to targetDate
+  const { data: all, error } = await supabase
+    .from("task_instances")
+    .select("*")
+    .eq("profile_id", profileId)
+    .lte("date", target);
+  if (error) throw error;
+  return (all ?? []).map((ti) => toInstance(ti as SupabaseInstance));
+}
+
+export async function fetchInstancesForDate(profileId: string, date: string): Promise<TaskInstance[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("task_instances")
     .select("*")
     .eq("profile_id", profileId)
-    .eq("date", today);
+    .eq("date", date);
   if (error) throw error;
   return (data ?? []).map((ti) => toInstance(ti as SupabaseInstance));
 }
 
-export async function ensureTodayInstances(
-  tasks: Task[],
-  profileId: string
-): Promise<TaskInstance[]> {
-  const today = new Date().toISOString().split("T")[0];
-  const todayDow = getTodayDow();
-
-  const supabase = createClient();
-  // Fetch existing instances for today
-  const { data: existing } = await supabase
-    .from("task_instances")
-    .select("task_id")
-    .eq("profile_id", profileId)
-    .eq("date", today);
-  const existingTaskIds = new Set((existing ?? []).map((e: { task_id: string }) => e.task_id));
-
-  // Find tasks that should have an instance today but don't
-  const toCreate = tasks.filter((t) => {
-    if (!t.assignedTo.includes(profileId)) return false;
-    if (!t.isActive) return false;
-    if (existingTaskIds.has(t.id)) return false;
-    if (!t.isRecurring) return false;
-    return (t.recurringPattern?.daysOfWeek ?? []).includes(todayDow);
-  });
-
-  if (toCreate.length > 0) {
-    const { data: created, error } = await supabase
-      .from("task_instances")
-      .insert(
-        toCreate.map((t) => ({
-          task_id: t.id,
-          profile_id: profileId,
-          date: today,
-          state: t.recurringPattern?.defaultState ?? "pending",
-          points_awarded: t.recurringPattern?.defaultState === "completed" ? t.points : 0,
-        }))
-      )
-      .select();
-    if (error) throw error;
-  }
-
-  return fetchTodayInstances(profileId);
-}
-
+// ── C7: syncInstanceState with 4-state transition table ──
+//
+// Transition table (pointsDelta):
+//   pending   → completed : +points
+//   pending   → failed    : -penalty
+//   pending   → cancelled : 0
+//   completed → pending   : -points
+//   completed → failed    : -points - penalty
+//   completed → cancelled : -points
+//   failed    → pending   : +penalty
+//   failed    → completed : +points + penalty
+//   failed    → cancelled : +penalty
+//   cancelled → pending   : 0
+//   cancelled → completed : +points
+//   cancelled → failed    : -penalty
 export async function syncInstanceState(
   instanceId: string,
-  state: TaskState,
-  pointsAwarded: number,
+  newState: TaskState,
+  task: { points: number; penaltyPoints?: number; title?: string },
   profileId: string,
-  newBalance: number,
-  taskTitle?: string,
-  prevState?: TaskState
+  prevState: TaskState,
 ): Promise<void> {
   const supabase = createClient();
+  const penalty = task.penaltyPoints ?? task.points;
+
+  // Determine points_awarded for the new state
+  const pointsAwarded =
+    newState === "completed" ? task.points :
+    newState === "failed"    ? -penalty :
+    0;
 
   const { error: instanceError } = await supabase
     .from("task_instances")
-    .update({ state, points_awarded: pointsAwarded })
+    .update({ state: newState, points_awarded: pointsAwarded })
     .eq("id", instanceId);
   if (instanceError) throw instanceError;
 
-  const isNowCompleted = state === "completed";
-  const wasCompleted = prevState === "completed";
-  const pointsDelta = isNowCompleted ? pointsAwarded : wasCompleted ? -pointsAwarded : 0;
+  // Calculate balance delta based on transition
+  let delta = 0;
+  const prevPoints = prevState === "completed" ? task.points : prevState === "failed" ? -penalty : 0;
+  delta = pointsAwarded - prevPoints;
 
-  if (pointsDelta !== 0) {
-    const { error: balanceError } = await supabase
-      .from("profiles")
-      .update({ points_balance: newBalance })
-      .eq("id", profileId);
-    if (balanceError) throw balanceError;
-
-    await recordTransaction({
-      profileId,
-      amount: pointsDelta,
-      type: "task",
-      description: pointsDelta > 0
-        ? `Tarea completada: ${taskTitle ?? "Tarea"}`
-        : `Tarea desmarcada: ${taskTitle ?? "Tarea"}`,
-      emoji: pointsDelta > 0 ? "✅" : "↩️",
-      balanceAfter: newBalance,
-    }).catch(() => {}); // non-blocking — transaction is a nice-to-have
+  if (delta !== 0) {
+    const balance = await fetchBalance(supabase, profileId);
+    const description =
+      newState === "completed" ? `Tarea completada: ${task.title ?? "Tarea"}` :
+      newState === "failed"    ? `Tarea no realizada: ${task.title ?? "Tarea"}` :
+      newState === "cancelled" ? `Tarea cancelada: ${task.title ?? "Tarea"}` :
+                                 `Tarea revertida: ${task.title ?? "Tarea"}`;
+    const emoji =
+      newState === "completed" ? "✅" :
+      newState === "failed"    ? "❌" :
+      newState === "cancelled" ? "🚫" : "↩️";
+    await applyBalanceDelta(supabase, profileId, balance, delta, description, emoji);
   }
 }
