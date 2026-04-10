@@ -76,6 +76,7 @@ export default function ChallengesClient() {
               key={c.id}
               challenge={c}
               currentUserId={currentUser.id}
+              users={users}
               onContribute={(amount) => contribute(c.id, currentUser.id, amount)}
             />
           ))}
@@ -88,10 +89,12 @@ export default function ChallengesClient() {
 function ChallengeCard({
   challenge: c,
   currentUserId,
+  users,
   onContribute,
 }: {
   challenge: FamilyChallenge;
   currentUserId: string;
+  users: { id: string; name: string; avatar: string }[];
   onContribute: (amount: number) => void;
 }) {
   const status = STATUS_CONFIG[c.status];
