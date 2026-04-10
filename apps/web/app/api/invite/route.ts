@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { familyId, invitedByProfileId, email, role, profileId } = await req.json();
+    const { familyId, invitedByProfileId, email, role } = await req.json();
 
     if (!familyId || !invitedByProfileId || !email || !role) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
         email,
         role,
         invited_by: invitedByProfileId,
-        ...(profileId ? { profile_id: profileId } : {}),
       })
       .select("token")
       .single();
