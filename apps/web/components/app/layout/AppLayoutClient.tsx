@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/lib/store/useAppStore";
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import { Star } from "lucide-react";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
@@ -9,6 +10,9 @@ import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const { currentUser, onboardingCompleted } = useAppStore();
+
+  // Subscribe to Supabase Realtime for live updates
+  useRealtimeSync();
 
   return (
     <SessionGuard>

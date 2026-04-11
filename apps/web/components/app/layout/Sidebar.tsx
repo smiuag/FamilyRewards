@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { usePinStore } from "@/lib/store/usePinStore";
 import { updateFamilyName } from "@/lib/api/members";
 import { cn } from "@/lib/utils";
 import {
@@ -69,6 +70,13 @@ export default function Sidebar() {
   // Cambio de usuario
   const [showSwitchUser, setShowSwitchUser] = useState(false);
 
+  // PIN modal
+  const { hasPin, verifyPin } = usePinStore();
+  const [pinTarget, setPinTarget] = useState<string | null>(null);
+  const [pinValue, setPinValue] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
@@ -129,11 +137,34 @@ export default function Sidebar() {
   };
 
   const handleSwitchUser = (targetUserId: string) => {
+    if (hasPin(targetUserId)) {
+      setPinTarget(targetUserId);
+      setPinValue("");
+      setPinError(false);
+      setTimeout(() => pinInputRef.current?.focus(), 100);
+      return;
+    }
+    doSwitch(targetUserId);
+  };
+
+  const doSwitch = (targetUserId: string) => {
     const target = users.find((u) => u.id === targetUserId);
     if (!target) return;
     setCurrentProfile(target);
     setShowSwitchUser(false);
+    setPinTarget(null);
     router.push(`/${locale}/dashboard`);
+  };
+
+  const handlePinSubmit = () => {
+    if (!pinTarget) return;
+    if (verifyPin(pinTarget, pinValue)) {
+      doSwitch(pinTarget);
+    } else {
+      setPinError(true);
+      setPinValue("");
+      pinInputRef.current?.focus();
+    }
   };
 
   return (
@@ -280,6 +311,7 @@ export default function Sidebar() {
                     >
                       <span className="text-base">{u.avatar}</span>
                       <span className="flex-1 text-left font-medium truncate">{u.name}</span>
+                      {hasPin(u.id) && <span className="text-[10px] text-sidebar-foreground/40">🔒</span>}
                     </button>
                   ))}
               </div>
@@ -296,6 +328,59 @@ export default function Sidebar() {
           <span>{t("logout")}</span>
         </button>
       </div>
+
+      {/* PIN modal */}
+      {pinTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
+            <div className="text-center">
+              <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
+              <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
+              <p className="text-sm text-muted-foreground">Introduce el PIN</p>
+            </div>
+            <input
+              ref={pinInputRef}
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pinValue}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                setPinValue(v);
+                setPinError(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && pinValue.length === 4) handlePinSubmit();
+                if (e.key === "Escape") setPinTarget(null);
+              }}
+              className={cn(
+                "w-full text-center text-2xl tracking-[0.5em] font-bold border-2 rounded-xl py-3 outline-none transition-colors",
+                pinError ? "border-red-400 bg-red-50" : "border-border focus:border-primary"
+              )}
+              placeholder="····"
+              autoFocus
+            />
+            {pinError && (
+              <p className="text-xs text-red-500 text-center">PIN incorrecto</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPinTarget(null)}
+                className="flex-1 py-2 rounded-xl text-sm font-medium bg-muted hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePinSubmit}
+                disabled={pinValue.length < 4}
+                className="flex-1 py-2 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,21 +27,19 @@ export async function proxy(request: NextRequest) {
   const { response: supabaseResponse, user } = await refreshSession(request);
 
 
-  // 2. Protección de rutas (activa cuando NEXT_PUBLIC_AUTH_ENABLED=true)
-  if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
-    if (!user && !isPublicPath(pathname)) {
-      const locale =
-        pathname.match(/^\/([a-z]{2})(\/|$)/)?.[1] ?? routing.defaultLocale;
-      const loginUrl = new URL(`/${locale}/login`, request.url);
-      loginUrl.searchParams.set("next", pathname);
-      return Response.redirect(loginUrl);
-    }
+  // 2. Protección de rutas
+  if (!user && !isPublicPath(pathname)) {
+    const locale =
+      pathname.match(/^\/([a-z]{2})(\/|$)/)?.[1] ?? routing.defaultLocale;
+    const loginUrl = new URL(`/${locale}/login`, request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return Response.redirect(loginUrl);
+  }
 
-    if (user && isPublicPath(pathname) && !pathname.includes("/profile-select")) {
-      const locale =
-        pathname.match(/^\/([a-z]{2})(\/|$)/)?.[1] ?? routing.defaultLocale;
-      return Response.redirect(new URL(`/${locale}/profile-select`, request.url));
-    }
+  if (user && isPublicPath(pathname) && !pathname.includes("/profile-select")) {
+    const locale =
+      pathname.match(/^\/([a-z]{2})(\/|$)/)?.[1] ?? routing.defaultLocale;
+    return Response.redirect(new URL(`/${locale}/profile-select`, request.url));
   }
 
   // 3. Middleware de i18n

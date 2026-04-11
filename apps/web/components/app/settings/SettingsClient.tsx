@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
+import { useAppStore } from "@/lib/store/useAppStore";
+import { usePinStore } from "@/lib/store/usePinStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MapPin, Save } from "lucide-react";
+import { MapPin, Save, Lock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -85,9 +87,16 @@ function detectLocation(postalCode: string) {
 
 export default function SettingsClient() {
   const { postalCode, city, setLocation, setPostalCode } = useSettingsStore();
+  const { currentUser } = useAppStore();
+  const { hasPin, setPin, removePin } = usePinStore();
 
   const [postalInput, setPostalInput] = useState(postalCode);
   const [cityInput, setCityInput] = useState(city);
+
+  // PIN state
+  const currentHasPin = currentUser ? hasPin(currentUser.id) : false;
+  const [pinInput, setPinInput] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
 
   const detected = detectLocation(postalInput);
 
@@ -165,6 +174,88 @@ export default function SettingsClient() {
             <Save className="w-4 h-4 mr-1.5" />
             Guardar localización
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* PIN card */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            PIN de acceso
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Configura un PIN de 4 dígitos para proteger tu perfil en este dispositivo.
+            Se pedirá al cambiar de usuario.
+          </p>
+
+          {currentHasPin ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg">
+                🔒 PIN activado
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (currentUser) {
+                    removePin(currentUser.id);
+                    toast.success("PIN eliminado");
+                  }
+                }}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                Eliminar PIN
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 max-w-xs">
+              <div>
+                <Label className="text-sm font-semibold mb-1.5 block">Nuevo PIN</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="4 dígitos"
+                  className="text-center text-lg tracking-[0.3em] font-bold"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-1.5 block">Confirmar PIN</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={pinConfirm}
+                  onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="Repite el PIN"
+                  className="text-center text-lg tracking-[0.3em] font-bold"
+                />
+              </div>
+              <Button
+                disabled={pinInput.length < 4 || pinInput !== pinConfirm}
+                onClick={() => {
+                  if (currentUser && pinInput.length === 4 && pinInput === pinConfirm) {
+                    setPin(currentUser.id, pinInput);
+                    setPinInput("");
+                    setPinConfirm("");
+                    toast.success("PIN configurado");
+                  }
+                }}
+              >
+                <Lock className="w-4 h-4 mr-1.5" />
+                Activar PIN
+              </Button>
+              {pinInput.length === 4 && pinConfirm.length === 4 && pinInput !== pinConfirm && (
+                <p className="text-xs text-red-500">Los PINs no coinciden</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,103 +1,128 @@
-# Pendientes FamilyRewards
+# FamilyRewards — Pendientes, Ideas y Roadmap
+
+> Actualizado: 2026-04-11
+> Fichero unificado. Sustituye a TODO.md e IDEAS.md como fuente de verdad.
+> PLANNING.md se conserva como referencia de arquitectura original.
 
 ---
 
+## Estado actual del proyecto
 
+**Stack**: Next.js + Supabase (Postgres + Auth + RLS) + Vercel + Zustand (solo UI)
+**Auth**: Email/password + Google OAuth, sesión persistente (SessionGuard)
+**Datos**: Todas las páginas consultan Supabase al montar. Store no persiste datos de servidor.
 
-### Posible dato persistido en localStorage
-- [ ] Si al añadir una tarea o en cualquier selector de miembros aparecen "María", "Ana" o "Pablo", es que el Zustand store tiene datos del template original persistidos en `localStorage`. La solución es que `initRealAuth` sobrescriba siempre el array `users` con lo que devuelve Supabase (verificar que no haya merge parcial). Como workaround temporal: borrar `localStorage` desde las DevTools del navegador.
-
----
-
-## 🟡 Accesibilidad (a11y) para invidentes
-
-- [ ] **Roles ARIA y landmarks** — añadir `role="main"`, `role="navigation"`, `role="banner"` en el layout principal; `role="list"` / `role="listitem"` donde corresponda.
-- [ ] **Etiquetas para lectores de pantalla** — todos los botones icono (sin texto visible) necesitan `aria-label`. Revisar especialmente: botones de ajuste de puntos (+/-), botón de copiar enlace, botones de avatar en selectores.
-- [ ] **Formularios accesibles** — asociar cada `<Label>` con su input mediante `htmlFor` / `id` si no lo está ya. Los inputs sin label visible deben tener `aria-label`.
-- [ ] **Focus visible** — verificar que el foco de teclado sea siempre visible (outline). Tailwind v4 puede sobreescribir el outline por defecto; revisar que `focus-visible:ring` esté presente en todos los elementos interactivos.
-- [ ] **Navegación por teclado** — todo el flujo crítico (login → dashboard → completar tarea → canjear recompensa) debe ser completamente operable solo con teclado (Tab, Enter, Space, Escape para cerrar modales).
-- [ ] **Modales y diálogos** — los `AppModal` deben atrapar el foco mientras están abiertos (`aria-modal="true"`, focus trap) y devolverlo al elemento disparador al cerrar.
-- [ ] **Selectores de emoji/avatar** — la cuadrícula de avatares es inaccesible para lectores de pantalla; cada botón necesita `aria-label` con el nombre del emoji (ej. `aria-label="Niño"`).
-- [ ] **Tablas** — las `<Table>` del admin deben tener `<caption>` o `aria-label` descriptivo.
-- [ ] **Textos alternativos** — los emojis usados como iconos decorativos deben tener `aria-hidden="true"`; los usados como información deben tener `aria-label`.
-- [ ] **Contraste de color** — revisar que los colores oklch del tema cumplan WCAG AA (ratio 4.5:1 para texto normal, 3:1 para texto grande). Especialmente los grises de `text-muted-foreground`.
-- [ ] **Anuncios dinámicos** — acciones como "tarea completada" o "puntos ajustados" deben anunciarse a lectores de pantalla con `aria-live="polite"` o usando los toasts de Sonner con soporte ARIA.
-- [ ] **Orden de lectura** — verificar que el orden DOM coincida con el orden visual en todas las páginas (especialmente en grids con Tailwind `order-*`).
-
----
-
-## 🟡 APK de pruebas (TWA)
-Pasos pendientes una vez el deploy de Vercel funcione:
-1. Añadir `manifest.json` y meta PWA a la web (iconos, theme-color, display: standalone)
-2. Instalar Bubblewrap: `npm i -g @bubblewrap/cli`
-3. `bubblewrap init --manifest https://family-awards.vercel.app/manifest.json`
-4. `bubblewrap build` → genera el .apk
-5. Necesita Java 11+ y Android SDK (Bubblewrap puede descargarlos)
-
-## 🟠 Autenticación con Google (OAuth)
-- [ ] Habilitar proveedor Google en Supabase Dashboard (Authentication → Providers)
-- [ ] Añadir Client ID y secret de Google en Supabase Dashboard (no se necesita variable de entorno en el cliente)
-- [x] LoginClient: botón "Continuar con Google" → `signInWithOAuth({ provider: 'google' })`
-- [x] RegisterClient: botón Google en el paso "family" (alternativa al flujo email/password)
-- [x] Callback OAuth en `/auth/confirm` — ya existía y maneja PKCE automáticamente
-- [x] Al primer login con Google: el trigger `handle_new_auth_user` crea familia ("Mi familia") y perfil (nombre de Google, avatar 😊) automáticamente → el OnboardingWizard guía el setup inicial
-
-## 🟢 Mejoras UI pendientes
-- [ ] Botones sin handler pendientes de revisar (profile edit, settings save, board pin/delete mensajes)
-- [ ] El multiplicador activo debería mostrarse también en la vista de Tareas junto a cada tarea afectada
-- [ ] Admin/Stats — página existe pero podría enriquecerse con los datos de reports
-- [ ] NEXT_PUBLIC_AUTH_ENABLED sigue en `false` — activar protección de rutas cuando la migración a Supabase esté completa
+### Funcionalidades implementadas
+- Familias, perfiles (admin/member), invitaciones por email con token
+- Tareas recurrentes y puntuales con 4 estados (pending/completed/failed/cancelled)
+- Tareas sin asignar (reclamables): primera persona que reclama se lleva los puntos
+- Compartir puntos con ayudante tras completar tarea
+- Penalizaciones configurables por tarea
+- Recompensas, catálogo, canjes con aprobación admin
+- Puntos, historial de transacciones, ajustes manuales
+- Calendario mensual con indicadores de estado
+- Dashboard con resumen diario, quick-complete, feed familiar
+- Tablón familiar (board messages)
+- Logros/achievements calculados desde datos reales
+- Rachas (streaks) con desbloqueo progresivo
+- Retos familiares (challenges) y multiplicadores de puntos
+- Catálogos de tareas y recompensas predefinidos
+- Onboarding wizard para nueva familia
+- Plantillas de tareas recurrentes (BD + API + UI, ocultas del menú)
+- SessionGuard: sesión sobrevive hard refresh y reinicio
 
 ---
 
-## ✅ Completado
+## Pendiente — Funcional
 
-### Migración a Supabase
-- [x] **FASE 3 — Miembros**: crear/editar/ajuste de puntos → `profiles` + `points_transactions` en Supabase
-- [x] **FASE 3 — Invitaciones**: `createInvitation` → `family_invitations`; `JoinClient` acepta token y crea perfil
-- [x] **FASE 3 — ProfileSelectClient**: siempre lee perfiles desde Supabase en el mount
-- [x] **FASE 3 — OnboardingWizard**: miembro/tarea/recompensa inicial → persisten en Supabase
-- [x] **FASE 3 — SeasonTemplatesClient**: aplicar pack → `createTask`/`createReward` en Supabase
-- [x] **FASE 3 — useAppStore**: estado inicial vacío (sin MOCK data); eliminadas acciones locales `addMember`/`addTask`/`addReward`
-- [x] **FASE 4 — Tareas**: crear/editar/desactivar tareas, asignar a miembros, `task_instances` del día, marcar completada/omitida → Supabase
-- [x] **FASE 4 — Catálogo Tareas**: al añadir del catálogo → guarda en `tasks`; modal usa store real en vez de MOCK_USERS
-- [x] **FASE 4 — CalendarClient**: resuelve nombre de tarea desde store real
-- [x] **FASE 4 — AdminMembersClient**: contadores "tareas hoy" usan store real
-- [x] **FASE 5 — Recompensas**: crear/editar recompensas → `rewards`; leer recompensas y canjes desde Supabase
-- [x] **FASE 5 — Catálogo Recompensas**: al añadir del catálogo → guarda en `rewards`
-- [x] **FASE 5 — RewardsClient**: solicitar canje → `reward_claims`; aprobar/rechazar → actualiza `reward_claims` y `points_transactions`
-- [x] **FASE 6 — ProfileClient**: historial desde `points_transactions`; `completedThisMonth` calculado desde Supabase
-- [x] **FASE 6 — Admin → Stats**: usa store real (users, taskInstances, claims, rewards)
-- [x] **FASE 7 — Board**: empieza vacío (sin MOCK_BOARD_MESSAGES); autores resueltos desde store
-- [x] **FASE 7 — Achievements**: `UserStats` calculado desde datos reales (taskInstances, claims, balance)
-- [x] **FASE 7 — Challenges/Multipliers**: stores arrancan vacíos (sin MOCK data), persistidos en Zustand
-- [x] **FASE 7 — Reports**: `buildMemberReport`/`buildFamilyReport` usan `tasks[]` del store en vez de MOCK_TASKS
-- [x] **FASE 7 — Admin → Challenges/Multipliers**: usan store users/tasks en vez de MOCK
+### Prioritario
+- [x] **Protección de rutas**: middleware redirige a login si no hay sesión (eliminado flag NEXT_PUBLIC_AUTH_ENABLED)
+- [x] **PIN de dispositivo**: PIN 4 dígitos opcional en Settings, se pide al cambiar de usuario (local, no servidor)
+- [x] **Realtime**: suscripciones Supabase en task_instances, reward_claims, profiles, rewards, tasks — cambios se reflejan sin recargar
 
-### Instancias de tareas, penalizaciones y navegación por días
-- [x] **A** — Migración SQL: `penalty_points`, `default_state`, estados `failed/cancelled` en `task_instances` (`supabase/migrations/20260410000001_task_states_and_penalty.sql`) — **pendiente aplicar en Supabase (`supabase db push`)**
-- [x] **B** — Tipos TypeScript: `TaskState` 4 estados, `penaltyPoints` en `Task` (`lib/types/index.ts`)
-- [x] **C** — API completa: `backfillInstances` (C6+C8), `syncInstanceState` con tabla de transiciones (C7), mappers y CRUD con `penalty_points` (`lib/api/tasks.ts`)
-- [x] **D** — `TasksClient.tsx`: lista única, navegador de días, preview días futuros, tareas con deadline
-- [x] **E** — `MemberDetailClient.tsx`: navegador de días, selector 4 estados, backfill al cambiar día
-- [x] **F** — Formularios: campo `penaltyPoints` en `AdminTasksClient` y `AddTaskClient`
+### Gestión de roles
+- [ ] UI para promover miembro a admin
+- [ ] UI para degradarse a sí mismo (validar que queda al menos otro admin)
 
-### UI / Funcionalidades
-- [x] Sidebar: secciones colapsables, jerarquía visual, separadores
-- [x] Wizard de onboarding: orden de pasos, código postal, custom inline, traducciones
-- [x] Wizard sale solo una vez; preserva estado entre logins
-- [x] Al terminar wizard → redirige a Admin → Miembros
-- [x] Badges `!` en sidebar (Miembros, Catálogo Tareas, Catálogo Recompensas)
-- [x] Banners de primera visita en secciones de configuración
-- [x] Auth real con Supabase: registro, login, profile-select
-- [x] Ruta `/auth/confirm` para intercambio de token de confirmación de email
-- [x] Skip re-login si Supabase devuelve sesión directamente tras registro
-- [x] Pantalla de espera "Confirmando email" con auto-avance por onAuthStateChange
-- [x] Recompensas objetivo, archivo de canjes, auto-aceptar si admin
-- [x] Descubrimiento progresivo de funcionalidades (streaks desbloquea challenges/multipliers)
-- [x] Plantillas de temporada con asignación de miembros
-- [x] Catálogo de recompensas con modal de puntos editables y recompensa personalizada
-- [x] Catálogos (tareas y recompensas): filtro de categoría muestra label en vez de "all"
-- [x] Catálogo de tareas: fichas alineadas aunque unas tengan días y otras no; días recurrentes editables en modal
-- [x] Avatares ampliados (~75 emojis) en selección de perfil y wizard de invitación
-- [x] `points_transactions` registradas al completar tarea y al aprobar canje
+### Plantillas
+- [ ] Reactivar en el menú cuando se quiera usar
+- [ ] Ya está implementado: guardar config actual, crear/editar/eliminar, aplicar a miembros seleccionados
+
+### Tareas
+- [ ] Multiplicador activo debería verse también en la vista de Tareas junto a cada tarea afectada
+- [ ] Modo vacaciones: pausar tareas recurrentes N días sin romper rachas
+
+### Tablón / Social
+- [ ] Botones sin handler: pin/delete mensajes del board
+- [ ] Reacciones emoji en mensajes del tablón
+
+### Admin
+- [ ] Admin/Stats — enriquecer con datos de reports (ya hay datos, falta UI)
+
+---
+
+## Pendiente — Técnico
+
+### Accesibilidad (a11y)
+- [ ] Roles ARIA y landmarks (`role="main"`, `role="navigation"`, etc.)
+- [ ] `aria-label` en todos los botones icono sin texto visible
+- [ ] Formularios: asociar `<Label>` con input vía `htmlFor`/`id`
+- [ ] Focus visible (outline) en todos los elementos interactivos
+- [ ] Navegación completa por teclado (Tab, Enter, Space, Escape)
+- [ ] Focus trap en modales (`aria-modal="true"`)
+- [ ] Selectores de emoji/avatar: `aria-label` con nombre del emoji
+- [ ] Tablas admin: `<caption>` o `aria-label`
+- [ ] Emojis decorativos: `aria-hidden="true"`; informativos: `aria-label`
+- [ ] Contraste WCAG AA (4.5:1 texto normal, 3:1 texto grande)
+- [ ] `aria-live="polite"` para anuncios dinámicos (tarea completada, etc.)
+- [ ] Orden DOM = orden visual en grids
+
+### PWA / APK
+- [ ] `manifest.json` con iconos, theme-color, display: standalone
+- [ ] Bubblewrap para generar APK de pruebas (TWA)
+- [ ] Necesita Java 11+ y Android SDK
+
+### Calidad
+- [ ] Tests unitarios para lógica de puntos y transiciones de estado
+- [ ] Tests e2e para flujo crítico (login → completar tarea → canjear recompensa)
+
+---
+
+## Ideas — Gamificación
+
+| Idea | Descripción | Complejidad |
+|------|-------------|-------------|
+| Tarea sorpresa del día | Tarea aleatoria bonus cada mañana, configurable por admin | Media |
+| Caja misteriosa | Recompensa con contenido oculto, revelado con animación al canjear | Media |
+| Jefe de semana | Rotación semanal, el "jefe" propone tarea bonus o recompensa extra | Baja |
+| Multiplicador de cumpleaños | Puntos x2 automático el día del cumpleaños | Baja |
+| Niveles de miembro | Títulos por puntos acumulados históricos (Aprendiz → Leyenda) | Media |
+| Temporadas | Ciclos de 1-3 meses con ranking final y recompensa especial | Alta |
+
+## Ideas — Social y familia
+
+| Idea | Descripción | Complejidad |
+|------|-------------|-------------|
+| Retos de equipo | Meta de puntos conjunta para recompensa compartida (ya hay challenges base) | Baja |
+| Votación familiar | Admin abre votación antes de recompensa cara (24-48h, visible) | Media |
+| Préstamo de puntos | Pedir puntos prestados al banco familiar, devolver con tareas futuras | Alta |
+
+## Ideas — Utilidad
+
+| Idea | Descripción | Complejidad |
+|------|-------------|-------------|
+| Verificación con foto | Tareas que requieren foto antes de marcarse como completadas | Media |
+| Exportar informe | PDF/CSV mensual con resumen por miembro | Media |
+| Recordatorios push | Notificaciones PWA a hora configurable si hay tareas pendientes | Media |
+| Metas personales | Cada miembro define meta con objetivo de puntos y barra de progreso | Baja |
+
+---
+
+## Referencia — Ficheros de documentación
+
+| Fichero | Contenido |
+|---------|-----------|
+| `PLANNING.md` | Arquitectura original, modelo de datos conceptual, fases de desarrollo, diseño visual |
+| `TODO.md` | Decisiones de auth/BD tomadas durante la migración a Supabase (histórico) |
+| `IDEAS.md` | Ideas originales detalladas (sustituido por la sección Ideas de este fichero) |
+| `supabase/full_schema.sql` | Schema idempotente actualizado — ejecutar para tener toda la BD al día |
