@@ -363,10 +363,10 @@
   },
   "admin": {
     "members": {
-      "title": "Gestión de Miembros",
-      "addMember": "Añadir miembro",
+      "title": "Familia",
+      "addMember": "Añadir",
       "name": "Nombre",
-      "role": "Rol",
+      "role": "Tipo",
       "points": "Puntos",
       "tasksToday": "Tareas hoy",
       "actions": "Acciones",

@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/members";
 import { createInviteAction } from "@/lib/actions/invite";
 import { deleteAuthUserAction } from "@/lib/actions/delete-auth-user";
+import { deleteFamilyAction } from "@/lib/actions/delete-family";
 import { postBoardMessage } from "@/lib/api/board";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check, Trash2, Palmtree, Shield, ShieldOff } from "lucide-react";
+import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check, Trash2, Palmtree, Shield, ShieldOff, LogOut, Lock } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
 
@@ -54,7 +55,7 @@ const AVATARS = [
   "🤖", "👾", "👻", "💩", "🎃", "⭐", "🔥", "🌈", "🎸", "⚽",
 ];
 
-type DialogMode = "adjust" | "edit" | "add" | "invite" | "delete" | "vacation" | "role" | null;
+type DialogMode = "adjust" | "edit" | "add" | "invite" | "delete" | "vacation" | "role" | "unsubscribe" | null;
 
 export default function AdminMembersClient() {
   const t = useTranslations("admin.members");
@@ -95,6 +96,9 @@ export default function AdminMembersClient() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteStep, setInviteStep] = useState<"choose" | "email" | "link">("choose");
   const [copied, setCopied] = useState(false);
+
+  // Unsubscribe form
+  const [unsubPassword, setUnsubPassword] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -329,16 +333,50 @@ export default function AdminMembersClient() {
     }
   };
 
+  const handleUnsubscribe = async () => {
+    if (!unsubPassword.trim() || !currentUser?.familyId) return;
+    setSaving(true);
+    try {
+      // Necesitamos el email del admin actual para verificar contraseña
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("No se pudo obtener el email");
+
+      await deleteFamilyAction({
+        familyId: currentUser.familyId,
+        adminEmail: user.email,
+        password: unsubPassword,
+      });
+
+      // Cerrar sesión y redirigir
+      await supabase.auth.signOut();
+      useAppStore.getState().logout();
+      router.push(`/${locale}/login`);
+      toast.success("Familia eliminada correctamente");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al dar de baja");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const adminsCount = users.filter((u) => u.role === "admin").length;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">{t("title")}</h1>
-        <Button size="sm" onClick={openAdd}>
-          <UserPlus className="w-4 h-4 mr-1.5" />
-          {t("addMember")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={openAdd}>
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            {t("addMember")}
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            onClick={() => { setUnsubPassword(""); setMode("unsubscribe"); }}>
+            <LogOut className="w-4 h-4 mr-1.5" />
+            Darse de baja
+          </Button>
+        </div>
       </div>
 
       {/* Members table */}
@@ -681,6 +719,47 @@ export default function AdminMembersClient() {
             ) : (
               <><Shield className="w-4 h-4 mr-1.5" />{saving ? "Cambiando..." : "Hacer admin"}</>
             )}
+          </Button>
+        </AppModalFooter>
+      </AppModal>
+
+      {/* Unsubscribe / delete family modal */}
+      <AppModal open={mode === "unsubscribe"} onOpenChange={closeDialog}>
+        <AppModalHeader emoji="🚨"
+          title="Darse de baja"
+          description="Esta acción eliminará toda la familia y sus datos"
+          color="bg-gradient-to-br from-red-500 to-red-700"
+          onClose={closeDialog} />
+        <AppModalBody>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 space-y-1">
+            <p className="font-semibold">Se eliminará permanentemente:</p>
+            <ul className="list-disc list-inside text-xs space-y-0.5">
+              <li>Todos los miembros y sus perfiles</li>
+              <li>Todas las tareas e historial</li>
+              <li>Todas las recompensas y reclamaciones</li>
+              <li>Las cuentas de usuario asociadas</li>
+            </ul>
+          </div>
+          <div>
+            <Label>Introduce tu contraseña para confirmar</Label>
+            <div className="relative mt-1.5">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="password"
+                value={unsubPassword}
+                onChange={(e) => setUnsubPassword(e.target.value)}
+                placeholder="Tu contraseña"
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+          </div>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button variant="destructive" onClick={handleUnsubscribe}
+            disabled={saving || !unsubPassword.trim()}>
+            {saving ? "Eliminando..." : "Eliminar familia"}
           </Button>
         </AppModalFooter>
       </AppModal>
