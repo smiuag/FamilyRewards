@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
@@ -17,8 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Star, Lock, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { calculateCurrentStreak } from "@/lib/config/constants";
 
 export default function AchievementsClient() {
+  const t = useTranslations("achievements");
   const { currentUser, taskInstances, claims, transactions } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
@@ -59,18 +62,7 @@ export default function AchievementsClient() {
 
     // Streak: count consecutive days (ending today) with at least one completed task
     const completedDays = new Set(completed.map((ti) => ti.date));
-    let currentStreak = 0;
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const ds = d.toISOString().split("T")[0];
-      if (completedDays.has(ds)) {
-        currentStreak++;
-      } else if (i > 0) {
-        break;
-      }
-    }
+    const currentStreak = calculateCurrentStreak(completedDays);
 
     // Best streak: find max consecutive days
     const sortedDays = Array.from(completedDays).sort();
@@ -141,22 +133,22 @@ export default function AchievementsClient() {
         <div>
           <h1 className="text-2xl font-extrabold flex items-center gap-2">
             <Trophy className="w-6 h-6 text-primary" />
-            Logros
+            {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {unlocked.length} de {ACHIEVEMENTS.length} desbloqueados
+            {t("unlockedCount", { unlocked: unlocked.length, total: ACHIEVEMENTS.length })}
           </p>
         </div>
         <div className="flex items-center gap-3 bg-primary/10 px-4 py-2.5 rounded-2xl">
           <span className="text-3xl">🏅</span>
           <div>
             <p className="text-2xl font-extrabold text-primary leading-tight">{unlocked.length}</p>
-            <p className="text-xs text-muted-foreground">logros</p>
+            <p className="text-xs text-muted-foreground">{t("achievementsLabel")}</p>
           </div>
           <div className="w-px h-8 bg-primary/20" />
           <div>
             <p className="text-2xl font-extrabold text-primary leading-tight">+{totalPoints}</p>
-            <p className="text-xs text-muted-foreground">pts bonus</p>
+            <p className="text-xs text-muted-foreground">{t("bonusLabel")}</p>
           </div>
         </div>
       </div>
@@ -165,7 +157,7 @@ export default function AchievementsClient() {
       <Card className="shadow-sm">
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Progreso general</span>
+            <span className="text-sm font-medium">{t("overallProgress")}</span>
             <span className="text-sm text-muted-foreground">
               {Math.round((unlocked.length / ACHIEVEMENTS.length) * 100)}%
             </span>
@@ -177,10 +169,10 @@ export default function AchievementsClient() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Racha actual", value: stats.currentStreak, suffix: "días", emoji: "🔥" },
-          { label: "Mejor racha", value: stats.bestStreak, suffix: "días", emoji: "⚡" },
-          { label: "Tareas totales", value: stats.totalTasksCompleted, suffix: "", emoji: "✅" },
-          { label: "Sem. perfectas", value: stats.perfectWeeks, suffix: "", emoji: "🎯" },
+          { label: t("currentStreak"), value: stats.currentStreak, suffix: t("days"), emoji: "🔥" },
+          { label: t("bestStreak"), value: stats.bestStreak, suffix: t("days"), emoji: "⚡" },
+          { label: t("totalTasks"), value: stats.totalTasksCompleted, suffix: "", emoji: "✅" },
+          { label: t("perfectWeeks"), value: stats.perfectWeeks, suffix: "", emoji: "🎯" },
         ].map((s) => (
           <Card key={s.label} className="shadow-sm">
             <CardContent className="pt-4 pb-3 text-center">
@@ -202,7 +194,7 @@ export default function AchievementsClient() {
               activeCategory === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
           >
-            🏆 Todos ({ACHIEVEMENTS.length})
+            🏆 {t("allCategory")} ({ACHIEVEMENTS.length})
           </button>
           {categories.map(([key, cat]) => {
             const count = ACHIEVEMENTS.filter((a) => a.category === key).length;
@@ -273,7 +265,7 @@ export default function AchievementsClient() {
                     {isUnlocked && (
                       <div className="flex items-center gap-1 mt-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <span className="text-[10px] text-green-600 font-medium">Desbloqueado</span>
+                        <span className="text-[10px] text-green-600 font-medium">{t("unlocked")}</span>
                       </div>
                     )}
                   </div>

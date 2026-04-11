@@ -87,7 +87,10 @@ export default function CalendarClient() {
     cancelled: "bg-gray-300",
   };
 
-  const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const weekdays = [
+    t("days.mon"), t("days.tue"), t("days.wed"), t("days.thu"),
+    t("days.fri"), t("days.sat"), t("days.sun"),
+  ];
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -189,15 +192,15 @@ export default function CalendarClient() {
               <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span>Completada</span>
+                  <span>{t("legendCompleted")}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>Pendiente</span>
+                  <span>{t("legendPending")}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                  <span>Festivo</span>
+                  <span>{t("legendHoliday")}</span>
                 </div>
               </div>
             </CardContent>
@@ -219,7 +222,7 @@ export default function CalendarClient() {
                   <span className="text-xl">{selectedHoliday.emoji}</span>
                   <div>
                     <p className="text-sm font-semibold text-red-700">{selectedHoliday.name}</p>
-                    <p className="text-xs text-red-500 capitalize">{selectedHoliday.type === "national" ? "Festivo nacional" : "Festivo regional"}</p>
+                    <p className="text-xs text-red-500 capitalize">{selectedHoliday.type === "national" ? t("holidayNational") : t("holidayRegional")}</p>
                   </div>
                 </div>
               )}
@@ -268,7 +271,7 @@ export default function CalendarClient() {
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Festivos este mes
+                  {t("holidaysThisMonth")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 pt-0">

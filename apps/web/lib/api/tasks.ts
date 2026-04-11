@@ -215,7 +215,10 @@ function getDow(date: Date): DayOfWeek {
 }
 
 function dateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function addDays(base: Date, n: number): Date {
@@ -454,11 +457,6 @@ export async function claimTask(
     throw error;
   }
 
-  // Also add assignment so it shows in the user's history
-  await supabase
-    .from("task_assignments")
-    .upsert({ task_id: task.id, profile_id: profileId }, { onConflict: "task_id,profile_id", ignoreDuplicates: true });
-
   // Award points
   const balance = await fetchBalance(supabase, profileId);
   await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea reclamada: ${task.title}`, "🙋");
@@ -466,7 +464,29 @@ export async function claimTask(
   return toInstance(instance as SupabaseInstance);
 }
 
-// ── Share points with a helper ──────────��────────────────────
+// ── Release a claimed task back to the pool ─────────────────
+// Deletes the instance + assignment and reverses awarded points.
+export async function releaseClaimedTask(
+  task: Task,
+  instance: TaskInstance,
+): Promise<void> {
+  const supabase = createClient();
+  const profileId = instance.userId;
+
+  // Delete the instance
+  await supabase.from("task_instances").delete().eq("id", instance.id);
+
+  // Reverse points if any were awarded
+  if (instance.pointsAwarded > 0) {
+    const balance = await fetchBalance(supabase, profileId);
+    await applyBalanceDelta(
+      supabase, profileId, balance, -instance.pointsAwarded,
+      `Tarea liberada: ${task.title}`, "↩️",
+    );
+  }
+}
+
+// ── Share points with a helper ──────────────────────────────
 // Transfers `amount` points from the completer to the helper.
 export async function shareTaskPoints(
   fromProfileId: string,

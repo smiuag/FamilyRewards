@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyTasks, createTask, updateTask, deleteTask } from "@/lib/api/tasks";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,9 +24,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Task, DayOfWeek } from "@/lib/types";
 
-const DAY_LABELS: Record<DayOfWeek, string> = {
-  mon: "L", tue: "M", wed: "X", thu: "J", fri: "V", sat: "S", sun: "D",
-};
 const ALL_DAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const emptyForm = () => ({
@@ -45,6 +43,8 @@ export default function AdminTasksClient() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
+  const t = useTranslations("admin.tasks");
+  const tc = useTranslations("common");
 
   const { tasks: storeTasks, users, currentUser, loadTasks, updateTask: storeUpdateTask, deleteTask: storeDeleteTask } = useAppStore();
   const [filterMember, setFilterMember] = useState<string>("all");
@@ -59,7 +59,7 @@ export default function AdminTasksClient() {
   useEffect(() => {
     fetchFamilyTasks()
       .then(loadTasks)
-      .catch(() => toast.error("Error al cargar las tareas"))
+      .catch(() => toast.error(t("errorLoading")))
       .finally(() => setLoadingTasks(false));
   }, []);
 
@@ -69,10 +69,10 @@ export default function AdminTasksClient() {
     storeDeleteTask(taskToDelete.id);
     try {
       await deleteTask(taskToDelete.id);
-      toast.success(`Tarea "${taskToDelete.title}" eliminada`);
+      toast.success(t("taskDeleted", { title: taskToDelete.title }));
     } catch {
       // Re-add on error is complex; just notify
-      toast.error("Error al eliminar la tarea");
+      toast.error(t("errorDeleting"));
     } finally {
       setDeleting(false);
       setTaskToDelete(null);
@@ -85,7 +85,7 @@ export default function AdminTasksClient() {
       await updateTask(task.id, { isActive: !task.isActive });
     } catch {
       storeUpdateTask(task.id, { isActive: task.isActive }); // rollback
-      toast.error("Error al actualizar la tarea");
+      toast.error(t("errorUpdating"));
     }
   };
 
@@ -109,7 +109,7 @@ export default function AdminTasksClient() {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim()) { toast.error("El nombre es obligatorio"); return; }
+    if (!form.title.trim()) { toast.error(t("nameRequired")); return; }
     setSaving(true);
     const recurringPattern = form.isRecurring
       ? { daysOfWeek: form.daysOfWeek, time: form.time || undefined, defaultState: form.defaultState }
@@ -142,7 +142,7 @@ export default function AdminTasksClient() {
           defaultState,
           deadline,
         });
-        toast.success(`Tarea "${form.title}" actualizada`);
+        toast.success(t("taskUpdated", { title: form.title }));
       } else {
         if (!currentUser?.familyId) throw new Error("No family");
         const newTask = await createTask(currentUser.familyId, currentUser.id, {
@@ -157,11 +157,11 @@ export default function AdminTasksClient() {
           deadline,
         });
         useAppStore.setState((prev) => ({ tasks: [...prev.tasks, newTask] }));
-        toast.success(`Tarea "${form.title}" creada`);
+        toast.success(t("taskCreated", { title: form.title }));
       }
       setOpen(false);
     } catch {
-      toast.error("Error al guardar la tarea. Inténtalo de nuevo.");
+      toast.error(t("errorSaving"));
     } finally {
       setSaving(false);
     }
@@ -189,27 +189,27 @@ export default function AdminTasksClient() {
   const visibleTasks = filterMember === "all"
     ? storeTasks
     : filterMember === "unassigned"
-    ? storeTasks.filter((t) => t.assignedTo.length === 0)
-    : storeTasks.filter((t) => t.assignedTo.includes(filterMember));
+    ? storeTasks.filter((tk) => tk.assignedTo.length === 0)
+    : storeTasks.filter((tk) => tk.assignedTo.includes(filterMember));
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-extrabold">Gestión de Tareas</h1>
+        <h1 className="text-2xl font-extrabold">{t("title")}</h1>
         <div className="flex items-center gap-2">
           <Select value={filterMember} onValueChange={(v) => setFilterMember(v ?? "all")}>
             <SelectTrigger className="w-40 h-8 text-sm">
               <span className="text-sm truncate">
                 {filterMember === "all"
-                  ? "Todos los miembros"
+                  ? t("allMembers")
                   : filterMember === "unassigned"
-                  ? "🙋 Sin asignar"
-                  : (() => { const u = users.find((u) => u.id === filterMember); return u ? `${u.avatar} ${u.name}` : "Todos"; })()}
+                  ? `🙋 ${t("unassigned")}`
+                  : (() => { const u = users.find((u) => u.id === filterMember); return u ? `${u.avatar} ${u.name}` : t("allMembers"); })()}
               </span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos los miembros</SelectItem>
-              <SelectItem value="unassigned">🙋 Sin asignar</SelectItem>
+              <SelectItem value="all">{t("allMembers")}</SelectItem>
+              <SelectItem value="unassigned">🙋 {t("unassigned")}</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>{u.avatar} {u.name}</SelectItem>
               ))}
@@ -217,7 +217,7 @@ export default function AdminTasksClient() {
           </Select>
           <Button size="sm" onClick={() => router.push(`/${locale}/admin/tasks/add`)}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Añadir tarea
+            {t("addTask")}
           </Button>
         </div>
       </div>
@@ -229,8 +229,8 @@ export default function AdminTasksClient() {
       ) : visibleTasks.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-4xl mb-3">📋</p>
-          <p className="font-medium">Sin tareas</p>
-          <p className="text-sm">Crea una tarea o añade desde el catálogo</p>
+          <p className="font-medium">{t("emptyTitle")}</p>
+          <p className="text-sm">{t("emptyDescription")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -251,7 +251,7 @@ export default function AdminTasksClient() {
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="font-semibold">{task.title}</span>
                       {!task.isActive && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">Desactivada</Badge>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">{t("disabled")}</Badge>
                       )}
                     </div>
 
@@ -264,7 +264,7 @@ export default function AdminTasksClient() {
                               task.recurringPattern?.daysOfWeek.includes(d)
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted text-muted-foreground"
-                            )}>{DAY_LABELS[d]}</span>
+                            )}>{t(`dayLabels.${d}`)}</span>
                           ))}
                         </div>
                         {task.recurringPattern.time && (
@@ -273,7 +273,7 @@ export default function AdminTasksClient() {
                         <Badge variant="outline" className={cn("text-xs border-0",
                           task.recurringPattern.defaultState === "completed"
                             ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
-                          Por defecto: {task.recurringPattern.defaultState === "completed" ? "completada" : "pendiente"}
+                          {t("defaultStateLabel", { state: task.recurringPattern.defaultState === "completed" ? t("stateCompleted") : t("statePending") })}
                         </Badge>
                       </div>
                     )}
@@ -291,12 +291,12 @@ export default function AdminTasksClient() {
                                 </span>
                               ) : null;
                             })
-                          : <span className="text-muted-foreground">Sin asignar</span>
+                          : <span className="text-muted-foreground">{t("unassigned")}</span>
                         }
                       </span>
                       <span className="flex items-center gap-1 text-sm">
                         <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                        <span className="text-primary font-semibold">{task.points} pts</span>
+                        <span className="text-primary font-semibold">{task.points} {tc("pts")}</span>
                       </span>
                     </div>
                   </div>
@@ -304,11 +304,11 @@ export default function AdminTasksClient() {
                   {/* Right actions column */}
                   <div className="flex flex-col items-end justify-between gap-3 flex-shrink-0 self-stretch">
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)} aria-label={`Editar ${task.title}`}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)} aria-label={t("editAriaLabel", { title: task.title })}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setTaskToDelete(task)} aria-label={`Eliminar ${task.title}`}>
+                        onClick={() => setTaskToDelete(task)} aria-label={t("deleteAriaLabel", { title: task.title })}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -327,22 +327,25 @@ export default function AdminTasksClient() {
       <AppModal open={!!taskToDelete} onOpenChange={(v) => { if (!v) setTaskToDelete(null); }}>
         <AppModalHeader
           emoji="🗑️"
-          title="Eliminar tarea"
+          title={t("deleteTitle")}
           color="bg-gradient-to-br from-red-500 to-rose-600"
           onClose={() => setTaskToDelete(null)}
         />
         <AppModalBody>
           <p className="text-sm text-muted-foreground">
-            ¿Eliminar <strong className="text-foreground">{taskToDelete?.title}</strong>?
+            {t.rich("deleteConfirm", {
+              title: taskToDelete?.title ?? "",
+              strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+            })}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            La tarea desaparecerá de la lista pero se mantendrá en el historial, informes y puntos anteriores.
+            {t("deleteDescription")}
           </p>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setTaskToDelete(null)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setTaskToDelete(null)}>{tc("cancel")}</Button>
           <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-            {deleting ? "Eliminando..." : "Eliminar"}
+            {deleting ? t("deleting") : tc("delete")}
           </Button>
         </AppModalFooter>
       </AppModal>
@@ -351,36 +354,36 @@ export default function AdminTasksClient() {
       <AppModal open={open} onOpenChange={setOpen}>
         <AppModalHeader
           emoji="✅"
-          title={editingTask ? `Editar: ${editingTask.title}` : "Nueva tarea"}
+          title={editingTask ? t("editTask", { title: editingTask.title }) : t("newTask")}
           color="bg-gradient-to-br from-green-500 to-emerald-600"
           onClose={() => setOpen(false)}
         />
         <AppModalBody className="overflow-y-auto max-h-[60dvh]">
           <div>
-            <Label>Nombre</Label>
+            <Label>{t("labelName")}</Label>
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Nombre de la tarea" className="mt-1.5" autoFocus />
+              placeholder={t("placeholderName")} className="mt-1.5" autoFocus />
           </div>
           <div>
-            <Label>Descripción (opcional)</Label>
+            <Label>{t("labelDescription")}</Label>
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Breve descripción" className="mt-1.5" />
+              placeholder={t("placeholderDescription")} className="mt-1.5" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Puntos al completar</Label>
+              <Label>{t("labelPointsComplete")}</Label>
               <Input type="number" value={form.points}
                 onChange={(e) => setForm({ ...form, points: e.target.value })} className="mt-1.5" />
             </div>
             <div>
-              <Label>Descuento si no se hace</Label>
+              <Label>{t("labelPenalty")}</Label>
               <Input type="number" value={form.penaltyPoints} min={0}
                 onChange={(e) => setForm({ ...form, penaltyPoints: e.target.value })}
-                placeholder={`Por defecto ${form.points || "0"}`} className="mt-1.5" />
+                placeholder={t("placeholderPenalty", { points: form.points || "0" })} className="mt-1.5" />
             </div>
           </div>
           <div>
-            <Label className="mb-2 block">Asignada a</Label>
+            <Label className="mb-2 block">{t("assignedTo")}</Label>
             <div className="flex gap-2 flex-wrap">
               {users.map((u) => (
                 <button key={u.id} onClick={() => toggleUser(u.id)}
@@ -395,28 +398,28 @@ export default function AdminTasksClient() {
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border p-3">
             <div>
-              <p className="text-sm font-medium">Tarea recurrente</p>
-              <p className="text-xs text-muted-foreground">Se repite según el patrón</p>
+              <p className="text-sm font-medium">{t("recurringToggle")}</p>
+              <p className="text-xs text-muted-foreground">{t("recurringHint")}</p>
             </div>
             <Switch checked={form.isRecurring} onCheckedChange={(v) => setForm({ ...form, isRecurring: v })} />
           </div>
           {!form.isRecurring && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Fecha límite (opcional)</Label>
+                <Label>{t("labelDeadline")}</Label>
                 <Input type="date" value={form.deadline}
                   onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="mt-1.5" />
               </div>
               <div>
-                <Label>Estado por defecto</Label>
+                <Label>{t("labelDefaultState")}</Label>
                 <Select value={form.defaultState}
                   onValueChange={(v) => setForm({ ...form, defaultState: v as "pending" | "completed" })}>
                   <SelectTrigger className="mt-1.5">
-                    <span>{form.defaultState === "pending" ? "Pendiente" : "Completada"}</span>
+                    <span>{form.defaultState === "pending" ? tc("pending") : tc("completed")}</span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="completed">Completada</SelectItem>
+                    <SelectItem value="pending">{tc("pending")}</SelectItem>
+                    <SelectItem value="completed">{tc("completed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -425,7 +428,7 @@ export default function AdminTasksClient() {
           {form.isRecurring && (
             <>
               <div>
-                <Label className="mb-2 block">Días de la semana</Label>
+                <Label className="mb-2 block">{t("labelDaysOfWeek")}</Label>
                 <div className="flex gap-1.5">
                   {ALL_DAYS.map((d) => (
                     <button key={d} onClick={() => toggleDay(d)}
@@ -433,27 +436,27 @@ export default function AdminTasksClient() {
                         form.daysOfWeek.includes(d)
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground")}>
-                      {DAY_LABELS[d]}
+                      {t(`dayLabels.${d}`)}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Hora (opcional)</Label>
+                  <Label>{t("labelTime")}</Label>
                   <Input type="time" value={form.time}
                     onChange={(e) => setForm({ ...form, time: e.target.value })} className="mt-1.5" />
                 </div>
                 <div>
-                  <Label>Estado por defecto</Label>
+                  <Label>{t("labelDefaultState")}</Label>
                   <Select value={form.defaultState}
                     onValueChange={(v) => setForm({ ...form, defaultState: v as "pending" | "completed" })}>
                     <SelectTrigger className="mt-1.5">
-                      <span>{form.defaultState === "pending" ? "Pendiente" : "Completada"}</span>
+                      <span>{form.defaultState === "pending" ? tc("pending") : tc("completed")}</span>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pendiente</SelectItem>
-                      <SelectItem value="completed">Completada</SelectItem>
+                      <SelectItem value="pending">{tc("pending")}</SelectItem>
+                      <SelectItem value="completed">{tc("completed")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -462,9 +465,9 @@ export default function AdminTasksClient() {
           )}
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>{tc("cancel")}</Button>
           <Button onClick={handleSave} disabled={saving || !form.title.trim()}>
-            {saving ? "Guardando..." : editingTask ? "Guardar cambios" : "Crear tarea"}
+            {saving ? t("saving") : editingTask ? t("saveChanges") : t("createTask")}
           </Button>
         </AppModalFooter>
       </AppModal>

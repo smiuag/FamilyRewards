@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Star, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +20,7 @@ function GoogleIcon() {
 }
 
 export default function LoginClient() {
+  const t = useTranslations("login");
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -51,7 +53,7 @@ export default function LoginClient() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("Email o contraseña incorrectos.");
+      setError(t("invalidCredentials"));
       setLoading(false);
       return;
     }
@@ -68,26 +70,26 @@ export default function LoginClient() {
             <Star className="w-8 h-8 text-white fill-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Inicia sesión en tu familia</p>
+          <p className="text-muted-foreground mt-1 text-sm">{t("signInSubtitle")}</p>
         </div>
 
         {confirmationFailed && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-center mb-4">
-            El enlace de confirmación no es válido o ha expirado. Inicia sesión si ya confirmaste tu email.
+            {t("confirmationFailed")}
           </p>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Email</label>
+            <label className="text-sm font-medium text-foreground">{t("emailLabel")}</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
+                placeholder={t("emailPlaceholder")}
                 required
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
@@ -95,7 +97,7 @@ export default function LoginClient() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Contraseña</label>
+            <label className="text-sm font-medium text-foreground">{t("passwordLabel")}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -128,12 +130,12 @@ export default function LoginClient() {
               loading ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
             )}
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? t("submitting") : t("submit")}
           </button>
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">o</span>
+            <span className="text-xs text-muted-foreground">{t("orSeparator")}</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
@@ -147,14 +149,14 @@ export default function LoginClient() {
             )}
           >
             <GoogleIcon />
-            Continuar con Google
+            {t("continueWithGoogle")}
           </button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-5">
-          ¿Primera vez?{" "}
+          {t("firstTime")}{" "}
           <Link href={`/${locale}/register`} className="text-primary font-semibold hover:underline">
-            Crea tu familia
+            {t("createFamily")}
           </Link>
         </p>
       </div>

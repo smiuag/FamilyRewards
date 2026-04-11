@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchBoardMessages, postBoardMessage } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
@@ -33,14 +34,15 @@ interface FeedItem {
 }
 
 const MSG_TYPE_CONFIG = {
-  message:      { icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   label: "Mensaje" },
-  achievement:  { icon: Trophy,        color: "text-yellow-500", bg: "bg-yellow-50", label: "Logro" },
-  reward:       { icon: Gift,          color: "text-purple-500", bg: "bg-purple-50", label: "Recompensa" },
-  announcement: { icon: Megaphone,     color: "text-primary",    bg: "bg-orange-50", label: "Anuncio" },
-  points:       { icon: Star,          color: "text-primary",    bg: "bg-orange-50", label: "Puntos" },
+  message:      { icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   labelKey: "typeMessage" as const },
+  achievement:  { icon: Trophy,        color: "text-yellow-500", bg: "bg-yellow-50", labelKey: "typeAchievement" as const },
+  reward:       { icon: Gift,          color: "text-purple-500", bg: "bg-purple-50", labelKey: "typeReward" as const },
+  announcement: { icon: Megaphone,     color: "text-primary",    bg: "bg-orange-50", labelKey: "typeAnnouncement" as const },
+  points:       { icon: Star,          color: "text-primary",    bg: "bg-orange-50", labelKey: "typePoints" as const },
 };
 
 export default function BoardClient() {
+  const t = useTranslations("board");
   const { currentUser, users } = useAppStore();
   const [messages, setMessages] = useState<BoardMessage[]>([]);
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
@@ -104,7 +106,7 @@ export default function BoardClient() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-5">
-      <h1 className="text-2xl font-extrabold">Tablón Familiar</h1>
+      <h1 className="text-2xl font-extrabold">{t("title")}</h1>
 
       {/* Compose */}
       <Card className="shadow-sm">
@@ -119,13 +121,13 @@ export default function BoardClient() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-                placeholder={`¿Qué quieres compartir, ${currentUser.name}?`}
+                placeholder={t("placeholder", { name: currentUser.name })}
                 className="w-full text-sm resize-none bg-muted/50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
               />
               <div className="flex justify-end">
                 <Button size="sm" onClick={handleSend} disabled={!newMessage.trim() || sending}>
                   <Send className="w-3.5 h-3.5 mr-1.5" />
-                  {sending ? "Publicando..." : "Publicar"}
+                  {sending ? t("sending") : t("send")}
                 </Button>
               </div>
             </div>
@@ -137,7 +139,7 @@ export default function BoardClient() {
       {pinnedMessages.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            <Pin className="w-3 h-3" /> Anclado
+            <Pin className="w-3 h-3" /> {t("pinned")}
           </div>
           {pinnedMessages.map((msg) => (
             <BoardMessageCard key={msg.id} msg={msg} users={users} />
@@ -159,8 +161,8 @@ export default function BoardClient() {
             <Card className="shadow-sm">
               <CardContent className="py-10 text-center text-muted-foreground">
                 <MessageCircle className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">El tablón está vacío</p>
-                <p className="text-sm mt-1">Escribe algo para empezar</p>
+                <p className="font-medium">{t("emptyTitle")}</p>
+                <p className="text-sm mt-1">{t("emptyHint")}</p>
               </CardContent>
             </Card>
           )}
@@ -192,6 +194,7 @@ function BoardMessageCard({
   msg: BoardMessage;
   users: ReturnType<typeof useAppStore.getState>["users"];
 }) {
+  const t = useTranslations("board");
   const author = users.find((u) => u.id === msg.profileId);
   const isSystem = !msg.profileId;
   const typeConfig = MSG_TYPE_CONFIG[msg.type] ?? MSG_TYPE_CONFIG.message;
@@ -219,10 +222,10 @@ function BoardMessageCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-sm font-semibold">
-                {isSystem ? "FamilyRewards" : author?.name ?? "Usuario"}
+                {isSystem ? t("systemAuthor") : author?.name ?? t("unknownUser")}
               </span>
               <Badge variant="outline" className={cn("text-[10px] border-0", typeConfig.bg, typeConfig.color)}>
-                {typeConfig.label}
+                {t(typeConfig.labelKey)}
               </Badge>
               <span className="text-xs text-muted-foreground ml-auto">
                 {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: es })}
@@ -234,7 +237,7 @@ function BoardMessageCard({
             {msg.pinned && (
               <div className="flex items-center gap-1 text-xs text-primary mt-2">
                 <Pin className="w-3 h-3" />
-                <span>Anclado</span>
+                <span>{t("pinned")}</span>
               </div>
             )}
           </div>
@@ -251,6 +254,7 @@ function TransactionCard({
   tx: PointsTransaction;
   users: ReturnType<typeof useAppStore.getState>["users"];
 }) {
+  const t = useTranslations("board");
   const user = users.find((u) => u.id === tx.userId);
   const isPositive = tx.amount > 0;
 
@@ -267,7 +271,7 @@ function TransactionCard({
 
           <div className="flex-1 min-w-0">
             <p className="text-sm">
-              <span className="font-semibold">{user?.name ?? "Usuario"}</span>
+              <span className="font-semibold">{user?.name ?? t("unknownUser")}</span>
               {" "}
               <span className="text-muted-foreground">{tx.description}</span>
             </p>
@@ -286,7 +290,7 @@ function TransactionCard({
               "font-bold text-sm",
               isPositive ? "text-green-600" : "text-orange-500"
             )}>
-              {isPositive ? "+" : ""}{tx.amount} pts
+              {t("pointsAmount", { sign: isPositive ? "+" : "", amount: tx.amount })}
             </span>
           </div>
         </div>

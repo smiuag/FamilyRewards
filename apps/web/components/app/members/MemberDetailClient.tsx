@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRouter, useParams } from "next/navigation";
-import { backfillInstances, fetchInstancesForDate, syncInstanceState } from "@/lib/api/tasks";
+import { backfillInstances, fetchFamilyTasks, syncInstanceState } from "@/lib/api/tasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,10 @@ import type { TaskState, TaskInstance } from "@/lib/types";
 const DOW_MAP = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function dateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 function addDays(d: Date, n: number): Date {
   const r = new Date(d); r.setDate(r.getDate() + n); return r;
@@ -46,13 +49,16 @@ export default function MemberDetailClient() {
 
   const user = users.find((u) => u.id === userId);
 
-  // Backfill / load instances when date changes
+  // Fetch fresh tasks + backfill instances when date changes
   useEffect(() => {
     if (!user || isFutureDay) return;
     const load = async () => {
       setLoading(true);
       try {
-        const instances = await backfillInstances(tasks, userId, selectedDate);
+        // Always fetch fresh tasks (same as DashboardClient)
+        const freshTasks = await fetchFamilyTasks();
+        useAppStore.setState({ tasks: freshTasks });
+        const instances = await backfillInstances(freshTasks, userId, selectedDate);
         loadTaskInstances([
           ...useAppStore.getState().taskInstances.filter((ti) => ti.userId !== userId),
           ...instances,
@@ -81,11 +87,14 @@ export default function MemberDetailClient() {
     if (!task.assignedTo.includes(userId)) return false;
     if (!task.isActive) return false;
     if (task.isRecurring) return (task.recurringPattern?.daysOfWeek ?? []).includes(dow);
-    if (task.deadline) {
-      const created = task.createdAt.slice(0, 10);
-      return selectedDateStr >= created && selectedDateStr <= task.deadline;
-    }
-    return task.createdAt.slice(0, 10) === selectedDateStr;
+    // Non-recurring: show from creation date onwards (until deadline if set)
+    const created = task.createdAt.slice(0, 10);
+    if (selectedDateStr < created) return false;
+    if (task.deadline && selectedDateStr > task.deadline) return false;
+    // If already completed on an earlier day, hide from subsequent days
+    const inst = taskInstances.find((ti) => ti.taskId === task.id && ti.userId === userId);
+    if (inst && inst.state === "completed" && inst.date < selectedDateStr) return false;
+    return true;
   });
 
   // Pair task with instance
@@ -237,13 +246,17 @@ export default function MemberDetailClient() {
                     {/* State selector — only for past/today with real instance */}
                     {!isFutureDay && instance ? (
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {(["completed", "pending", "failed", "cancelled"] as TaskState[]).map((s) => {
+                        {(["completed", "pending", "failed", "cancelled"] as TaskState[]).filter((s) =>
+                          s !== "cancelled" || currentUser?.role === "admin"
+                        ).map((s) => {
                           const c = stateConfig[s];
                           const SIcon = c.icon;
+                          const disabled = state === "cancelled" && currentUser?.role !== "admin";
                           return (
                             <button key={s} title={c.label}
-                              onClick={() => state !== s && handleStateChange(instance, s)}
+                              onClick={() => !disabled && state !== s && handleStateChange(instance, s)}
                               className={cn("w-7 h-7 rounded-lg flex items-center justify-center transition-all text-xs",
+                                disabled ? "opacity-50 cursor-not-allowed bg-muted text-muted-foreground" :
                                 state === s ? c.btnClass : "bg-muted text-muted-foreground hover:bg-muted/70"
                               )}>
                               <SIcon className="w-3.5 h-3.5" />

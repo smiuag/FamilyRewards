@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import {
   fetchFamilyRewards,
@@ -31,6 +32,9 @@ export default function AdminRewardsClient() {
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
 
+  const t = useTranslations("admin.rewards");
+  const tc = useTranslations("common");
+
   const {
     rewards: storeRewards, users, claims,
     updateClaim: storeUpdateClaim, loadRewards, loadClaims,
@@ -49,9 +53,9 @@ export default function AdminRewardsClient() {
     storeDeleteReward(rewardToDelete.id);
     try {
       await deleteReward(rewardToDelete.id);
-      toast.success(`"${rewardToDelete.title}" eliminada`);
+      toast.success(t("toastDeleted", { title: rewardToDelete.title }));
     } catch {
-      toast.error("Error al eliminar la recompensa");
+      toast.error(t("toastDeleteError"));
     } finally {
       setDeleting(false);
       setRewardToDelete(null);
@@ -67,7 +71,7 @@ export default function AdminRewardsClient() {
   useEffect(() => {
     Promise.all([fetchFamilyRewards(), fetchFamilyClaims()])
       .then(([rewards, claims]) => { loadRewards(rewards); loadClaims(claims); })
-      .catch(() => toast.error("Error al cargar recompensas"))
+      .catch(() => toast.error(t("toastLoadError")))
       .finally(() => setLoadingData(false));
   }, []);
 
@@ -86,10 +90,10 @@ export default function AdminRewardsClient() {
     storeUpdateClaim(claimId, "approved");
     try {
       await approveClaim(claimId, claim.userId, reward.pointsCost, user.pointsBalance, reward.title, reward.emoji);
-      toast.success("Solicitud aprobada");
+      toast.success(t("toastApproved"));
     } catch {
       storeUpdateClaim(claimId, "pending");
-      toast.error("Error al aprobar la solicitud");
+      toast.error(t("toastApproveError"));
     }
   };
 
@@ -97,10 +101,10 @@ export default function AdminRewardsClient() {
     storeUpdateClaim(claimId, "rejected");
     try {
       await rejectClaim(claimId);
-      toast.success("Solicitud rechazada");
+      toast.success(t("toastRejected"));
     } catch {
       storeUpdateClaim(claimId, "pending");
-      toast.error("Error al rechazar la solicitud");
+      toast.error(t("toastRejectError"));
     }
   };
 
@@ -118,10 +122,10 @@ export default function AdminRewardsClient() {
     try {
       await updateReward(editingReward.id, { title: editForm.title, description: editForm.description, emoji: editForm.emoji, pointsCost: cost });
       storeUpdateReward(editingReward.id, { title: editForm.title, description: editForm.description, emoji: editForm.emoji, pointsCost: cost });
-      toast.success(`"${editForm.title}" actualizada`);
+      toast.success(t("toastUpdated", { title: editForm.title }));
       setEditOpen(false);
     } catch {
-      toast.error("Error al guardar. Inténtalo de nuevo.");
+      toast.error(t("toastUpdateError"));
     } finally {
       setSavingEdit(false);
     }
@@ -132,10 +136,10 @@ export default function AdminRewardsClient() {
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-extrabold">Gestión de Recompensas</h1>
+        <h1 className="text-2xl font-extrabold">{t("title")}</h1>
         <Button size="sm" onClick={() => router.push(`/${locale}/admin/rewards/add`)}>
           <Plus className="w-4 h-4 mr-1.5" />
-          Añadir recompensa
+          {t("addReward")}
         </Button>
       </div>
 
@@ -150,7 +154,7 @@ export default function AdminRewardsClient() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-500" />
-                Solicitudes pendientes
+                {t("pendingClaims")}
                 {pendingClaims.length > 0 && (
                   <Badge className="bg-amber-100 text-amber-700 border-0">{pendingClaims.length}</Badge>
                 )}
@@ -158,16 +162,16 @@ export default function AdminRewardsClient() {
             </CardHeader>
             <CardContent className={pendingClaims.length === 0 ? "pb-5" : "p-0"}>
               {pendingClaims.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center">No hay solicitudes pendientes 🎉</p>
+                <p className="text-sm text-muted-foreground text-center">{t("noClaimsPending")}</p>
               ) : (
-                <Table aria-label="Solicitudes de canje pendientes">
+                <Table aria-label={t("pendingClaimsAriaLabel")}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Recompensa</TableHead>
-                      <TableHead>Miembro</TableHead>
-                      <TableHead>Coste</TableHead>
-                      <TableHead>Solicitada</TableHead>
-                      <TableHead className="text-right">Acción</TableHead>
+                      <TableHead>{t("rewardColumn")}</TableHead>
+                      <TableHead>{t("member")}</TableHead>
+                      <TableHead>{t("costColumn")}</TableHead>
+                      <TableHead>{t("requestedAt")}</TableHead>
+                      <TableHead className="text-right">{t("actionColumn")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -201,12 +205,12 @@ export default function AdminRewardsClient() {
                             <div className="flex items-center justify-end gap-2">
                               <Button size="sm" className="h-8 bg-green-500 hover:bg-green-600 text-white text-xs"
                                 onClick={() => handleApprove(claim.id)}>
-                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Aprobar
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {tc("approve")}
                               </Button>
                               <Button size="sm" variant="outline"
                                 className="h-8 text-red-500 border-red-200 hover:bg-red-50 text-xs"
                                 onClick={() => handleReject(claim.id)}>
-                                <XCircle className="w-3.5 h-3.5 mr-1" /> Rechazar
+                                <XCircle className="w-3.5 h-3.5 mr-1" /> {tc("reject")}
                               </Button>
                             </div>
                           </TableCell>
@@ -221,12 +225,16 @@ export default function AdminRewardsClient() {
 
           {/* Current rewards */}
           <div>
-            <h2 className="text-base font-semibold mb-3">Recompensas de la familia</h2>
+            <h2 className="text-base font-semibold mb-3">{t("familyRewards")}</h2>
             {storeRewards.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p className="text-4xl mb-3">🎁</p>
-                <p className="font-medium">Sin recompensas</p>
-                <p className="text-sm mt-1">Pulsa <strong>Añadir recompensa</strong> para empezar</p>
+                <p className="font-medium">{t("noRewards")}</p>
+                <p className="text-sm mt-1">
+                  {t.rich("noRewardsHint", {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                </p>
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -239,15 +247,15 @@ export default function AdminRewardsClient() {
                           <p className="font-semibold text-sm truncate">{reward.title}</p>
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 text-primary fill-primary" />
-                            <span className="text-xs font-bold text-primary">{reward.pointsCost.toLocaleString()} pts</span>
+                            <span className="text-xs font-bold text-primary">{reward.pointsCost.toLocaleString()} {tc("pts")}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setRewardToDelete(reward)} aria-label={`Eliminar ${reward.title}`}>
+                            onClick={() => setRewardToDelete(reward)} aria-label={t("ariaDelete", { title: reward.title })}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(reward)} aria-label={`Editar ${reward.title}`}>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(reward)} aria-label={t("ariaEdit", { title: reward.title })}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -265,22 +273,26 @@ export default function AdminRewardsClient() {
       <AppModal open={!!rewardToDelete} onOpenChange={(v) => { if (!v) setRewardToDelete(null); }}>
         <AppModalHeader
           emoji="🗑️"
-          title="Eliminar recompensa"
+          title={t("deleteTitle")}
           color="bg-gradient-to-br from-red-500 to-rose-600"
           onClose={() => setRewardToDelete(null)}
         />
         <AppModalBody>
           <p className="text-sm text-muted-foreground">
-            ¿Eliminar <strong className="text-foreground">{rewardToDelete?.emoji} {rewardToDelete?.title}</strong>?
+            {t.rich("deleteConfirm", {
+              emoji: rewardToDelete?.emoji ?? "",
+              title: rewardToDelete?.title ?? "",
+              strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+            })}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            La recompensa desaparecerá del catálogo pero se mantendrá en el historial de canjes y puntos anteriores.
+            {t("deleteDetail")}
           </p>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setRewardToDelete(null)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setRewardToDelete(null)}>{tc("cancel")}</Button>
           <Button variant="destructive" onClick={handleDeleteReward} disabled={deleting}>
-            {deleting ? "Eliminando..." : "Eliminar"}
+            {deleting ? t("deleting") : tc("delete")}
           </Button>
         </AppModalFooter>
       </AppModal>
@@ -289,30 +301,30 @@ export default function AdminRewardsClient() {
       <AppModal open={editOpen} onOpenChange={setEditOpen}>
         <AppModalHeader
           emoji={editForm.emoji || "🎁"}
-          title={`Editar: ${editingReward?.title}`}
+          title={t("editTitle", { title: editingReward?.title ?? "" })}
           color="bg-gradient-to-br from-blue-500 to-indigo-600"
           onClose={() => setEditOpen(false)}
         />
         <AppModalBody>
           <div className="grid grid-cols-5 gap-3">
             <div className="col-span-1">
-              <Label>Emoji</Label>
+              <Label>{t("labelEmoji")}</Label>
               <Input value={editForm.emoji} onChange={(e) => setEditForm({ ...editForm, emoji: e.target.value })}
                 className="text-center text-xl mt-1.5" />
             </div>
             <div className="col-span-4">
-              <Label>Nombre</Label>
+              <Label>{t("labelName")}</Label>
               <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                placeholder="Nombre de la recompensa" className="mt-1.5" autoFocus />
+                placeholder={t("placeholderName")} className="mt-1.5" autoFocus />
             </div>
           </div>
           <div>
-            <Label>Descripción (opcional)</Label>
+            <Label>{t("labelDescription")}</Label>
             <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-              placeholder="Breve descripción" className="mt-1.5" />
+              placeholder={t("placeholderDescription")} className="mt-1.5" />
           </div>
           <div>
-            <Label>Coste en puntos</Label>
+            <Label>{t("labelCost")}</Label>
             <div className="flex items-center gap-2 mt-1.5">
               <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" />
               <Input type="number" value={editForm.pointsCost}
@@ -321,9 +333,9 @@ export default function AdminRewardsClient() {
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setEditOpen(false)}>{tc("cancel")}</Button>
           <Button onClick={handleSaveEdit} disabled={savingEdit || !editForm.title.trim()}>
-            {savingEdit ? "Guardando..." : "Guardar cambios"}
+            {savingEdit ? t("saving") : t("saveChanges")}
           </Button>
         </AppModalFooter>
       </AppModal>

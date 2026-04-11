@@ -26,14 +26,7 @@ import { Search, Plus, Check, Star, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const TIER_CONFIG = {
-  easy:   { label: "Fácil",    color: "bg-green-100 text-green-700",  dot: "bg-green-500" },
-  medium: { label: "Normal",   color: "bg-blue-100 text-blue-700",    dot: "bg-blue-500" },
-  hard:   { label: "Difícil",  color: "bg-orange-100 text-orange-700",dot: "bg-orange-500" },
-  epic:   { label: "Épico",    color: "bg-purple-100 text-purple-700",dot: "bg-purple-500" },
-};
-
-const MAX_POINTS = 20000;
+import { TIER_CONFIG, MAX_REWARD_POINTS as MAX_POINTS } from "@/lib/config/constants";
 
 export default function CatalogRewardsClient() {
   const { setupVisited, markSetupVisited, currentUser } = useAppStore();

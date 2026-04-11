@@ -25,13 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { DayOfWeek } from "@/lib/types";
 
-const DIFFICULTY_CONFIG = {
-  easy:   { label: "Fácil",   color: "bg-green-100 text-green-700" },
-  medium: { label: "Normal",  color: "bg-amber-100 text-amber-700" },
-  hard:   { label: "Difícil", color: "bg-red-100 text-red-700" },
-};
-const ALL_DAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const DAY_MAP: Record<string, string> = { mon: "L", tue: "M", wed: "X", thu: "J", fri: "V", sat: "S", sun: "D" };
+import { DIFFICULTY_CONFIG, ALL_DAYS, DAY_LABELS as DAY_MAP } from "@/lib/config/constants";
 
 type Tab = "catalog" | "custom";
 
@@ -55,17 +49,20 @@ export default function AddTaskClient() {
   const [makeRecurring, setMakeRecurring] = useState(false);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
   const [customPoints, setCustomPoints] = useState("");
+  const [catalogPenalty, setCatalogPenalty] = useState("");
+  const [catalogDeadline, setCatalogDeadline] = useState("");
+  const [catalogDefaultState, setCatalogDefaultState] = useState<"pending" | "completed">("pending");
 
   // ── Custom form state ────────────────────────────────────────────────────────
-  const [customForm, setCustomForm] = useState({
+  const [customForm, setCustomForm] = useState(() => ({
     title: "", description: "", points: "20", penaltyPoints: "",
     assignedTo: [] as string[],
     isRecurring: false,
     daysOfWeek: [] as DayOfWeek[],
     time: "",
     defaultState: "pending" as "pending" | "completed",
-    deadline: "",
-  });
+    deadline: new Date().toISOString().split("T")[0],
+  }));
 
   const [saving, setSaving] = useState(false);
 
@@ -84,12 +81,17 @@ export default function AddTaskClient() {
 
   const categories = Object.entries(TASK_CATEGORIES) as [TaskCategory, typeof TASK_CATEGORIES[TaskCategory]][];
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const openConfigure = (task: CatalogTask) => {
     setConfiguringTask(task);
     setSelectedUsers([]);
     setMakeRecurring(!!task.suggestedDays?.length);
     setSelectedDays((task.suggestedDays ?? []) as DayOfWeek[]);
     setCustomPoints(String(task.suggestedPoints));
+    setCatalogPenalty("");
+    setCatalogDeadline(todayStr);
+    setCatalogDefaultState("pending");
   };
 
   const toggleCatalogUser = (uid: string) =>
@@ -103,16 +105,23 @@ export default function AddTaskClient() {
     if (!currentUser?.familyId) return;
     setSaving(true);
     try {
-      const recurringPattern = makeRecurring && selectedDays.length > 0
+      const isRec = makeRecurring && selectedDays.length > 0;
+      const recurringPattern = isRec
         ? { daysOfWeek: selectedDays, time: configuringTask.suggestedTime, defaultState: "pending" as const }
         : undefined;
+      const defaultState = !isRec ? catalogDefaultState : undefined;
+      const deadline = !isRec && catalogDeadline ? catalogDeadline : undefined;
+      const penaltyPoints = catalogPenalty !== "" ? parseInt(catalogPenalty) : undefined;
       const newTask = await createTask(currentUser.familyId, currentUser.id, {
         title: configuringTask.title,
         description: configuringTask.description,
         points: parseInt(customPoints) || configuringTask.suggestedPoints,
+        penaltyPoints,
         assignedTo: selectedUsers,
-        isRecurring: makeRecurring && selectedDays.length > 0,
+        isRecurring: isRec,
         recurringPattern,
+        defaultState,
+        deadline,
       });
       useAppStore.setState((prev) => ({ tasks: [...prev.tasks, newTask] }));
       setAddedIds((prev) => new Set([...prev, configuringTask.id]));
@@ -501,6 +510,34 @@ export default function AddTaskClient() {
               </div>
             </div>
           )}
+          {!makeRecurring && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Fecha límite (opcional)</Label>
+                <Input type="date" value={catalogDeadline}
+                  onChange={(e) => setCatalogDeadline(e.target.value)} className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Estado por defecto</Label>
+                <Select value={catalogDefaultState}
+                  onValueChange={(v) => setCatalogDefaultState(v as "pending" | "completed")}>
+                  <SelectTrigger className="mt-1.5">
+                    <span>{catalogDefaultState === "pending" ? "Pendiente" : "Completada"}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="completed">Completada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <div>
+            <Label>Descuento si no se hace</Label>
+            <Input type="number" value={catalogPenalty} min={0}
+              onChange={(e) => setCatalogPenalty(e.target.value)}
+              placeholder={`Por defecto ${customPoints || configuringTask?.suggestedPoints || "0"}`} className="mt-1.5" />
+          </div>
         </AppModalBody>
         <AppModalFooter>
           <Button variant="outline" onClick={() => setConfiguringTask(null)} disabled={saving}>Cancelar</Button>

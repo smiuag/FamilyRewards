@@ -27,7 +27,9 @@ import {
   Check,
   X,
   ArrowLeftRight,
+  Globe,
 } from "lucide-react";
+import { useRouter as useIntlRouter, usePathname as useIntlPathname } from "@/i18n/navigation";
 import { toast } from "sonner";
 
 type Section = "me" | "admin";
@@ -41,6 +43,8 @@ interface NavItem {
 
 export default function Sidebar() {
   const t = useTranslations("nav");
+  const tc = useTranslations("common");
+  const ts = useTranslations("sidebar");
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
@@ -128,9 +132,9 @@ export default function Sidebar() {
     try {
       await updateFamilyName(currentUser.familyId, trimmed);
       setFamilyName(trimmed);
-      toast.success("Nombre de familia actualizado");
+      toast.success(ts("familyNameUpdated"));
     } catch {
-      toast.error("Error al actualizar el nombre");
+      toast.error(ts("familyNameError"));
       setNameValue(familyName);
     }
     setEditingName(false);
@@ -216,7 +220,7 @@ export default function Sidebar() {
               familyName.length <= 14 ? "text-lg" :
               familyName.length <= 20 ? "text-base" : "text-sm"
             )}
-            title={currentUser?.role === "admin" ? "Editar nombre" : undefined}
+            title={currentUser?.role === "admin" ? ts("editName") : undefined}
           >
             <span className="flex items-center gap-1.5">
               <span className="line-clamp-2 break-words">{familyName}</span>
@@ -233,7 +237,7 @@ export default function Sidebar() {
 
         {/* -- YO -- */}
         <SectionHeader
-          label="Mi perfil"
+          label={ts("myProfile")}
           emoji={currentUser?.avatar}
           open={openSection === "me"}
           active={activeSection === "me"}
@@ -296,7 +300,7 @@ export default function Sidebar() {
               className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
             >
               <ArrowLeftRight className="w-4 h-4" />
-              <span>Cambiar de usuario</span>
+              <span>{ts("switchUser")}</span>
             </button>
 
             {showSwitchUser && (
@@ -319,6 +323,9 @@ export default function Sidebar() {
           </div>
         )}
 
+        {/* Language switcher */}
+        <LocaleSwitcher />
+
         {/* Logout */}
         <button
           onClick={handleLogout}
@@ -336,7 +343,7 @@ export default function Sidebar() {
             <div className="text-center">
               <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
               <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
-              <p className="text-sm text-muted-foreground">Introduce el PIN</p>
+              <p className="text-sm text-muted-foreground">{ts("enterPin")}</p>
             </div>
             <input
               ref={pinInputRef}
@@ -361,21 +368,21 @@ export default function Sidebar() {
               autoFocus
             />
             {pinError && (
-              <p className="text-xs text-red-500 text-center">PIN incorrecto</p>
+              <p className="text-xs text-red-500 text-center">{ts("wrongPin")}</p>
             )}
             <div className="flex gap-2">
               <button
                 onClick={() => setPinTarget(null)}
                 className="flex-1 py-2 rounded-xl text-sm font-medium bg-muted hover:bg-muted/80 transition-colors"
               >
-                Cancelar
+                {tc("cancel")}
               </button>
               <button
                 onClick={handlePinSubmit}
                 disabled={pinValue.length < 4}
                 className="flex-1 py-2 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
-                Entrar
+                {tc("confirm")}
               </button>
             </div>
           </div>
@@ -461,6 +468,31 @@ function NavBtn({
           !
         </span>
       )}
+    </button>
+  );
+}
+
+const LOCALE_LABELS: Record<string, { flag: string; label: string }> = {
+  es: { flag: "🇪🇸", label: "Español" },
+  en: { flag: "🇬🇧", label: "English" },
+};
+
+function LocaleSwitcher() {
+  const intlRouter = useIntlRouter();
+  const intlPathname = useIntlPathname();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
+  const current = LOCALE_LABELS[locale] ?? LOCALE_LABELS.es;
+  const otherLocale = locale === "es" ? "en" : "es";
+  const other = LOCALE_LABELS[otherLocale];
+
+  return (
+    <button
+      onClick={() => intlRouter.replace(intlPathname, { locale: otherLocale })}
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+    >
+      <Globe className="w-4 h-4" />
+      <span className="flex-1 text-left">{other.flag} {other.label}</span>
     </button>
   );
 }

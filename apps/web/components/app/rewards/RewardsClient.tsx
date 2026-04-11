@@ -6,10 +6,9 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyRewards, fetchFamilyClaims, createClaim, approveClaim } from "@/lib/api/rewards";
 import type { RewardClaim } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
-import { Star, Gift, Clock, CheckCircle2, XCircle, Target, Archive, ChevronDown } from "lucide-react";
+import { Star, Gift, Clock, CheckCircle2, XCircle, Heart, Archive, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Reward } from "@/lib/types";
@@ -49,23 +48,20 @@ export default function RewardsClient() {
       }
       setConfirmReward(null);
       if (isAdmin) {
-        toast.success(`¡${confirmReward.emoji} ${confirmReward.title} canjeada!`, {
-          description: "Como administrador, el canje se ha aplicado directamente.",
+        toast.success(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }), {
+          description: t("toastAdminRedeemedDesc"),
         });
       } else {
-        toast.success("Solicitud enviada", {
-          description: "Un administrador revisará tu solicitud pronto.",
+        toast.success(t("toastRequestSent"), {
+          description: t("toastRequestSentDesc"),
         });
       }
     } catch {
-      toast.error("Error al procesar el canje. Inténtalo de nuevo.");
+      toast.error(t("toastRedeemError"));
     } finally {
       setRedeeming(false);
     }
   };
-
-  const targetRewards = rewards.filter((r) => targetRewardIds.includes(r.id));
-  const otherRewards = rewards.filter((r) => !targetRewardIds.includes(r.id));
 
   const RewardCard = ({ reward }: { reward: Reward }) => {
     const canAfford = currentUser.pointsBalance >= reward.pointsCost;
@@ -82,10 +78,13 @@ export default function RewardsClient() {
     return (
       <Card
         className={cn(
-          "shadow-sm transition-all hover:shadow-md relative",
+          "border-2 shadow-sm transition-all hover:shadow-md relative",
           !canAfford && "opacity-75",
-          isApproved && "border-green-300 bg-green-50",
-          isTarget && !isApproved && "border-primary/40"
+          isApproved
+            ? "border-green-200 bg-green-50/50"
+            : isTarget
+              ? "border-green-200 bg-green-50/50"
+              : "border-border bg-white"
         )}
       >
         <CardContent className="pt-5">
@@ -93,14 +92,14 @@ export default function RewardsClient() {
           <button
             onClick={() => toggleTargetReward(reward.id)}
             className={cn(
-              "absolute top-3 right-3 p-1 rounded-lg transition-all",
+              "absolute top-3 right-3 p-1.5 rounded-lg transition-all",
               isTarget
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground/40 hover:text-primary/60 hover:bg-primary/5"
+                ? "text-red-500"
+                : "text-muted-foreground/30 hover:text-red-300"
             )}
-            title={isTarget ? "Quitar de objetivos" : "Marcar como objetivo"}
+            title={isTarget ? t("removeTarget") : t("setTarget")}
           >
-            <Target className="w-4 h-4" />
+            <Heart className={cn("w-5 h-5 transition-all", isTarget && "fill-red-500")} />
           </button>
 
           {/* Emoji */}
@@ -122,7 +121,7 @@ export default function RewardsClient() {
             </span>
             <span className="text-xs text-muted-foreground">pts</span>
             {canAfford && !hasPendingClaim && !isApproved && (
-              <span className="ml-auto text-xs text-green-600 font-medium">¡Puedes canjearlo!</span>
+              <span className="ml-auto text-xs text-green-600 font-medium">{t("canAfford")}</span>
             )}
           </div>
 
@@ -134,7 +133,7 @@ export default function RewardsClient() {
                 {t("status.approved")}
               </div>
               <button onClick={() => archiveClaim(claim!.id)}
-                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Archivar">
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title={t("archiveTitle")}>
                 <Archive className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -150,7 +149,7 @@ export default function RewardsClient() {
                 {t("status.rejected")}
               </div>
               <button onClick={() => archiveClaim(claim!.id)}
-                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Archivar">
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" title={t("archiveTitle")}>
                 <Archive className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -168,10 +167,7 @@ export default function RewardsClient() {
 
           {!canAfford && !hasPendingClaim && !isApproved && (
             <p className="text-xs text-muted-foreground text-center mt-2">
-              Te faltan{" "}
-              <span className="text-primary font-semibold">
-                {(reward.pointsCost - currentUser.pointsBalance).toLocaleString()} pts
-              </span>
+              {t("missingPoints", { points: (reward.pointsCost - currentUser.pointsBalance).toLocaleString() })}
             </p>
           )}
         </CardContent>
@@ -193,37 +189,11 @@ export default function RewardsClient() {
         </div>
       </div>
 
-      {/* Target rewards section */}
-      {targetRewards.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Target className="w-4 h-4 text-primary" />
-            <h2 className="font-semibold text-base">Mis objetivos</h2>
-            <Badge variant="secondary" className="text-xs">{targetRewards.length}</Badge>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {targetRewards.map((reward) => (
-              <RewardCard key={reward.id} reward={reward} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* All rewards */}
-      <div>
-        {targetRewards.length > 0 && (
-          <h2 className="font-semibold text-base mb-3">Todas las recompensas</h2>
-        )}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(targetRewards.length > 0 ? otherRewards : rewards).map((reward) => (
-            <RewardCard key={reward.id} reward={reward} />
-          ))}
-        </div>
-        {targetRewards.length > 0 && otherRewards.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Todas las recompensas están marcadas como objetivo
-          </p>
-        )}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {rewards.map((reward) => (
+          <RewardCard key={reward.id} reward={reward} />
+        ))}
       </div>
 
       {/* Archived claims */}
@@ -239,7 +209,7 @@ export default function RewardsClient() {
               className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2"
             >
               <Archive className="w-4 h-4" />
-              Archivo ({archived.length})
+              {t("archive")} ({archived.length})
               <ChevronDown className={cn("w-4 h-4 transition-transform", archiveOpen && "rotate-180")} />
             </button>
             {archiveOpen && (
@@ -254,7 +224,7 @@ export default function RewardsClient() {
                         "text-xs font-semibold",
                         claim.status === "approved" ? "text-green-600" : "text-red-500"
                       )}>
-                        {claim.status === "approved" ? "Aprobada" : "Rechazada"}
+                        {claim.status === "approved" ? t("approvedLabel") : t("rejectedLabel")}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(claim.requestedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
@@ -272,21 +242,17 @@ export default function RewardsClient() {
       <AppModal open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
         <AppModalHeader
           emoji={confirmReward?.emoji}
-          title="Canjear recompensa"
+          title={t("confirmTitle")}
           description={confirmReward?.title}
           color="bg-gradient-to-br from-amber-400 to-orange-500"
           onClose={() => setConfirmReward(null)}
         />
         <AppModalBody>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Vas a solicitar esta recompensa por{" "}
-            <span className="font-bold text-primary text-base">
-              {confirmReward?.pointsCost.toLocaleString()} pts
-            </span>
-            . Un administrador revisará y aprobará tu solicitud.
+            {t("confirmBody", { points: confirmReward?.pointsCost.toLocaleString() ?? "" })}
           </p>
           <div className="flex items-center justify-between bg-muted rounded-xl p-3">
-            <span className="text-sm text-muted-foreground">Tu saldo actual</span>
+            <span className="text-sm text-muted-foreground">{t("currentBalance")}</span>
             <span className="font-bold text-foreground flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-primary fill-primary" />
               {currentUser?.pointsBalance.toLocaleString()} pts
@@ -294,10 +260,10 @@ export default function RewardsClient() {
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={redeeming}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={redeeming}>{t("cancelButton")}</Button>
           <Button onClick={handleRedeem} disabled={redeeming}>
             <Gift className="w-4 h-4 mr-1.5" />
-            {redeeming ? "Procesando..." : "Confirmar solicitud"}
+            {redeeming ? t("processing") : t("confirmRequest")}
           </Button>
         </AppModalFooter>
       </AppModal>

@@ -18,9 +18,11 @@ import { Star, Flame, Trophy, CheckCircle2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { MAX_STREAK_LOOKBACK_DAYS } from "@/lib/config/constants";
 
 export default function ProfileClient() {
   const t = useTranslations("profile");
+  const tRoles = useTranslations("roles");
   const { currentUser, transactions, taskInstances, loadTransactions } = useAppStore();
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function ProfileClient() {
   // Current streak: consecutive days (ending today) where user completed all their tasks
   const today = format(now, "yyyy-MM-dd");
   let streak = 0;
-  for (let i = 0; i < 365; i++) {
+  for (let i = 0; i < MAX_STREAK_LOOKBACK_DAYS; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     const dateStr = format(d, "yyyy-MM-dd");
@@ -85,7 +87,7 @@ export default function ProfileClient() {
             <div className="pb-1">
               <h2 className="text-xl font-extrabold">{currentUser.name}</h2>
               <Badge variant={currentUser.role === "admin" ? "default" : "secondary"}>
-                {currentUser.role === "admin" ? "Administrador" : "Miembro"}
+                {tRoles(currentUser.role)}
               </Badge>
             </div>
           </div>
@@ -116,14 +118,14 @@ export default function ProfileClient() {
           icon={<Trophy className="w-5 h-5 text-yellow-500" />}
           label={t("completedThisMonth")}
           value={String(completedThisMonth)}
-          suffix="tareas"
+          suffix={t("tasks")}
           bg="bg-yellow-50"
         />
         <StatCard
           icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-          label="Total transacciones"
+          label={t("totalTransactions")}
           value={String(history.length)}
-          suffix="movimientos"
+          suffix={t("movements")}
           bg="bg-green-50"
           className="col-span-2 lg:col-span-1"
         />
@@ -137,7 +139,7 @@ export default function ProfileClient() {
         <CardContent>
           {history.length === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-4">
-              Sin historial todavía.
+              {t("noHistory")}
             </p>
           ) : (
             <Table aria-label="Historial de puntos">

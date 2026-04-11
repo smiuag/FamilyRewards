@@ -15,6 +15,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { COMPLETION_RATE_GOOD, COMPLETION_RATE_OK } from "@/lib/config/constants";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -259,9 +260,9 @@ export default function ReportsClient() {
                         <span
                           className={cn(
                             "px-2 py-0.5 rounded-full text-xs font-medium",
-                            r.completionRate >= 80
+                            r.completionRate >= COMPLETION_RATE_GOOD
                               ? "bg-green-100 text-green-700"
-                              : r.completionRate >= 50
+                              : r.completionRate >= COMPLETION_RATE_OK
                               ? "bg-amber-100 text-amber-700"
                               : "bg-red-100 text-red-700"
                           )}

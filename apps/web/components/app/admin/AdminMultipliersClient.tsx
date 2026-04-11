@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Zap, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MULTIPLIER_MIN, MULTIPLIER_MAX } from "@/lib/config/constants";
 import type { PointMultiplier } from "@/lib/multipliers";
 
 const todayStr = new Date().toISOString().split("T")[0];
@@ -24,6 +26,7 @@ const addDays = (n: number) =>
   new Date(Date.now() + n * 86400000).toISOString().split("T")[0];
 
 export default function AdminMultipliersClient() {
+  const tc = useTranslations("common");
   const { currentUser, users, tasks } = useAppStore();
   const { multipliers, addMultiplier, toggleActive, deleteMultiplier } =
     useMultipliersStore();
@@ -163,7 +166,7 @@ export default function AdminMultipliersClient() {
                         onCheckedChange={() => toggleActive(m.id)}
                       />
                       <span className="text-xs text-muted-foreground">
-                        {m.isActive ? "Activo" : "Desactivado"}
+                        {m.isActive ? tc("active") : tc("inactive")}
                       </span>
                     </div>
                     <Button
@@ -220,8 +223,8 @@ export default function AdminMultipliersClient() {
               <Label>Multiplicador (×)</Label>
               <Input
                 type="number"
-                min="1.5"
-                max="10"
+                min={String(MULTIPLIER_MIN)}
+                max={String(MULTIPLIER_MAX)}
                 step="0.5"
                 value={form.multiplier}
                 onChange={(e) => setForm({ ...form, multiplier: e.target.value })}

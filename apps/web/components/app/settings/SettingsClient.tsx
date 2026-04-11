@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { MapPin, Save, Lock, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,7 @@ function detectLocation(postalCode: string) {
 }
 
 export default function SettingsClient() {
+  const t = useTranslations("settings");
   const { postalCode, city, setLocation, setPostalCode } = useSettingsStore();
   const { currentUser } = useAppStore();
   const { hasPin, setPin, removePin } = usePinStore();
@@ -105,36 +107,36 @@ export default function SettingsClient() {
     const region = detected?.region ?? "ES-MD";
     setPostalCode(postalInput.trim());
     setLocation(country, region, cityInput);
-    toast.success("Localización guardada", {
-      description: `${cityInput || postalInput} — se mostrarán las fiestas locales en el calendario`,
+    toast.success(t("locationSaved"), {
+      description: t("locationSavedDesc", { location: cityInput || postalInput }),
     });
   };
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-extrabold">Ajustes</h1>
+      <h1 className="text-2xl font-extrabold">{t("title")}</h1>
 
       {/* Location card */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="w-4 h-4 text-primary" />
-            Localización familiar
+            {t("locationTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <p className="text-sm text-muted-foreground">
-            Introduce tu código postal para mostrar las fiestas nacionales y locales en el calendario.
+            {t("locationDescription")}
           </p>
 
           {/* Postal code input */}
           <div>
-            <Label className="text-sm font-semibold mb-2 block">Código postal</Label>
+            <Label className="text-sm font-semibold mb-2 block">{t("postalCodeLabel")}</Label>
             <div className="flex items-center gap-3 max-w-xs">
               <Input
                 value={postalInput}
                 onChange={(e) => setPostalInput(e.target.value)}
-                placeholder="ej: 28001, 08001..."
+                placeholder={t("postalCodePlaceholder")}
                 className="text-lg font-bold tracking-wider"
                 maxLength={8}
               />
@@ -152,7 +154,7 @@ export default function SettingsClient() {
                   : "bg-muted text-muted-foreground"
               )}>
                 <MapPin className="w-3.5 h-3.5" />
-                {detected ? detected.label : "Código postal no reconocido"}
+                {detected ? detected.label : t("postalCodeUnknown")}
               </div>
             )}
           </div>
@@ -160,19 +162,19 @@ export default function SettingsClient() {
           {/* City (optional) */}
           <div>
             <Label className="text-sm font-semibold mb-2 block">
-              Ciudad <span className="font-normal text-muted-foreground">(opcional)</span>
+              {t("cityLabel")} <span className="font-normal text-muted-foreground">{t("cityOptional")}</span>
             </Label>
             <Input
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
-              placeholder="ej: Madrid, Barcelona..."
+              placeholder={t("cityPlaceholder")}
               className="max-w-xs"
             />
           </div>
 
           <Button onClick={handleSave}>
             <Save className="w-4 h-4 mr-1.5" />
-            Guardar localización
+            {t("saveLocation")}
           </Button>
         </CardContent>
       </Card>
@@ -182,19 +184,18 @@ export default function SettingsClient() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Lock className="w-4 h-4 text-primary" />
-            PIN de acceso
+            {t("pinTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Configura un PIN de 4 dígitos para proteger tu perfil en este dispositivo.
-            Se pedirá al cambiar de usuario.
+            {t("pinDescription")}
           </p>
 
           {currentHasPin ? (
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg">
-                🔒 PIN activado
+                {t("pinActive")}
               </span>
               <Button
                 variant="outline"
@@ -203,37 +204,37 @@ export default function SettingsClient() {
                 onClick={() => {
                   if (currentUser) {
                     removePin(currentUser.id);
-                    toast.success("PIN eliminado");
+                    toast.success(t("pinDeleted"));
                   }
                 }}
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1" />
-                Eliminar PIN
+                {t("deletePin")}
               </Button>
             </div>
           ) : (
             <div className="space-y-3 max-w-xs">
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">Nuevo PIN</Label>
+                <Label className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
                 <Input
                   type="password"
                   inputMode="numeric"
                   maxLength={4}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="4 dígitos"
+                  placeholder={t("newPinPlaceholder")}
                   className="text-center text-lg tracking-[0.3em] font-bold"
                 />
               </div>
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">Confirmar PIN</Label>
+                <Label className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
                 <Input
                   type="password"
                   inputMode="numeric"
                   maxLength={4}
                   value={pinConfirm}
                   onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="Repite el PIN"
+                  placeholder={t("confirmPinPlaceholder")}
                   className="text-center text-lg tracking-[0.3em] font-bold"
                 />
               </div>
@@ -244,15 +245,15 @@ export default function SettingsClient() {
                     setPin(currentUser.id, pinInput);
                     setPinInput("");
                     setPinConfirm("");
-                    toast.success("PIN configurado");
+                    toast.success(t("pinSet"));
                   }
                 }}
               >
                 <Lock className="w-4 h-4 mr-1.5" />
-                Activar PIN
+                {t("activatePin")}
               </Button>
               {pinInput.length === 4 && pinConfirm.length === 4 && pinInput !== pinConfirm && (
-                <p className="text-xs text-red-500">Los PINs no coinciden</p>
+                <p className="text-xs text-red-500">{t("pinMismatch")}</p>
               )}
             </div>
           )}

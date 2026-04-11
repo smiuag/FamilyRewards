@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
@@ -11,8 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Star, CheckCircle2, Gift, TrendingUp, Flame, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { calculateCurrentStreak, COMPLETION_RATE_GOOD, COMPLETION_RATE_OK, STREAK_HIGHLIGHT_THRESHOLD } from "@/lib/config/constants";
 
 export default function AdminStatsClient() {
+  const t = useTranslations("admin.stats");
   const { users, tasks, taskInstances, claims, rewards, transactions } = useAppStore();
 
   useEffect(() => {
@@ -63,15 +66,7 @@ export default function AdminStatsClient() {
           .filter((ti) => ti.userId === user.id && ti.state === "completed")
           .map((ti) => ti.date)
       );
-      let streak = 0;
-      const now = new Date();
-      for (let i = 0; i < 365; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const ds = d.toISOString().split("T")[0];
-        if (completedDates.has(ds)) streak++;
-        else if (i > 0) break;
-      }
+      const streak = calculateCurrentStreak(completedDates);
       return { user, streak };
     }).sort((a, b) => b.streak - a.streak);
   }, [allMembers, taskInstances]);
@@ -145,31 +140,31 @@ export default function AdminStatsClient() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <h1 className="text-2xl font-extrabold">Estadísticas Familiares</h1>
+      <h1 className="text-2xl font-extrabold">{t("title")}</h1>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           icon={<Star className="w-5 h-5 text-primary fill-primary" />}
-          label="Puntos totales familia"
+          label={t("totalFamilyPoints")}
           value={totalPoints.toLocaleString()}
           bg="bg-orange-50"
         />
         <SummaryCard
           icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-          label="Tareas completadas"
+          label={t("completedTasks")}
           value={completedTotal}
           bg="bg-green-50"
         />
         <SummaryCard
           icon={<XCircle className="w-5 h-5 text-red-400" />}
-          label="Tareas fallidas"
+          label={t("failedTasks")}
           value={failedTotal}
           bg="bg-red-50"
         />
         <SummaryCard
           icon={<Gift className="w-5 h-5 text-blue-500" />}
-          label="Canjes pendientes"
+          label={t("pendingClaims")}
           value={pendingClaims.length}
           bg="bg-blue-50"
         />
@@ -181,7 +176,7 @@ export default function AdminStatsClient() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Trophy className="w-4 h-4 text-yellow-500" />
-              Ranking de puntos
+              {t("pointsRanking")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -215,7 +210,7 @@ export default function AdminStatsClient() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-500" />
-              Tasa de completado
+              {t("completionRate")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -229,11 +224,11 @@ export default function AdminStatsClient() {
                     <span className="text-sm font-medium">{user.name}</span>
                     <span className="text-xs text-muted-foreground">{completed}/{total}</span>
                   </div>
-                  <Progress value={rate} className={cn("h-2", rate >= 80 ? "[&>div]:bg-green-500" : rate >= 50 ? "[&>div]:bg-amber-400" : "[&>div]:bg-red-400")} />
+                  <Progress value={rate} className={cn("h-2", rate >= COMPLETION_RATE_GOOD ? "[&>div]:bg-green-500" : rate >= COMPLETION_RATE_OK ? "[&>div]:bg-amber-400" : "[&>div]:bg-red-400")} />
                 </div>
                 <span className={cn(
                   "text-sm font-bold w-12 text-right",
-                  rate >= 80 ? "text-green-600" : rate >= 50 ? "text-amber-600" : "text-red-500"
+                  rate >= COMPLETION_RATE_GOOD ? "text-green-600" : rate >= COMPLETION_RATE_OK ? "text-amber-600" : "text-red-500"
                 )}>
                   {Math.round(rate)}%
                 </span>
@@ -247,7 +242,7 @@ export default function AdminStatsClient() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Flame className="w-4 h-4 text-orange-500" />
-              Rachas actuales
+              {t("currentStreaks")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
@@ -256,9 +251,9 @@ export default function AdminStatsClient() {
                 <span className="text-xl">{user.avatar}</span>
                 <span className="text-sm font-medium flex-1">{user.name}</span>
                 <div className="flex items-center gap-1">
-                  <Flame className={cn("w-4 h-4", streak >= 7 ? "text-orange-500" : "text-muted-foreground/40")} />
-                  <span className={cn("text-sm font-bold", streak >= 7 ? "text-orange-600" : "text-muted-foreground")}>
-                    {streak} {streak === 1 ? "día" : "días"}
+                  <Flame className={cn("w-4 h-4", streak >= STREAK_HIGHLIGHT_THRESHOLD ? "text-orange-500" : "text-muted-foreground/40")} />
+                  <span className={cn("text-sm font-bold", streak >= STREAK_HIGHLIGHT_THRESHOLD ? "text-orange-600" : "text-muted-foreground")}>
+                    {streak} {streak === 1 ? t("day") : t("days")}
                   </span>
                 </div>
               </div>
@@ -271,7 +266,7 @@ export default function AdminStatsClient() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              Puntos esta semana
+              {t("pointsThisWeek")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
@@ -294,7 +289,7 @@ export default function AdminStatsClient() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
-                Tareas más completadas
+                {t("mostCompleted")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -314,7 +309,7 @@ export default function AdminStatsClient() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-400" />
-                Tareas más fallidas
+                {t("mostFailed")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -334,7 +329,7 @@ export default function AdminStatsClient() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Gift className="w-4 h-4 text-purple-500" />
-                Recompensas más canjeadas
+                {t("mostRedeemed")}
               </CardTitle>
             </CardHeader>
             <CardContent>

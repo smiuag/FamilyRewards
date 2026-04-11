@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +12,29 @@ import { Trophy, Zap, CheckCircle2, Clock, XCircle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FamilyChallenge } from "@/lib/challenges";
 
-const STATUS_CONFIG = {
-  active: { label: "Activo", color: "bg-blue-100 text-blue-700", icon: Zap },
-  completed: { label: "Completado", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  failed: { label: "Fallido", color: "bg-red-100 text-red-700", icon: XCircle },
-  upcoming: { label: "Próximo", color: "bg-amber-100 text-amber-700", icon: Clock },
+const STATUS_ICONS = {
+  active: Zap,
+  completed: CheckCircle2,
+  failed: XCircle,
+  upcoming: Clock,
 };
 
+const STATUS_COLORS = {
+  active: "bg-blue-100 text-blue-700",
+  completed: "bg-green-100 text-green-700",
+  failed: "bg-red-100 text-red-700",
+  upcoming: "bg-amber-100 text-amber-700",
+};
+
+const STATUS_LABEL_KEYS = {
+  active: "statusActive",
+  completed: "statusCompleted",
+  failed: "statusFailed",
+  upcoming: "statusUpcoming",
+} as const;
+
 export default function ChallengesClient() {
+  const t = useTranslations("challenges");
   const { currentUser, users } = useAppStore();
   const { challenges, contribute } = useChallengesStore();
   const [filter, setFilter] = useState<"active" | "completed" | "all">("active");
@@ -38,10 +54,10 @@ export default function ChallengesClient() {
         <div>
           <h1 className="text-2xl font-extrabold flex items-center gap-2">
             <Trophy className="w-6 h-6 text-primary" />
-            Retos Familiares
+            {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {active.length} activo(s) · {completed.length} completado(s)
+            {t("activeSummary", { count: active.length })} · {t("completedSummary", { count: completed.length })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -56,7 +72,7 @@ export default function ChallengesClient() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
-              {f === "active" ? "Activos" : f === "completed" ? "Completados" : "Todos"}
+              {f === "active" ? t("filterActive") : f === "completed" ? t("filterCompleted") : t("filterAll")}
             </button>
           ))}
         </div>
@@ -66,7 +82,7 @@ export default function ChallengesClient() {
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No hay retos en esta categoría
+            {t("emptyCategory")}
           </CardContent>
         </Card>
       ) : (
@@ -97,16 +113,18 @@ function ChallengeCard({
   users: { id: string; name: string; avatar: string }[];
   onContribute: (amount: number) => void;
 }) {
-  const status = STATUS_CONFIG[c.status];
-  const StatusIcon = status.icon;
+  const t = useTranslations("challenges");
+  const StatusIcon = STATUS_ICONS[c.status];
+  const statusColor = STATUS_COLORS[c.status];
+  const statusLabel = t(STATUS_LABEL_KEYS[c.status]);
   const pct = Math.min(100, (c.currentProgress / c.goalTarget) * 100);
 
   const myContribution = c.contributions.find((con) => con.userId === currentUserId);
 
   const goalLabel =
     c.goalType === "collective_points"
-      ? `${c.currentProgress.toLocaleString()} / ${c.goalTarget.toLocaleString()} pts`
-      : `${c.currentProgress} / ${c.goalTarget} tareas`;
+      ? t("goalPoints", { current: c.currentProgress.toLocaleString(), target: c.goalTarget.toLocaleString() })
+      : t("goalTasks", { current: c.currentProgress, target: c.goalTarget });
 
   const daysLeft = Math.ceil(
     (new Date(c.endDate).getTime() - Date.now()) / 86400000
@@ -137,11 +155,11 @@ function ChallengeCard({
           <span
             className={cn(
               "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full shrink-0",
-              status.color
+              statusColor
             )}
           >
             <StatusIcon className="w-3 h-3" />
-            {status.label}
+            {statusLabel}
           </span>
         </div>
       </CardHeader>
@@ -160,7 +178,7 @@ function ChallengeCard({
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
             <Users className="w-3 h-3" />
-            Aportaciones
+            {t("contributions")}
           </p>
           <div className="flex flex-wrap gap-2">
             {c.contributions.map((con) => {
@@ -175,8 +193,8 @@ function ChallengeCard({
                   <span className="font-medium">{user.name}</span>
                   <span className="text-muted-foreground">
                     {c.goalType === "collective_points"
-                      ? `${con.amount} pts`
-                      : `${con.amount} tareas`}
+                      ? t("contributionPoints", { amount: con.amount })
+                      : t("contributionTasks", { amount: con.amount })}
                   </span>
                 </div>
               );
@@ -191,14 +209,16 @@ function ChallengeCard({
             <div>
               <p className="font-semibold">{c.rewardDescription}</p>
               <p className="text-xs text-muted-foreground">
-                +{c.rewardPoints} pts por miembro al completar
+                {t("rewardPerMember", { points: c.rewardPoints })}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {c.status === "active" && daysLeft > 0 && (
               <span className="text-xs text-muted-foreground">
-                ⏳ {daysLeft} día{daysLeft !== 1 ? "s" : ""} restante{daysLeft !== 1 ? "s" : ""}
+                {daysLeft !== 1
+                  ? t("daysLeftPlural", { count: daysLeft })
+                  : t("daysLeft", { count: daysLeft })}
               </span>
             )}
             {c.status === "active" && (
@@ -207,13 +227,14 @@ function ChallengeCard({
                 className="h-8 text-xs"
                 onClick={() => onContribute(10)}
               >
-                +10{" "}
-                {c.goalType === "collective_points" ? "pts" : "tarea"}
+                {c.goalType === "collective_points"
+                  ? t("contributePoints", { amount: 10 })
+                  : t("contributeTask", { amount: 10 })}
               </Button>
             )}
             {c.status === "completed" && (
               <Badge className="bg-green-100 text-green-700 border-0">
-                ✓ ¡Completado!
+                {t("completedBadge")}
               </Badge>
             )}
           </div>

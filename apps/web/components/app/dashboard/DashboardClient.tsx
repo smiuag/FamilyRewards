@@ -5,31 +5,35 @@ import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchBoardMessages } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
-import { fetchFamilyTasks, backfillInstances, syncInstanceState } from "@/lib/api/tasks";
+import { fetchFamilyTasks, backfillInstances, syncInstanceState, claimTask } from "@/lib/api/tasks";
 import type { BoardMessage } from "@/lib/api/board";
 import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
+import { calculateCurrentStreak } from "@/lib/config/constants";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
-  const { currentUser, users, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance } = useAppStore();
+  const { currentUser, users, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance, targetRewardIds } = useAppStore();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
 
   // Feed del tablón: mensajes + transacciones recientes
   const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; emoji?: string; userName?: string; amount?: number }>>([]);
+  const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
+  const [targetRewardIdx, setTargetRewardIdx] = useState(0);
 
   // Load tasks, instances, feed
   useEffect(() => {
@@ -60,7 +64,7 @@ export default function DashboardClient() {
             type: "board" as const,
             createdAt: m.createdAt,
             content: m.content,
-            userName: author?.name ?? "Sistema",
+            userName: author?.name ?? t("systemUser"),
             emoji: author?.avatar,
           };
         });
@@ -71,7 +75,7 @@ export default function DashboardClient() {
             type: "tx" as const,
             createdAt: tx.createdAt,
             content: tx.description,
-            userName: u?.name ?? "Usuario",
+            userName: u?.name ?? t("unknownUser"),
             emoji: tx.emoji,
             amount: tx.amount,
           };
@@ -105,22 +109,26 @@ export default function DashboardClient() {
   const todayInstances = myTodayTasks
     .filter((t) => t.assignedTo.includes(currentUser.id))
     .map((t) => taskInstances.find((ti) =>
-      ti.taskId === t.id && ti.userId === currentUser.id &&
-      (t.isRecurring ? ti.date === today : true)
+      ti.taskId === t.id && ti.userId === currentUser.id && ti.date === today
     ))
     .filter((ti): ti is NonNullable<typeof ti> => !!ti);
 
   const completedToday = todayInstances.filter((ti) => ti.state === "completed");
   const pendingToday = todayInstances.filter((ti) => ti.state === "pending");
-  const pointsToday = completedToday.reduce((acc, ti) => acc + ti.pointsAwarded, 0);
+  // Points today: sum positive transactions for this user created today
+  const pointsToday = transactions
+    .filter((tx) => tx.userId === currentUser.id && tx.amount > 0 && tx.createdAt.startsWith(today))
+    .reduce((acc, tx) => acc + tx.amount, 0);
 
-  // Find next affordable reward
-  const nextReward = rewards.filter(
-    (r) => r.status === "available" && r.pointsCost > currentUser.pointsBalance
-  ).sort((a, b) => a.pointsCost - b.pointsCost)[0];
+  // Target rewards (user's objectives)
+  const targetRewards = rewards.filter(
+    (r) => r.status === "available" && targetRewardIds.includes(r.id)
+  );
+  const safeIdx = targetRewards.length > 0 ? targetRewardIdx % targetRewards.length : 0;
+  const currentTargetReward = targetRewards[safeIdx] ?? null;
 
-  const progressToNextReward = nextReward
-    ? Math.min(100, (currentUser.pointsBalance / nextReward.pointsCost) * 100)
+  const progressToTargetReward = currentTargetReward
+    ? Math.min(100, (currentUser.pointsBalance / currentTargetReward.pointsCost) * 100)
     : 100;
 
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
@@ -139,13 +147,7 @@ export default function DashboardClient() {
     const completed = myInstances.filter((ti) => ti.state === "completed");
     const totalPointsEarned = completed.reduce((s, ti) => s + ti.pointsAwarded, 0);
     const completedDays = new Set(completed.map((ti) => ti.date));
-    let currentStreak = 0;
-    const now = new Date();
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(now); d.setDate(now.getDate() - i);
-      const ds = d.toISOString().split("T")[0];
-      if (completedDays.has(ds)) { currentStreak++; } else if (i > 0) { break; }
-    }
+    const currentStreak = calculateCurrentStreak(completedDays);
     const rewardsClaimed = claims.filter((c) => c.userId === currentUser.id && c.status === "approved").length;
     return {
       totalTasksCompleted: completed.length, currentStreak, bestStreak: currentStreak,
@@ -157,7 +159,8 @@ export default function DashboardClient() {
   const recentAchievements = ACHIEVEMENTS.filter((a) => a.condition(stats)).slice(-3).reverse();
 
   // Build task list for today — same logic as TasksClient
-  const todayTasksWithInfo: Array<{ instance: (typeof todayInstances)[0] | null; task: (typeof tasks)[0] | undefined; isClaimable: boolean }> = [];
+  const MAX_DASHBOARD_TASKS = 6;
+  const allTodayTasksWithInfo: Array<{ instance: (typeof todayInstances)[0] | null; task: (typeof tasks)[0] | undefined; isClaimable: boolean }> = [];
 
   // Assigned tasks with instances
   for (const t of myTodayTasks.filter((t) => t.assignedTo.includes(currentUser.id))) {
@@ -165,18 +168,19 @@ export default function DashboardClient() {
       ti.taskId === t.id && ti.userId === currentUser.id &&
       (t.isRecurring ? ti.date === today : true)
     ) ?? null;
-    if (todayTasksWithInfo.length < 6) {
-      todayTasksWithInfo.push({ instance, task: t, isClaimable: false });
-    }
+    allTodayTasksWithInfo.push({ instance, task: t, isClaimable: false });
   }
 
   // Claimable tasks (unassigned)
   for (const t of myTodayTasks.filter((t) => t.assignedTo.length === 0)) {
     const claimed = taskInstances.some((ti) => ti.taskId === t.id && ti.date === today);
-    if (!claimed && todayTasksWithInfo.length < 6) {
-      todayTasksWithInfo.push({ instance: null, task: t, isClaimable: true });
+    if (!claimed) {
+      allTodayTasksWithInfo.push({ instance: null, task: t, isClaimable: true });
     }
   }
+
+  const todayTasksWithInfo = allTodayTasksWithInfo.slice(0, MAX_DASHBOARD_TASKS);
+  const hasMoreTasks = allTodayTasksWithInfo.length > MAX_DASHBOARD_TASKS;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -222,10 +226,10 @@ export default function DashboardClient() {
           <span className="text-2xl">{activeMultiplier.emoji}</span>
           <div className="flex-1">
             <p className="font-bold text-primary">
-              ×{activeMultiplier.multiplier} activo — {activeMultiplier.name}
+              {t("multiplierActive", { multiplier: activeMultiplier.multiplier, name: activeMultiplier.name })}
             </p>
             <p className="text-sm text-muted-foreground">
-              {activeMultiplier.description} · Hasta {activeMultiplier.endDate}
+              {t("multiplierUntil", { description: activeMultiplier.description, endDate: activeMultiplier.endDate })}
             </p>
           </div>
           <Zap className="w-5 h-5 text-primary" />
@@ -239,13 +243,13 @@ export default function DashboardClient() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Flag className="w-4 h-4 text-primary" />
-                Retos activos
+                {t("activeChallenges")}
               </CardTitle>
               <button
                 onClick={() => router.push(`/${locale}/challenges`)}
                 className="text-xs text-primary hover:underline"
               >
-                Ver todos →
+                {t("viewAll")}
               </button>
             </div>
           </CardHeader>
@@ -297,7 +301,7 @@ export default function DashboardClient() {
                       <p className="text-xs text-muted-foreground">+{task?.points ?? 0} pts</p>
                       {isClaimable && (
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px] px-1.5 py-0">
-                          Sin asignar
+                          {t("unassigned")}
                         </Badge>
                       )}
                     </div>
@@ -306,10 +310,35 @@ export default function DashboardClient() {
                     <Button
                       size="sm"
                       className="h-7 text-xs bg-amber-500 hover:bg-amber-600"
-                      onClick={() => router.push(`/${locale}/tasks`)}
+                      disabled={claimingTaskId === task?.id}
+                      onClick={async () => {
+                        if (!task || !currentUser) return;
+                        setClaimingTaskId(task.id);
+                        try {
+                          const newInstance = await claimTask(task, currentUser.id, today);
+                          if (!newInstance) {
+                            toast.error(t("claimAlreadyTaken"));
+                            return;
+                          }
+                          useAppStore.setState((prev) => ({
+                            taskInstances: [...prev.taskInstances, newInstance],
+                            users: prev.users.map((u) =>
+                              u.id === currentUser.id ? { ...u, pointsBalance: u.pointsBalance + task.points } : u
+                            ),
+                            currentUser: prev.currentUser?.id === currentUser.id
+                              ? { ...prev.currentUser, pointsBalance: prev.currentUser.pointsBalance + task.points }
+                              : prev.currentUser,
+                          }));
+                          toast.success(t("claimSuccess", { title: task.title }), { description: t("claimSuccessPoints", { points: task.points }) });
+                        } catch {
+                          toast.error(t("claimError"));
+                        } finally {
+                          setClaimingTaskId(null);
+                        }
+                      }}
                     >
                       <Hand className="w-3 h-3 mr-1" />
-                      Reclamar
+                      {claimingTaskId === task?.id ? "..." : t("claim")}
                     </Button>
                   ) : instance?.state === "pending" ? (
                     <Button
@@ -328,50 +357,111 @@ export default function DashboardClient() {
                     </Button>
                   ) : instance?.state === "completed" ? (
                     <Badge variant="secondary" className="text-green-600 bg-green-100 border-0 text-xs">
-                      ✓ Hecho
+                      {t("done")}
                     </Badge>
                   ) : !instance ? (
-                    <span className="text-xs text-muted-foreground">Cargando...</span>
+                    <span className="text-xs text-muted-foreground">{t("loadingTask")}</span>
                   ) : null}
                 </div>
               ))
             )}
+            {hasMoreTasks && (
+              <button
+                onClick={() => router.push(`/${locale}/tasks`)}
+                className="w-full text-center text-xs text-primary hover:underline font-medium pt-1"
+              >
+                {t("viewAllTasks", { count: allTodayTasksWithInfo.length })}
+              </button>
+            )}
           </CardContent>
         </Card>
 
-        {/* Next reward progress */}
+        {/* Target reward progress */}
         <div className="space-y-4">
-          {nextReward && (
+          {currentTargetReward ? (
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Gift className="w-4 h-4 text-primary" />
+                  <Heart className="w-4 h-4 text-red-500 fill-red-500" />
                   {t("nextReward")}
+                  {targetRewards.length > 1 && (
+                    <span className="text-xs text-muted-foreground font-normal ml-auto">
+                      {safeIdx + 1} / {targetRewards.length}
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl">
-                    {nextReward.emoji}
+                  {targetRewards.length > 1 && (
+                    <button
+                      onClick={() => setTargetRewardIdx((i) => (i - 1 + targetRewards.length) % targetRewards.length)}
+                      className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl flex-shrink-0">
+                    {currentTargetReward.emoji}
                   </div>
-                  <div>
-                    <p className="font-semibold">{nextReward.title}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{currentTargetReward.title}</p>
                     <p className="text-sm text-muted-foreground">
                       {t("pointsProgress", {
                         current: currentUser.pointsBalance.toLocaleString(),
-                        needed: nextReward.pointsCost.toLocaleString(),
+                        needed: currentTargetReward.pointsCost.toLocaleString(),
                       })}
                     </p>
                   </div>
+                  {targetRewards.length > 1 && (
+                    <button
+                      onClick={() => setTargetRewardIdx((i) => (i + 1) % targetRewards.length)}
+                      className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-                <Progress value={progressToNextReward} className="h-3" />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Te faltan{" "}
-                  <span className="font-semibold text-primary">
-                    {(nextReward.pointsCost - currentUser.pointsBalance).toLocaleString()} pts
-                  </span>{" "}
-                  para esta recompensa
-                </p>
+                <Progress value={progressToTargetReward} className="h-3" />
+                {currentUser.pointsBalance < currentTargetReward.pointsCost ? (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t.rich("rewardPointsRemaining", {
+                      points: (currentTargetReward.pointsCost - currentUser.pointsBalance).toLocaleString(),
+                      highlight: (chunks) => <span className="font-semibold text-primary">{chunks}</span>,
+                    })}
+                  </p>
+                ) : (
+                  <p className="text-xs text-green-600 font-semibold mt-2">
+                    {t("rewardReady")}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-sm border-dashed">
+              <CardContent className="pt-5">
+                <div className="flex flex-col items-center justify-center text-center py-4 gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center">
+                    <Heart className="w-7 h-7 text-muted-foreground/30" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">
+                      {t("chooseReward")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("chooseRewardDesc")}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1"
+                    onClick={() => router.push(`/${locale}/rewards`)}
+                  >
+                    <Gift className="w-3.5 h-3.5 mr-1.5" />
+                    {t("viewRewards")}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -384,8 +474,8 @@ export default function DashboardClient() {
                   <Flame className="w-6 h-6 text-orange-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-extrabold text-foreground">7 días</p>
-                  <p className="text-sm text-muted-foreground">{t("streakDays", { days: 7 })}</p>
+                  <p className="text-2xl font-extrabold text-foreground">{t("streakCard", { days: stats.currentStreak })}</p>
+                  <p className="text-sm text-muted-foreground">{t("streakDays", { days: stats.currentStreak })}</p>
                 </div>
               </div>
             </CardContent>
@@ -402,13 +492,13 @@ export default function DashboardClient() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-yellow-500" />
-                  Logros recientes
+                  {t("recentAchievements")}
                 </CardTitle>
                 <button
                   onClick={() => router.push(`/${locale}/achievements`)}
                   className="text-xs text-primary hover:underline"
                 >
-                  Ver todos →
+                  {t("viewAllAchievements")}
                 </button>
               </div>
             </CardHeader>
@@ -438,13 +528,13 @@ export default function DashboardClient() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-blue-500" />
-                Tablón familiar
+                {t("familyBoard")}
               </CardTitle>
               <button
                 onClick={() => router.push(`/${locale}/board`)}
                 className="text-xs text-primary hover:underline"
               >
-                Ver todo →
+                {t("viewBoard")}
               </button>
             </div>
           </CardHeader>
@@ -452,12 +542,12 @@ export default function DashboardClient() {
             {feedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
                 <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">El tablón está vacío</p>
+                <p className="text-sm text-muted-foreground">{t("boardEmpty")}</p>
                 <button
                   onClick={() => router.push(`/${locale}/board`)}
                   className="text-xs text-primary hover:underline"
                 >
-                  Sé el primero en escribir →
+                  {t("beFirst")}
                 </button>
               </div>
             ) : (

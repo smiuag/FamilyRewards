@@ -33,16 +33,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { DayOfWeek } from "@/lib/types";
 
-const DIFFICULTY_CONFIG = {
-  easy:   { label: "Fácil",   color: "bg-green-100 text-green-700" },
-  medium: { label: "Normal",  color: "bg-amber-100 text-amber-700" },
-  hard:   { label: "Difícil", color: "bg-red-100 text-red-700" },
-};
-
-const ALL_DAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const DAY_MAP: Record<string, string> = {
-  mon: "L", tue: "M", wed: "X", thu: "J", fri: "V", sat: "S", sun: "D",
-};
+import { DIFFICULTY_CONFIG, ALL_DAYS, DAY_LABELS as DAY_MAP } from "@/lib/config/constants";
 
 export default function CatalogTasksClient() {
   const { setupVisited, markSetupVisited, users, currentUser } = useAppStore();
