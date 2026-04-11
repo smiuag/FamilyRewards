@@ -58,8 +58,11 @@ export async function sendInviteAction(params: {
   const token = (invite as { token: string }).token;
   const joinUrl = `${origin}/es/join?token=${token}`;
 
+  // redirectTo apunta a /auth/confirm para que Supabase intercambie el código PKCE
+  // y establezca la sesión del nuevo usuario. El trigger handle_new_auth_user ya
+  // aceptó la invitación y creó/vinculó el perfil al llamar inviteUserByEmail.
   const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: joinUrl,
+    redirectTo: `${origin}/auth/confirm`,
   });
 
   if (emailError) {
