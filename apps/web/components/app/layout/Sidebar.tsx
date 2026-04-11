@@ -72,6 +72,7 @@ export default function Sidebar() {
 
   // Cambio de usuario
   const [showSwitchUser, setShowSwitchUser] = useState(false);
+  const switchUserRef = useRef<HTMLDivElement>(null);
 
   // PIN modal
   const { hasPin, verifyPin } = usePinStore();
@@ -83,6 +84,17 @@ export default function Sidebar() {
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
+
+  useEffect(() => {
+    if (!showSwitchUser) return;
+    const handler = (e: MouseEvent) => {
+      if (switchUserRef.current && !switchUserRef.current.contains(e.target as Node)) {
+        setShowSwitchUser(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSwitchUser]);
 
   const meItems: NavItem[] = [
     { href: `/${locale}/dashboard`, icon: Home, label: t("dashboard") },
@@ -296,7 +308,7 @@ export default function Sidebar() {
       <div className="px-3 pb-4 pt-2 border-t border-sidebar-border flex-shrink-0 space-y-1">
         {/* Switch user (admin only) */}
         {currentUser?.role === "admin" && users.length > 1 && (
-          <div>
+          <div ref={switchUserRef}>
             <button
               onClick={() => setShowSwitchUser(!showSwitchUser)}
               className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
@@ -313,7 +325,7 @@ export default function Sidebar() {
                     <button
                       key={u.id}
                       onClick={() => handleSwitchUser(u.id)}
-                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm hover:bg-background transition-colors"
+                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm hover:bg-sidebar-foreground/10 transition-colors"
                     >
                       <span className="text-base">{u.avatar}</span>
                       <span className="flex-1 text-left font-medium truncate">{u.name}</span>
