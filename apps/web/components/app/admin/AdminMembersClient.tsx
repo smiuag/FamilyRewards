@@ -454,16 +454,31 @@ export default function AdminMembersClient() {
           color="bg-gradient-to-br from-violet-500 to-purple-600"
           onClose={closeDialog} />
         <AppModalBody>
-          <div>
-            <Label>Nombre</Label>
-            <Input value={formName} onChange={(e) => setFormName(e.target.value)}
-              placeholder="Nombre del miembro" className="mt-1.5" autoFocus />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)}
+                placeholder="Nombre del miembro" className="mt-1.5" autoFocus />
+            </div>
+            <div>
+              <Label>Rol</Label>
+              <Select value={formRole} onValueChange={(v) => setFormRole(v as "admin" | "member")}>
+                <SelectTrigger className="mt-1.5">
+                  <span>{formRole === "member" ? "Miembro" : "Administrador"}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Miembro</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label className="mb-2 block">Avatar</Label>
             <div className="grid grid-cols-10 gap-1.5 max-h-40 overflow-y-auto pr-1">
               {AVATARS.map((av) => (
                 <button key={av} onClick={() => setFormAvatar(av)}
+                  aria-label={`Avatar ${av}`}
                   className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${
                     formAvatar === av ? "bg-primary/20 ring-2 ring-primary" : "bg-muted hover:bg-muted/80"
                   }`}>
@@ -471,18 +486,6 @@ export default function AdminMembersClient() {
                 </button>
               ))}
             </div>
-          </div>
-          <div>
-            <Label>Rol</Label>
-            <Select value={formRole} onValueChange={(v) => setFormRole(v as "admin" | "member")}>
-              <SelectTrigger className="mt-1.5">
-                <span>{formRole === "member" ? "Miembro" : "Administrador"}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="member">Miembro</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </AppModalBody>
         <AppModalFooter>
