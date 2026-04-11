@@ -106,7 +106,7 @@ export default function AddTaskClient() {
       const recurringPattern = makeRecurring && selectedDays.length > 0
         ? { daysOfWeek: selectedDays, time: configuringTask.suggestedTime, defaultState: "pending" as const }
         : undefined;
-      await createTask(currentUser.familyId, currentUser.id, {
+      const newTask = await createTask(currentUser.familyId, currentUser.id, {
         title: configuringTask.title,
         description: configuringTask.description,
         points: parseInt(customPoints) || configuringTask.suggestedPoints,
@@ -114,6 +114,7 @@ export default function AddTaskClient() {
         isRecurring: makeRecurring && selectedDays.length > 0,
         recurringPattern,
       });
+      useAppStore.setState((prev) => ({ tasks: [...prev.tasks, newTask] }));
       setAddedIds((prev) => new Set([...prev, configuringTask.id]));
       toast.success(`"${configuringTask.title}" añadida`, {
         description: selectedUsers.length > 0

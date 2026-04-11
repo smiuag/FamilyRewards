@@ -221,11 +221,12 @@ export default function AdminMembersClient() {
         origin: window.location.origin,
       });
 
-      setInviteLink(result.link);
       if (result.emailWarning) {
+        setInviteLink(result.link);
         toast.warning("Invitación creada pero el email no se pudo enviar. Comparte el enlace manualmente.");
       } else {
         toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
+        closeDialog();
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear la invitación. Inténtalo de nuevo.");
