@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check, Trash2, Palmtree, Shield, ShieldOff, LogOut, Lock } from "lucide-react";
+import { Star, Plus, Minus, SlidersHorizontal, Pencil, UserPlus, Mail, Copy, Check, Trash2, Palmtree, Shield, ShieldOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
 
@@ -63,7 +63,7 @@ export default function AdminMembersClient() {
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
   const {
-    users, currentUser, taskInstances,
+    users, currentUser, taskInstances, familyName,
     updateMember, adjustPoints,
   } = useAppStore();
 
@@ -98,7 +98,7 @@ export default function AdminMembersClient() {
   const [copied, setCopied] = useState(false);
 
   // Unsubscribe form
-  const [unsubPassword, setUnsubPassword] = useState("");
+  const [unsubConfirmName, setUnsubConfirmName] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -334,21 +334,15 @@ export default function AdminMembersClient() {
   };
 
   const handleUnsubscribe = async () => {
-    if (!unsubPassword.trim() || !currentUser?.familyId) return;
+    if (!unsubConfirmName.trim() || !currentUser?.familyId) return;
     setSaving(true);
     try {
-      // Necesitamos el email del admin actual para verificar contraseña
-      const supabase = (await import("@/lib/supabase/client")).createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("No se pudo obtener el email");
-
       await deleteFamilyAction({
         familyId: currentUser.familyId,
-        adminEmail: user.email,
-        password: unsubPassword,
+        confirmName: unsubConfirmName,
       });
 
-      // Cerrar sesión y redirigir
+      const supabase = (await import("@/lib/supabase/client")).createClient();
       await supabase.auth.signOut();
       useAppStore.getState().logout();
       router.push(`/${locale}/login`);
@@ -372,7 +366,7 @@ export default function AdminMembersClient() {
             {t("addMember")}
           </Button>
           <Button size="sm" variant="outline" className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            onClick={() => { setUnsubPassword(""); setMode("unsubscribe"); }}>
+            onClick={() => { setUnsubConfirmName(""); setMode("unsubscribe"); }}>
             <LogOut className="w-4 h-4 mr-1.5" />
             Darse de baja
           </Button>
@@ -741,24 +735,20 @@ export default function AdminMembersClient() {
             </ul>
           </div>
           <div>
-            <Label>Introduce tu contraseña para confirmar</Label>
-            <div className="relative mt-1.5">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="password"
-                value={unsubPassword}
-                onChange={(e) => setUnsubPassword(e.target.value)}
-                placeholder="Tu contraseña"
-                className="pl-9"
-                autoFocus
-              />
-            </div>
+            <Label>Escribe <strong>{familyName}</strong> para confirmar</Label>
+            <Input
+              value={unsubConfirmName}
+              onChange={(e) => setUnsubConfirmName(e.target.value)}
+              placeholder={familyName}
+              className="mt-1.5"
+              autoFocus
+            />
           </div>
         </AppModalBody>
         <AppModalFooter>
           <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
           <Button variant="destructive" onClick={handleUnsubscribe}
-            disabled={saving || !unsubPassword.trim()}>
+            disabled={saving || unsubConfirmName.trim().toLowerCase() !== (familyName || "").trim().toLowerCase()}>
             {saving ? "Eliminando..." : "Eliminar familia"}
           </Button>
         </AppModalFooter>

@@ -5,26 +5,27 @@ import { createClient } from "@supabase/supabase-js";
 /**
  * Borra toda la familia: elimina auth users de los miembros y la familia
  * (cascade borra profiles, tasks, rewards, invitations, etc).
- * Requiere verificar la contraseña del admin antes de llamar.
+ * Requiere que el nombre de confirmación coincida con el nombre de la familia.
  */
 export async function deleteFamilyAction(params: {
   familyId: string;
-  adminEmail: string;
-  password: string;
+  confirmName: string;
 }) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 1. Verificar contraseña del admin
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: params.adminEmail,
-    password: params.password,
-  });
+  // 1. Verificar que el nombre coincide
+  const { data: family } = await supabase
+    .from("families")
+    .select("name")
+    .eq("id", params.familyId)
+    .single();
 
-  if (signInError) {
-    throw new Error("Contraseña incorrecta");
+  if (!family) throw new Error("Familia no encontrada");
+  if (family.name.trim().toLowerCase() !== params.confirmName.trim().toLowerCase()) {
+    throw new Error("El nombre no coincide");
   }
 
   // 2. Obtener todos los auth users de la familia
