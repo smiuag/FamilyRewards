@@ -27,6 +27,7 @@ import {
   Check,
   X,
   ArrowLeftRight,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,12 +90,15 @@ export default function Sidebar() {
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
     { href: `/${locale}/history`, icon: History, label: t("history") },
+    { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
   // Alertas dinámicas: mostrar ! cuando falta configuración esencial
-  const needsMembers = users.length < 2;
-  const needsTasks = tasks.length === 0;
-  const needsRewards = rewards.length === 0;
+  // Solo mostrar alertas cuando ya se han cargado los datos (hay al menos usuarios)
+  const dataLoaded = users.length > 0;
+  const needsMembers = dataLoaded && users.length < 2;
+  const needsTasks = dataLoaded && tasks.length === 0;
+  const needsRewards = dataLoaded && rewards.length === 0;
 
   const adminItems: NavItem[] = [
     { href: `/${locale}/admin/members`, icon: Users, label: t("adminMembers"), alert: needsMembers },
