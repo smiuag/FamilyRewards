@@ -6,7 +6,7 @@ export async function createInviteAction(params: {
   familyId: string;
   invitedByProfileId: string;
   profileId: string;
-  email: string;
+  email?: string;
   role: "admin" | "member";
   origin: string;
 }): Promise<{ token: string; link: string }> {
@@ -17,35 +17,37 @@ export async function createInviteAction(params: {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Comprobar si el email ya tiene una cuenta registrada
-  const { data: emailCheck } = await supabase.rpc("email_exists_in_auth", {
-    p_email: email,
-  });
+  if (email) {
+    // Comprobar si el email ya tiene una cuenta registrada
+    const { data: emailCheck } = await supabase.rpc("email_exists_in_auth", {
+      p_email: email,
+    });
 
-  if (emailCheck === true) {
-    throw new Error("Ya existe un usuario registrado con ese email.");
-  }
+    if (emailCheck === true) {
+      throw new Error("Ya existe un usuario registrado con ese email.");
+    }
 
-  // Comprobar si ya hay una invitación pendiente para ese email en esta familia
-  const { data: existingInvite } = await supabase
-    .from("family_invitations")
-    .select("id")
-    .eq("family_id", familyId)
-    .eq("email", email)
-    .is("accepted_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .limit(1)
-    .maybeSingle();
+    // Comprobar si ya hay una invitación pendiente para ese email en esta familia
+    const { data: existingInvite } = await supabase
+      .from("family_invitations")
+      .select("id")
+      .eq("family_id", familyId)
+      .eq("email", email)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
 
-  if (existingInvite) {
-    throw new Error("Ya hay una invitación pendiente para ese email en esta familia.");
+    if (existingInvite) {
+      throw new Error("Ya hay una invitación pendiente para ese email en esta familia.");
+    }
   }
 
   const { data: invite, error: inviteError } = await supabase
     .from("family_invitations")
     .insert({
       family_id: familyId,
-      email,
+      email: email || null,
       role,
       invited_by: invitedByProfileId,
       profile_id: profileId,

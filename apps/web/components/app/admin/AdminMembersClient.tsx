@@ -93,6 +93,7 @@ export default function AdminMembersClient() {
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [inviteProfileId, setInviteProfileId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteStep, setInviteStep] = useState<"choose" | "email" | "link">("choose");
   const [copied, setCopied] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
@@ -116,6 +117,7 @@ export default function AdminMembersClient() {
     setInviteRole(user.role);
     setInviteProfileId(user.id);
     setInviteLink(null);
+    setInviteStep("choose");
     setCopied(false);
     setSelectedUser(user);
     setMode("invite");
@@ -207,7 +209,28 @@ export default function AdminMembersClient() {
     }
   };
 
-  const handleInvite = async () => {
+  const handleGenerateLink = async () => {
+    if (!currentUser?.familyId || !currentUser?.id) return;
+    setSaving(true);
+    try {
+      const result = await createInviteAction({
+        familyId: currentUser.familyId,
+        invitedByProfileId: currentUser.id,
+        profileId: inviteProfileId!,
+        role: inviteRole,
+        origin: window.location.origin,
+      });
+      setInviteLink(result.link);
+      setInviteStep("link");
+      toast.success("Enlace generado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al crear la invitación.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
     if (!inviteEmail.trim()) { toast.error("Introduce un email"); return; }
     if (!currentUser?.familyId || !currentUser?.id) return;
     setSaving(true);
@@ -220,23 +243,18 @@ export default function AdminMembersClient() {
         role: inviteRole,
         origin: window.location.origin,
       });
-
-      setInviteLink(result.link);
-      toast.success("Invitación creada");
+      const subject = encodeURIComponent("Te han invitado a FamilyRewards");
+      const body = encodeURIComponent(
+        `Hola,\n\nTe han invitado a unirte a una familia en FamilyRewards.\n\nHaz clic en este enlace para registrarte:\n${result.link}\n\nEl enlace expira en 7 días.`
+      );
+      window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, "_blank");
+      toast.success(`Email preparado para ${inviteEmail.trim()}`);
+      closeDialog();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al crear la invitación. Inténtalo de nuevo.");
+      toast.error(err instanceof Error ? err.message : "Error al crear la invitación.");
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleSendEmail = () => {
-    if (!inviteLink || !inviteEmail) return;
-    const subject = encodeURIComponent("Te han invitado a FamilyRewards");
-    const body = encodeURIComponent(
-      `Hola,\n\nTe han invitado a unirte a una familia en FamilyRewards.\n\nHaz clic en este enlace para registrarte:\n${inviteLink}\n\nEl enlace expira en 7 días.`
-    );
-    window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, "_blank");
   };
 
   const handleDelete = async () => {
@@ -501,7 +519,7 @@ export default function AdminMembersClient() {
         </AppModalFooter>
       </AppModal>
 
-      {/* Invite admin modal */}
+      {/* Invite modal */}
       <AppModal open={mode === "invite"} onOpenChange={closeDialog}>
         <AppModalHeader emoji="✉️"
           title={selectedUser ? `Invitar a ${selectedUser.name}` : "Enviar invitación"}
@@ -509,57 +527,60 @@ export default function AdminMembersClient() {
           color="bg-gradient-to-br from-blue-500 to-indigo-600"
           onClose={closeDialog} />
         <AppModalBody>
-          {!inviteLink ? (
+          {inviteStep === "choose" && (
+            <div className="flex flex-col gap-3">
+              <Button variant="outline" className="h-auto py-4 flex-col gap-1" onClick={() => setInviteStep("email")}>
+                <Mail className="w-5 h-5" />
+                <span className="font-semibold">Enviar por email</span>
+                <span className="text-xs text-muted-foreground">Se abrirá tu cliente de correo</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-4 flex-col gap-1" onClick={handleGenerateLink} disabled={saving}>
+                <Copy className="w-5 h-5" />
+                <span className="font-semibold">{saving ? "Generando..." : "Generar enlace"}</span>
+                <span className="text-xs text-muted-foreground">Para compartir por WhatsApp, etc.</span>
+              </Button>
+            </div>
+          )}
+
+          {inviteStep === "email" && (
             <>
               <div>
-                <Label>Email</Label>
+                <Label>Email del invitado</Label>
                 <Input type="email" placeholder="nombre@email.com" value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)} className="mt-1.5" autoFocus />
               </div>
-              <div>
-                <Label>Rol</Label>
-                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "admin" | "member")}>
-                  <SelectTrigger className="mt-1.5">
-                    <span>{inviteRole === "member" ? "Miembro" : "Administrador"}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="member">Miembro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </>
-          ) : (
-            <div className="space-y-4">
+          )}
+
+          {inviteStep === "link" && inviteLink && (
+            <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Invitación para <strong>{inviteEmail}</strong> creada. Expira en 7 días.
+                Comparte este enlace. Expira en 7 días.
               </p>
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-xl">
-                <span className="text-xs text-muted-foreground flex-1 truncate">{inviteLink}</span>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-xl min-w-0">
+                <span className="text-xs text-muted-foreground flex-1 break-all line-clamp-2">{inviteLink}</span>
                 <Button size="sm" variant="outline" className="h-8 flex-shrink-0" onClick={handleCopyLink}>
                   {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={handleSendEmail}>
-                  <Mail className="w-4 h-4 mr-1.5" /> Enviar por email
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={handleCopyLink}>
-                  {copied ? <Check className="w-4 h-4 mr-1.5 text-green-600" /> : <Copy className="w-4 h-4 mr-1.5" />}
-                  {copied ? "Copiado" : "Copiar enlace"}
                 </Button>
               </div>
             </div>
           )}
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={closeDialog}>
-            {inviteLink ? "Cerrar" : "Cancelar"}
-          </Button>
-          {!inviteLink && (
-            <Button onClick={handleInvite} disabled={saving || !inviteEmail.trim()}>
-              {saving ? "Creando..." : "Crear invitación"}
-            </Button>
+          {inviteStep === "choose" && (
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          )}
+          {inviteStep === "email" && (
+            <>
+              <Button variant="outline" onClick={() => setInviteStep("choose")}>Atrás</Button>
+              <Button onClick={handleSendEmail} disabled={saving || !inviteEmail.trim()}>
+                <Mail className="w-4 h-4 mr-1.5" />
+                {saving ? "Enviando..." : "Enviar"}
+              </Button>
+            </>
+          )}
+          {inviteStep === "link" && (
+            <Button variant="outline" onClick={closeDialog}>Cerrar</Button>
           )}
         </AppModalFooter>
       </AppModal>

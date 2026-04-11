@@ -40,7 +40,7 @@ alter table profiles
 create table if not exists family_invitations (
   id          uuid primary key default gen_random_uuid(),
   family_id   uuid not null references families(id) on delete cascade,
-  email       text not null,
+  email       text,
   role        text not null default 'member' check (role in ('admin', 'member')),
   token       text not null unique default encode(gen_random_bytes(32), 'hex'),
   invited_by  uuid references profiles(id) on delete set null,

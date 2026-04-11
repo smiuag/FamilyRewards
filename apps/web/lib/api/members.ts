@@ -220,7 +220,7 @@ export async function createInvitation(
 
 export async function getInvitationInfo(
   token: string
-): Promise<{ familyName: string; email: string; role: "admin" | "member" } | null> {
+): Promise<{ familyName: string; email: string | null; role: "admin" | "member" } | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("family_invitations")
@@ -240,7 +240,7 @@ export async function getInvitationInfo(
 
   return {
     familyName: familyData?.name ?? "Mi familia",
-    email: data.email,
+    email: data.email ?? null,
     role: data.role as "admin" | "member",
   };
 }

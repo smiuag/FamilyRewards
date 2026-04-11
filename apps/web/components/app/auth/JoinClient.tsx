@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getInvitationInfo } from "@/lib/api/members";
-import { Star, User, Lock, Eye, EyeOff } from "lucide-react";
+import { Star, User, Lock, Eye, EyeOff, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function GoogleIcon() {
@@ -42,12 +42,13 @@ export default function JoinClient() {
   const [loading, setLoading] = useState(true);
   const [inviteInfo, setInviteInfo] = useState<{
     familyName: string;
-    email: string;
+    email: string | null;
     role: "admin" | "member";
   } | null>(null);
 
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("👨");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,6 +64,7 @@ export default function JoinClient() {
         setError("La invitación no es válida o ha expirado.");
       } else {
         setInviteInfo(info);
+        if (info.email) setEmail(info.email);
       }
       setLoading(false);
     });
@@ -71,6 +73,7 @@ export default function JoinClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteInfo) return;
+    if (!email.trim()) { setError("Introduce tu email."); return; }
     if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
 
     setSubmitting(true);
@@ -78,7 +81,7 @@ export default function JoinClient() {
 
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
-      email: inviteInfo.email,
+      email: email.trim(),
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/confirm`,
@@ -190,9 +193,18 @@ export default function JoinClient() {
 
           <div className="space-y-1">
             <label className="text-sm font-medium">Email</label>
-            <div className="px-3 py-2.5 rounded-xl border bg-muted/50 text-sm text-muted-foreground">
-              {inviteInfo?.email}
-            </div>
+            {inviteInfo?.email ? (
+              <div className="px-3 py-2.5 rounded-xl border bg-muted/50 text-sm text-muted-foreground">
+                {inviteInfo.email}
+              </div>
+            ) : (
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com" required
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -211,9 +223,9 @@ export default function JoinClient() {
 
           {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
-          <button type="submit" disabled={submitting || !name.trim()}
+          <button type="submit" disabled={submitting || !name.trim() || !email.trim()}
             className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
-              submitting || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
+              submitting || !name.trim() || !email.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
             {submitting ? "Uniéndome..." : "Unirme a la familia"}
           </button>
 
