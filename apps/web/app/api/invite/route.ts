@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Crear registro de invitación en la BD
+    // Crear registro de invitación en la BD (sin crear auth user)
     const { data: invite, error: inviteError } = await supabase
       .from("family_invitations")
       .insert({
@@ -33,21 +33,6 @@ export async function POST(req: NextRequest) {
     const token = (invite as { token: string }).token;
     const origin = req.nextUrl.origin;
     const joinUrl = `${origin}/es/join?token=${token}`;
-
-    // Enviar email de invitación vía Supabase Auth Admin
-    // redirectTo a /profile-select: Supabase usa flujo implícito (#access_token)
-    // para invitaciones, y el browser client lo detecta automáticamente
-    const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/es/profile-select`,
-    });
-
-    if (emailError) {
-      // La invitación se creó pero el email falló → devolver el enlace para que el admin lo comparta manualmente
-      return NextResponse.json(
-        { token, link: joinUrl, emailWarning: emailError.message },
-        { status: 200 }
-      );
-    }
 
     return NextResponse.json({ token, link: joinUrl });
   } catch (err) {

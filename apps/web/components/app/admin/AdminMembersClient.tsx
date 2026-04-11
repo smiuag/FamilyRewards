@@ -12,7 +12,7 @@ import {
   fetchFamilyProfiles,
   setVacationMode,
 } from "@/lib/api/members";
-import { sendInviteAction } from "@/lib/actions/invite";
+import { createInviteAction } from "@/lib/actions/invite";
 import { deleteAuthUserAction } from "@/lib/actions/delete-auth-user";
 import { postBoardMessage } from "@/lib/api/board";
 import { Card, CardContent } from "@/components/ui/card";
@@ -212,7 +212,7 @@ export default function AdminMembersClient() {
     if (!currentUser?.familyId || !currentUser?.id) return;
     setSaving(true);
     try {
-      const result = await sendInviteAction({
+      const result = await createInviteAction({
         familyId: currentUser.familyId,
         invitedByProfileId: currentUser.id,
         profileId: inviteProfileId!,
@@ -221,18 +221,22 @@ export default function AdminMembersClient() {
         origin: window.location.origin,
       });
 
-      if (result.emailWarning) {
-        setInviteLink(result.link);
-        toast.warning("Invitación creada pero el email no se pudo enviar. Comparte el enlace manualmente.");
-      } else {
-        toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
-        closeDialog();
-      }
+      setInviteLink(result.link);
+      toast.success("Invitación creada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear la invitación. Inténtalo de nuevo.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSendEmail = () => {
+    if (!inviteLink || !inviteEmail) return;
+    const subject = encodeURIComponent("Te han invitado a FamilyRewards");
+    const body = encodeURIComponent(
+      `Hola,\n\nTe han invitado a unirte a una familia en FamilyRewards.\n\nHaz clic en este enlace para registrarte:\n${inviteLink}\n\nEl enlace expira en 7 días.`
+    );
+    window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, "_blank");
   };
 
   const handleDelete = async () => {
@@ -501,7 +505,7 @@ export default function AdminMembersClient() {
       <AppModal open={mode === "invite"} onOpenChange={closeDialog}>
         <AppModalHeader emoji="✉️"
           title={selectedUser ? `Invitar a ${selectedUser.name}` : "Enviar invitación"}
-          description="El invitado recibirá un correo para crear su cuenta"
+          description="El invitado podrá registrarse con contraseña o Google"
           color="bg-gradient-to-br from-blue-500 to-indigo-600"
           onClose={closeDialog} />
         <AppModalBody>
@@ -526,14 +530,23 @@ export default function AdminMembersClient() {
               </div>
             </>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Comparte este enlace con <strong>{inviteEmail}</strong>. Expira en 7 días.
+                Invitación para <strong>{inviteEmail}</strong> creada. Expira en 7 días.
               </p>
               <div className="flex items-center gap-2 p-3 bg-muted rounded-xl">
                 <span className="text-xs text-muted-foreground flex-1 truncate">{inviteLink}</span>
                 <Button size="sm" variant="outline" className="h-8 flex-shrink-0" onClick={handleCopyLink}>
                   {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={handleSendEmail}>
+                  <Mail className="w-4 h-4 mr-1.5" /> Enviar por email
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={handleCopyLink}>
+                  {copied ? <Check className="w-4 h-4 mr-1.5 text-green-600" /> : <Copy className="w-4 h-4 mr-1.5" />}
+                  {copied ? "Copiado" : "Copiar enlace"}
                 </Button>
               </div>
             </div>

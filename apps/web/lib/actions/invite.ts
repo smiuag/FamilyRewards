@@ -2,14 +2,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-export async function sendInviteAction(params: {
+export async function createInviteAction(params: {
   familyId: string;
   invitedByProfileId: string;
   profileId: string;
   email: string;
   role: "admin" | "member";
   origin: string;
-}): Promise<{ token: string; link: string; emailWarning?: string }> {
+}): Promise<{ token: string; link: string }> {
   const { familyId, invitedByProfileId, profileId, email, role, origin } = params;
 
   const supabase = createClient(
@@ -57,18 +57,6 @@ export async function sendInviteAction(params: {
 
   const token = (invite as { token: string }).token;
   const joinUrl = `${origin}/es/join?token=${token}`;
-
-  // redirectTo apunta a /profile-select porque Supabase usa flujo implícito
-  // (#access_token en hash) para invitaciones — el browser client lo detecta
-  // automáticamente. El trigger handle_new_auth_user ya aceptó la invitación
-  // y creó/vinculó el perfil al llamar inviteUserByEmail.
-  const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/es/profile-select`,
-  });
-
-  if (emailError) {
-    return { token, link: joinUrl, emailWarning: emailError.message };
-  }
 
   return { token, link: joinUrl };
 }

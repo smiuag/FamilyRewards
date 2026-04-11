@@ -80,6 +80,25 @@ export default function ProfileSelectClient() {
       // Cargar configuración de la familia (nombre + estado onboarding)
       const familySettings = await fetchFamilySettings(familyId);
 
+      // Procesar invitación pendiente (Google OAuth desde /join)
+      const pendingRaw = localStorage.getItem("pending_invitation");
+      if (pendingRaw) {
+        localStorage.removeItem("pending_invitation");
+        try {
+          const pending = JSON.parse(pendingRaw) as { token?: string; name?: string | null; avatar?: string };
+          // Actualizar perfil con nombre/avatar elegidos en /join si los hay
+          const myProf = profilesData.find((p) => p.auth_user_id === user.id);
+          if (myProf && (pending.name || pending.avatar)) {
+            const updates: Record<string, string> = {};
+            if (pending.name) updates.name = pending.name;
+            if (pending.avatar) updates.avatar = pending.avatar;
+            await supabase.from("profiles").update(updates).eq("id", myProf.id);
+            if (pending.name) myProf.name = pending.name;
+            if (pending.avatar) myProf.avatar = pending.avatar;
+          }
+        } catch { /* ignore parse errors */ }
+      }
+
       // Auto-login: buscar el perfil que corresponde al auth user
       const myProfile = profilesData.find((p) => p.auth_user_id === user.id);
       if (myProfile) {
