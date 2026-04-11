@@ -9,6 +9,7 @@ export async function createInviteAction(params: {
   email?: string;
   role: "admin" | "member";
   origin: string;
+  sendEmail?: boolean;
 }): Promise<{ token: string; link: string }> {
   const { familyId, invitedByProfileId, profileId, email, role, origin } = params;
 
@@ -59,6 +60,17 @@ export async function createInviteAction(params: {
 
   const token = (invite as { token: string }).token;
   const joinUrl = `${origin}/es/join?token=${token}`;
+
+  // Enviar email automáticamente vía Supabase Auth
+  // El trigger encontrará la invitación por email y vinculará el perfil
+  if (params.sendEmail && email) {
+    const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${origin}/es/profile-select`,
+    });
+    if (emailError) {
+      throw new Error(`Invitación creada pero el email falló: ${emailError.message}`);
+    }
+  }
 
   return { token, link: joinUrl };
 }

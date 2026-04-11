@@ -235,20 +235,16 @@ export default function AdminMembersClient() {
     if (!currentUser?.familyId || !currentUser?.id) return;
     setSaving(true);
     try {
-      const result = await createInviteAction({
+      await createInviteAction({
         familyId: currentUser.familyId,
         invitedByProfileId: currentUser.id,
         profileId: inviteProfileId!,
         email: inviteEmail.trim(),
         role: inviteRole,
         origin: window.location.origin,
+        sendEmail: true,
       });
-      const subject = encodeURIComponent("Te han invitado a FamilyRewards");
-      const body = encodeURIComponent(
-        `Hola,\n\nTe han invitado a unirte a una familia en FamilyRewards.\n\nHaz clic en este enlace para registrarte:\n${result.link}\n\nEl enlace expira en 7 días.`
-      );
-      window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, "_blank");
-      toast.success(`Email preparado para ${inviteEmail.trim()}`);
+      toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
       closeDialog();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear la invitación.");
