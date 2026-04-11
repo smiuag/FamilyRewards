@@ -97,8 +97,8 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
     return () => { cancelled = true; };
   }, [currentUser, locale, router]);
 
-  // While checking, show a loading spinner
-  if (!checked && !currentUser) {
+  // While checking, show a loading spinner — never render children until verified
+  if (!checked) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-3">
