@@ -34,7 +34,36 @@ export async function acceptInvitationAction(params: {
     .update({ accepted_at: new Date().toISOString() })
     .eq("id", invitation.id);
 
-  // 3. Vincular el perfil existente al auth user
+  // 3. PRIMERO: limpiar familia/perfil auto-creados por el trigger
+  //    (auth_user_id es UNIQUE, hay que liberar el valor antes de vincular)
+  const { data: autoProfiles } = await supabase
+    .from("profiles")
+    .select("id, family_id")
+    .eq("auth_user_id", params.authUserId)
+    .neq("family_id", invitation.family_id);
+
+  for (const autoProfile of autoProfiles ?? []) {
+    await supabase.from("profiles").delete().eq("id", autoProfile.id);
+    // Borrar la familia auto-creada si quedó vacía
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("family_id", autoProfile.family_id);
+    if (count === 0) {
+      await supabase.from("families").delete().eq("id", autoProfile.family_id);
+    }
+  }
+
+  // También borrar si el trigger creó un perfil EN la misma familia (distinto al de la invitación)
+  if (invitation.profile_id) {
+    await supabase
+      .from("profiles")
+      .delete()
+      .eq("auth_user_id", params.authUserId)
+      .neq("id", invitation.profile_id);
+  }
+
+  // 4. DESPUÉS: vincular el perfil de la invitación al auth user
   if (invitation.profile_id) {
     const updates: Record<string, string> = { auth_user_id: params.authUserId };
     if (params.name) updates.name = params.name;
@@ -46,7 +75,6 @@ export async function acceptInvitationAction(params: {
       .eq("id", invitation.profile_id)
       .is("auth_user_id", null);
   } else {
-    // Invitación genérica (sin perfil asociado): crear perfil en la familia
     await supabase.from("profiles").insert({
       auth_user_id: params.authUserId,
       family_id: invitation.family_id,
@@ -54,28 +82,6 @@ export async function acceptInvitationAction(params: {
       avatar: params.avatar || "😊",
       role: invitation.role,
     });
-  }
-
-  // 4. Limpiar familia/perfil auto-creados por el trigger
-  //    El trigger crea una familia nueva cuando no encuentra la invitación
-  const { data: autoProfiles } = await supabase
-    .from("profiles")
-    .select("id, family_id")
-    .eq("auth_user_id", params.authUserId)
-    .neq("family_id", invitation.family_id);
-
-  if (autoProfiles && autoProfiles.length > 0) {
-    for (const autoProfile of autoProfiles) {
-      await supabase.from("profiles").delete().eq("id", autoProfile.id);
-      // Borrar la familia auto-creada si quedó vacía
-      const { count } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("family_id", autoProfile.family_id);
-      if (count === 0) {
-        await supabase.from("families").delete().eq("id", autoProfile.family_id);
-      }
-    }
   }
 
   return { familyId: invitation.family_id };
