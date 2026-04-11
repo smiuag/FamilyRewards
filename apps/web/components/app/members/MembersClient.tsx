@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchFamilyProfiles } from "@/lib/api/members";
+import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +13,28 @@ import { CheckCircle2, Clock, Star, ChevronRight } from "lucide-react";
 export default function MembersClient() {
   const t = useTranslations("members");
   const { users, taskInstances } = useAppStore();
+
+  useEffect(() => {
+    (async () => {
+      const profiles = await fetchFamilyProfiles();
+      useAppStore.setState({ users: profiles });
+      let t = useAppStore.getState().tasks;
+      if (t.length === 0) {
+        t = await fetchFamilyTasks();
+        useAppStore.setState({ tasks: t });
+      }
+      // Backfill for all members
+      for (const u of profiles) {
+        const instances = await backfillInstances(t, u.id, new Date());
+        useAppStore.setState((prev) => ({
+          taskInstances: [
+            ...prev.taskInstances.filter((ti) => ti.userId !== u.id),
+            ...instances,
+          ],
+        }));
+      }
+    })().catch(() => {});
+  }, []);
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";

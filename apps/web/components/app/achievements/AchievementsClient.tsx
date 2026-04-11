@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
+import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
+import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import {
   ACHIEVEMENTS,
   RARITY_CONFIG,
@@ -18,6 +21,30 @@ import { cn } from "@/lib/utils";
 export default function AchievementsClient() {
   const { currentUser, taskInstances, claims, transactions } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
+
+  useEffect(() => {
+    if (!currentUser) return;
+    (async () => {
+      let t = useAppStore.getState().tasks;
+      if (t.length === 0) {
+        t = await fetchFamilyTasks();
+        useAppStore.setState({ tasks: t });
+      }
+      const [instances, claimsData, txs] = await Promise.all([
+        backfillInstances(t, currentUser.id, new Date()),
+        fetchFamilyClaims().catch(() => []),
+        fetchFamilyTransactions().catch(() => []),
+      ]);
+      useAppStore.setState((prev) => ({
+        taskInstances: [
+          ...prev.taskInstances.filter((ti) => ti.userId !== currentUser.id),
+          ...instances,
+        ],
+        claims: claimsData,
+        transactions: txs,
+      }));
+    })().catch(() => {});
+  }, [currentUser?.id]);
 
   const stats = useMemo<UserStats>(() => {
     if (!currentUser) return {

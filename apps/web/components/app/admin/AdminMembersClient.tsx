@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
@@ -9,6 +9,7 @@ import {
   updateProfile,
   adjustProfilePoints,
   deleteProfile,
+  fetchFamilyProfiles,
 } from "@/lib/api/members";
 import { sendInviteAction } from "@/lib/actions/invite";
 import { deleteAuthUserAction } from "@/lib/actions/delete-auth-user";
@@ -63,6 +64,12 @@ export default function AdminMembersClient() {
     users, currentUser, taskInstances,
     updateMember, adjustPoints,
   } = useAppStore();
+
+  useEffect(() => {
+    fetchFamilyProfiles()
+      .then((profiles) => useAppStore.setState({ users: profiles }))
+      .catch(() => {});
+  }, []);
 
   const [mode, setMode] = useState<DialogMode>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);

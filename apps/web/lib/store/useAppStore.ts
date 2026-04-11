@@ -410,17 +410,16 @@ export const useAppStore = create<AppState>()(
     {
       name: "family-rewards-store",
       partialize: (state) => ({
+        // Auth — restored by SessionGuard if session is valid
         currentUser: state.currentUser,
         users: state.users,
         familyName: state.familyName,
-        tasks: state.tasks,
-        taskInstances: state.taskInstances,
-        rewards: state.rewards,
-        claims: state.claims,
+        onboardingCompleted: state.onboardingCompleted,
+        setupVisited: state.setupVisited,
+        // UI preferences only
         targetRewardIds: state.targetRewardIds,
         archivedClaimIds: state.archivedClaimIds,
         featuresUnlocked: state.featuresUnlocked,
-        transactions: state.transactions,
       }),
     }
   )

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { getHolidaysForMonth, getHolidayForDate } from "@/lib/holidays";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,24 @@ export default function CalendarClient() {
   const { country, region, city } = useSettingsStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+
+  useEffect(() => {
+    if (!currentUser) return;
+    (async () => {
+      let t = useAppStore.getState().tasks;
+      if (t.length === 0) {
+        t = await fetchFamilyTasks();
+        useAppStore.setState({ tasks: t });
+      }
+      const instances = await backfillInstances(t, currentUser.id, new Date());
+      useAppStore.setState((prev) => ({
+        taskInstances: [
+          ...prev.taskInstances.filter((ti) => ti.userId !== currentUser.id),
+          ...instances,
+        ],
+      }));
+    })().catch(() => {});
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 

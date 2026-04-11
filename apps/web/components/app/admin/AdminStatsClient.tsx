@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
+import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
+import { fetchFamilyProfiles } from "@/lib/api/members";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, CheckCircle2, Gift, TrendingUp } from "lucide-react";
@@ -9,6 +13,28 @@ import { cn } from "@/lib/utils";
 export default function AdminStatsClient() {
   const { users, taskInstances, claims, rewards } = useAppStore();
   const members = users;
+
+  useEffect(() => {
+    (async () => {
+      const [profiles, tasks, rewardsData, claimsData] = await Promise.all([
+        fetchFamilyProfiles(),
+        fetchFamilyTasks(),
+        fetchFamilyRewards(),
+        fetchFamilyClaims(),
+      ]);
+      useAppStore.setState({ users: profiles, tasks, rewards: rewardsData, claims: claimsData });
+      // Backfill instances for all members
+      for (const u of profiles) {
+        const instances = await backfillInstances(tasks, u.id, new Date());
+        useAppStore.setState((prev) => ({
+          taskInstances: [
+            ...prev.taskInstances.filter((ti) => ti.userId !== u.id),
+            ...instances,
+          ],
+        }));
+      }
+    })().catch(() => {});
+  }, []);
 
   const maxPoints = members.length > 0 ? Math.max(...members.map((u) => u.pointsBalance)) : 0;
 
