@@ -297,7 +297,23 @@
       "manual": "Manual adjustment"
     },
     "adminPanel": "Admin panel",
-    "settings": "Settings"
+    "settings": "Settings",
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System",
+    "language": "Language",
+    "pinTitle": "Access PIN",
+    "pinDescription": "Protect your profile with a 4-digit PIN. It will be requested when switching users.",
+    "pinActive": "PIN active",
+    "deletePin": "Delete PIN",
+    "pinDeleted": "PIN deleted",
+    "newPin": "New PIN",
+    "confirmPin": "Confirm PIN",
+    "activatePin": "Activate PIN",
+    "pinSet": "PIN configured",
+    "pinMismatch": "PINs don't match"
   },
   "onboarding": {
     "welcome": "Welcome to FamilyRewards!",

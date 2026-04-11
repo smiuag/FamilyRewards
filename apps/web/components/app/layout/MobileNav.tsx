@@ -25,7 +25,7 @@ export default function MobileNav() {
   if (!currentUser) return null;
 
   return (
-    <div className="flex items-center justify-around bg-white border-t border-border py-2 px-2 safe-area-inset-bottom" role="navigation" aria-label="Navegación principal">
+    <div className="flex items-center justify-around bg-background border-t border-border py-2 px-2 safe-area-inset-bottom" role="navigation" aria-label="Navegación principal">
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(item.href + "/");

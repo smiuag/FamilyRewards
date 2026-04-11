@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
+import { useRouter as useIntlRouter, usePathname as useIntlPathname } from "@/i18n/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { usePinStore } from "@/lib/store/usePinStore";
+import { useThemeStore } from "@/lib/store/useThemeStore";
 import { fetchUserTransactions } from "@/lib/api/transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -14,16 +21,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Flame, Trophy, CheckCircle2 } from "lucide-react";
+import { Star, Flame, Trophy, CheckCircle2, Sun, Moon, Monitor, Globe, Lock, Trash2, Palette } from "lucide-react";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { MAX_STREAK_LOOKBACK_DAYS } from "@/lib/config/constants";
+import { toast } from "sonner";
 
 export default function ProfileClient() {
   const t = useTranslations("profile");
   const tRoles = useTranslations("roles");
   const { currentUser, transactions, taskInstances, loadTransactions } = useAppStore();
+  const { hasPin, setPin, removePin } = usePinStore();
+  const { theme, setTheme } = useThemeStore();
+  const intlRouter = useIntlRouter();
+  const intlPathname = useIntlPathname();
+  const params = useParams();
+  const locale = params?.locale as string ?? "es";
+  const [pinInput, setPinInput] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
 
   useEffect(() => {
     if (!currentUser) return;
@@ -38,6 +54,8 @@ export default function ProfileClient() {
   }, [currentUser?.id]);
 
   if (!currentUser) return null;
+
+  const currentHasPin = hasPin(currentUser.id);
 
   // Points history (last 50 for this user, newest first)
   const history = transactions
@@ -169,6 +187,130 @@ export default function ProfileClient() {
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Preferences */}
+      <h2 className="text-lg font-bold pt-2">{t("preferences")}</h2>
+
+      {/* Theme */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="w-4 h-4 text-primary" />
+            {t("appearance")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {(["light", "dark", "system"] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setTheme(opt)}
+                className={cn(
+                  "flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
+                  theme === opt
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted hover:bg-muted/80"
+                )}
+              >
+                {opt === "light" && <Sun className="w-5 h-5" />}
+                {opt === "dark" && <Moon className="w-5 h-5" />}
+                {opt === "system" && <Monitor className="w-5 h-5" />}
+                <span className="text-xs font-medium">{t(`theme_${opt}`)}</span>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary" />
+            {t("language")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {([
+              { code: "es", flag: "\u{1F1EA}\u{1F1F8}", label: "Espa\u00f1ol" },
+              { code: "en", flag: "\u{1F1EC}\u{1F1E7}", label: "English" },
+            ] as const).map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => intlRouter.replace(intlPathname, { locale: lang.code })}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all",
+                  locale === lang.code
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted hover:bg-muted/80"
+                )}
+              >
+                <span className="text-xl">{lang.flag}</span>
+                <span className="text-sm font-medium">{lang.label}</span>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* PIN */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            {t("pinTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("pinDescription")}</p>
+          {currentHasPin ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg">
+                {t("pinActive")}
+              </span>
+              <Button
+                variant="outline" size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => { removePin(currentUser.id); toast.success(t("pinDeleted")); }}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> {t("deletePin")}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 max-w-xs">
+              <div>
+                <Label className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
+                <Input type="password" inputMode="numeric" maxLength={4}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="····"
+                  className="text-center text-lg tracking-[0.3em] font-bold" />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
+                <Input type="password" inputMode="numeric" maxLength={4}
+                  value={pinConfirm}
+                  onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="····"
+                  className="text-center text-lg tracking-[0.3em] font-bold" />
+              </div>
+              <Button disabled={pinInput.length < 4 || pinInput !== pinConfirm}
+                onClick={() => {
+                  if (pinInput.length === 4 && pinInput === pinConfirm) {
+                    setPin(currentUser.id, pinInput); setPinInput(""); setPinConfirm("");
+                    toast.success(t("pinSet"));
+                  }
+                }}>
+                <Lock className="w-4 h-4 mr-1.5" /> {t("activatePin")}
+              </Button>
+              {pinInput.length === 4 && pinConfirm.length === 4 && pinInput !== pinConfirm && (
+                <p className="text-xs text-red-500">{t("pinMismatch")}</p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

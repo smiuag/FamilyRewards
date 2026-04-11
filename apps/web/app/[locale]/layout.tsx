@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -28,8 +29,10 @@ export default async function LocaleLayout({
     <html lang={locale} className={`${nunito.variable} h-full`}>
       <body className="h-full antialiased">
         <NextIntlClientProvider messages={messages}>
-          {children}
-          <Toaster richColors position="top-right" />
+          <ThemeProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

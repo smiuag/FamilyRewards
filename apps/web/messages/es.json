@@ -297,7 +297,23 @@
       "manual": "Ajuste manual"
     },
     "adminPanel": "Panel de administración",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "preferences": "Preferencias",
+    "appearance": "Apariencia",
+    "theme_light": "Claro",
+    "theme_dark": "Oscuro",
+    "theme_system": "Sistema",
+    "language": "Idioma",
+    "pinTitle": "PIN de acceso",
+    "pinDescription": "Protege tu perfil con un PIN de 4 dígitos. Se pedirá al cambiar de usuario.",
+    "pinActive": "PIN activado",
+    "deletePin": "Eliminar PIN",
+    "pinDeleted": "PIN eliminado",
+    "newPin": "Nuevo PIN",
+    "confirmPin": "Confirmar PIN",
+    "activatePin": "Activar PIN",
+    "pinSet": "PIN configurado",
+    "pinMismatch": "Los PIN no coinciden"
   },
   "onboarding": {
     "welcome": "¡Bienvenido a FamilyRewards!",

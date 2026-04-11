@@ -294,9 +294,11 @@ export default function TasksClient() {
           onClose={clearStreakAlert}
         />
         <AppModalBody>
-          <p className="text-sm text-muted-foreground leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: t("streakBonusQuestion") }}
-          />
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {t.rich("streakBonusQuestion", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
+          </p>
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
             <Flame className="w-5 h-5 text-orange-500 flex-shrink-0" />
             <div>
@@ -494,7 +496,7 @@ function TaskCard({
     state === "completed" ? "border-green-200 bg-green-50/50" :
     state === "failed"    ? "border-red-200 bg-red-50/50" :
     state === "cancelled" ? "border-gray-200 bg-gray-50/50" :
-    "border-border bg-white";
+    "border-border bg-card";
 
   const stateIcon =
     state === "completed" ? <CheckCircle2 className="w-5 h-5 text-green-500" /> :

@@ -84,7 +84,7 @@ export default function RewardsClient() {
             ? "border-green-200 bg-green-50/50"
             : isTarget
               ? "border-green-200 bg-green-50/50"
-              : "border-border bg-white"
+              : "border-border bg-card"
         )}
       >
         <CardContent className="pt-5">

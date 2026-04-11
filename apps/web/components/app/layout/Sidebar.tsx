@@ -27,9 +27,7 @@ import {
   Check,
   X,
   ArrowLeftRight,
-  Globe,
 } from "lucide-react";
-import { useRouter as useIntlRouter, usePathname as useIntlPathname } from "@/i18n/navigation";
 import { toast } from "sonner";
 
 type Section = "me" | "admin";
@@ -323,9 +321,6 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Language switcher */}
-        <LocaleSwitcher />
-
         {/* Logout */}
         <button
           onClick={handleLogout}
@@ -339,7 +334,7 @@ export default function Sidebar() {
       {/* PIN modal */}
       {pinTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Introducir PIN">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
             <div className="text-center">
               <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
               <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
@@ -468,31 +463,6 @@ function NavBtn({
           !
         </span>
       )}
-    </button>
-  );
-}
-
-const LOCALE_LABELS: Record<string, { flag: string; label: string }> = {
-  es: { flag: "🇪🇸", label: "Español" },
-  en: { flag: "🇬🇧", label: "English" },
-};
-
-function LocaleSwitcher() {
-  const intlRouter = useIntlRouter();
-  const intlPathname = useIntlPathname();
-  const params = useParams();
-  const locale = (params?.locale as string) ?? "es";
-  const current = LOCALE_LABELS[locale] ?? LOCALE_LABELS.es;
-  const otherLocale = locale === "es" ? "en" : "es";
-  const other = LOCALE_LABELS[otherLocale];
-
-  return (
-    <button
-      onClick={() => intlRouter.replace(intlPathname, { locale: otherLocale })}
-      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-    >
-      <Globe className="w-4 h-4" />
-      <span className="flex-1 text-left">{other.flag} {other.label}</span>
     </button>
   );
 }
