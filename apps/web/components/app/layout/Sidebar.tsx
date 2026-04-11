@@ -327,9 +327,9 @@ export default function Sidebar() {
                       onClick={() => handleSwitchUser(u.id)}
                       className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm hover:bg-sidebar-foreground/10 transition-colors"
                     >
-                      <span className="text-base">{u.avatar}</span>
+                      <span className="text-base" aria-hidden="true">{u.avatar}</span>
                       <span className="flex-1 text-left font-medium truncate">{u.name}</span>
-                      {hasPin(u.id) && <span className="text-[10px] text-sidebar-foreground/40">🔒</span>}
+                      {hasPin(u.id) && <span className="text-[10px] text-sidebar-foreground/40" aria-hidden="true">🔒</span>}
                     </button>
                   ))}
               </div>
@@ -352,7 +352,7 @@ export default function Sidebar() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Introducir PIN">
           <div className="bg-card text-card-foreground rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
             <div className="text-center">
-              <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
+              <span className="text-4xl" aria-hidden="true">{users.find((u) => u.id === pinTarget)?.avatar}</span>
               <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
               <p className="text-sm text-muted-foreground">{ts("enterPin")}</p>
             </div>
@@ -360,6 +360,8 @@ export default function Sidebar() {
               ref={pinInputRef}
               type="password"
               inputMode="numeric"
+              autoComplete="current-password"
+              aria-label={ts("enterPin")}
               maxLength={4}
               value={pinValue}
               onChange={(e) => {

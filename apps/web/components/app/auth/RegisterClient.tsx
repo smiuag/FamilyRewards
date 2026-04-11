@@ -149,33 +149,34 @@ export default function RegisterClient() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Tu nombre</label>
+                <label htmlFor="register-name" className="text-sm font-medium">Tu nombre</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                  <input id="register-name" type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
                     placeholder="Ana" required autoFocus
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Email</label>
+                <label htmlFor="register-email" className="text-sm font-medium">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                  <input id="register-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
                     placeholder="tu@email.com" required
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Contraseña</label>
+                <label htmlFor="register-password" className="text-sm font-medium">Contraseña</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                  <input id="register-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres" required
                     className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

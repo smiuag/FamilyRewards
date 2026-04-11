@@ -300,7 +300,7 @@ export default function CatalogRewardsClient() {
 
       {filtered.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-4xl mb-3">🔍</p>
+          <p className="text-4xl mb-3" aria-hidden="true">🔍</p>
           <p className="font-medium">Sin resultados</p>
           <p className="text-sm">Prueba con otro término o categoría</p>
         </div>

@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
+import { useTranslations } from "next-intl";
 import { Star } from "lucide-react";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
@@ -10,6 +11,7 @@ import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const { currentUser, onboardingCompleted } = useAppStore();
+  const tc = useTranslations("common");
 
   // Subscribe to Supabase Realtime for live updates
   useRealtimeSync();
@@ -20,7 +22,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         <div className="flex h-screen bg-background overflow-hidden">
           {/* Skip to main content link for keyboard users */}
           <a href="#main-content" className="skip-to-main">
-            Ir al contenido principal
+            {tc("skipToMain")}
           </a>
           {/* Onboarding wizard (first time only) */}
           {!onboardingCompleted && <OnboardingWizard />}

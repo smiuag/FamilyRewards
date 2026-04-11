@@ -122,6 +122,7 @@ export default function BoardClient() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
                 placeholder={t("placeholder", { name: currentUser.name })}
+                aria-label={t("placeholder", { name: currentUser.name })}
                 className="w-full text-sm resize-none bg-muted/50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
               />
               <div className="flex justify-end">

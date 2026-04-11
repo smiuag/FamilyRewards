@@ -12,6 +12,7 @@
     "back": "Back",
     "points": "points",
     "pts": "pts",
+    "skipToMain": "Skip to main content",
     "today": "Today",
     "week": "Week",
     "month": "Month",
@@ -88,7 +89,9 @@
     "orSeparator": "or",
     "continueWithGoogle": "Continue with Google",
     "firstTime": "First time?",
-    "createFamily": "Create your family"
+    "createFamily": "Create your family",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "dashboard": {
     "greeting": "Hello, {name}!",

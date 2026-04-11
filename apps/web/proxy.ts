@@ -5,7 +5,7 @@ import { refreshSession } from "@/lib/supabase/middleware";
 
 const handleI18n = createIntlMiddleware(routing);
 
-const PUBLIC_PATHS = ["/login", "/register", "/join", "/profile-select"];
+const PUBLIC_PATHS = ["/login", "/register", "/join", "/profile-select", "/offline"];
 
 function isPublicPath(pathname: string): boolean {
   const withoutLocale = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
@@ -55,6 +55,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

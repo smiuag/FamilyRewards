@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -6,6 +7,18 @@ import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F97316" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f1a16" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -32,6 +45,7 @@ export default async function LocaleLayout({
           <ThemeProvider>
             {children}
             <Toaster richColors position="top-right" />
+            <ServiceWorkerRegistration />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

@@ -131,9 +131,11 @@ export default function SettingsClient() {
 
           {/* Postal code input */}
           <div>
-            <Label className="text-sm font-semibold mb-2 block">{t("postalCodeLabel")}</Label>
+            <Label htmlFor="settings-postal" className="text-sm font-semibold mb-2 block">{t("postalCodeLabel")}</Label>
             <div className="flex items-center gap-3 max-w-xs">
               <Input
+                id="settings-postal"
+                autoComplete="postal-code"
                 value={postalInput}
                 onChange={(e) => setPostalInput(e.target.value)}
                 placeholder={t("postalCodePlaceholder")}
@@ -161,10 +163,11 @@ export default function SettingsClient() {
 
           {/* City (optional) */}
           <div>
-            <Label className="text-sm font-semibold mb-2 block">
+            <Label htmlFor="settings-city" className="text-sm font-semibold mb-2 block">
               {t("cityLabel")} <span className="font-normal text-muted-foreground">{t("cityOptional")}</span>
             </Label>
             <Input
+              id="settings-city"
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
               placeholder={t("cityPlaceholder")}
@@ -215,10 +218,12 @@ export default function SettingsClient() {
           ) : (
             <div className="space-y-3 max-w-xs">
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
+                <Label htmlFor="settings-pin" className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
                 <Input
+                  id="settings-pin"
                   type="password"
                   inputMode="numeric"
+                  autoComplete="new-password"
                   maxLength={4}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -227,10 +232,12 @@ export default function SettingsClient() {
                 />
               </div>
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
+                <Label htmlFor="settings-pin-confirm" className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
                 <Input
+                  id="settings-pin-confirm"
                   type="password"
                   inputMode="numeric"
+                  autoComplete="new-password"
                   maxLength={4}
                   value={pinConfirm}
                   onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}

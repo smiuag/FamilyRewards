@@ -234,16 +234,18 @@ export default function AdminChallengesClient() {
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-5 gap-3">
               <div className="col-span-1">
-                <Label>Emoji</Label>
+                <Label htmlFor="challenge-emoji">Emoji</Label>
                 <Input
+                  id="challenge-emoji"
                   value={form.emoji}
                   onChange={(e) => setForm({ ...form, emoji: e.target.value })}
                   className="text-center text-xl"
                 />
               </div>
               <div className="col-span-4">
-                <Label>Título</Label>
+                <Label htmlFor="challenge-title">Título</Label>
                 <Input
+                  id="challenge-title"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Nombre del reto"
@@ -251,8 +253,9 @@ export default function AdminChallengesClient() {
               </div>
             </div>
             <div>
-              <Label>Descripción</Label>
+              <Label htmlFor="challenge-desc">Descripción</Label>
               <Textarea
+                id="challenge-desc"
                 value={form.description}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   setForm({ ...form, description: e.target.value })
@@ -285,8 +288,9 @@ export default function AdminChallengesClient() {
                 </Select>
               </div>
               <div>
-                <Label>Meta</Label>
+                <Label htmlFor="challenge-goal">Meta</Label>
                 <Input
+                  id="challenge-goal"
                   type="number"
                   value={form.goalTarget}
                   onChange={(e) => setForm({ ...form, goalTarget: e.target.value })}
@@ -295,16 +299,18 @@ export default function AdminChallengesClient() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Fecha inicio</Label>
+                <Label htmlFor="challenge-start">Fecha inicio</Label>
                 <Input
+                  id="challenge-start"
                   type="date"
                   value={form.startDate}
                   onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Fecha fin</Label>
+                <Label htmlFor="challenge-end">Fecha fin</Label>
                 <Input
+                  id="challenge-end"
                   type="date"
                   value={form.endDate}
                   onChange={(e) => setForm({ ...form, endDate: e.target.value })}
@@ -313,8 +319,9 @@ export default function AdminChallengesClient() {
             </div>
             <div className="grid grid-cols-5 gap-3">
               <div className="col-span-1">
-                <Label>Emoji</Label>
+                <Label htmlFor="challenge-reward-emoji">Emoji</Label>
                 <Input
+                  id="challenge-reward-emoji"
                   value={form.rewardEmoji}
                   onChange={(e) =>
                     setForm({ ...form, rewardEmoji: e.target.value })
@@ -323,8 +330,9 @@ export default function AdminChallengesClient() {
                 />
               </div>
               <div className="col-span-4">
-                <Label>Recompensa</Label>
+                <Label htmlFor="challenge-reward-desc">Recompensa</Label>
                 <Input
+                  id="challenge-reward-desc"
                   value={form.rewardDescription}
                   onChange={(e) =>
                     setForm({ ...form, rewardDescription: e.target.value })
@@ -334,8 +342,9 @@ export default function AdminChallengesClient() {
               </div>
             </div>
             <div>
-              <Label>Puntos bonus por miembro</Label>
+              <Label htmlFor="challenge-reward-points">Puntos bonus por miembro</Label>
               <Input
+                id="challenge-reward-points"
                 type="number"
                 value={form.rewardPoints}
                 onChange={(e) => setForm({ ...form, rewardPoints: e.target.value })}

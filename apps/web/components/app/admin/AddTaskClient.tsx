@@ -312,7 +312,7 @@ export default function AddTaskClient() {
 
           {filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
-              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-4xl mb-3" aria-hidden="true">🔍</p>
               <p className="font-medium">Sin resultados</p>
               <p className="text-sm">Prueba con otro término o categoría</p>
             </div>
@@ -324,24 +324,24 @@ export default function AddTaskClient() {
       {tab === "custom" && (
         <div className="max-w-md space-y-4">
           <div>
-            <Label>Nombre</Label>
-            <Input value={customForm.title} onChange={(e) => setCustomForm({ ...customForm, title: e.target.value })}
+            <Label htmlFor="task-title">Nombre</Label>
+            <Input id="task-title" value={customForm.title} onChange={(e) => setCustomForm({ ...customForm, title: e.target.value })}
               placeholder="Nombre de la tarea" className="mt-1.5" autoFocus />
           </div>
           <div>
-            <Label>Descripción (opcional)</Label>
-            <Input value={customForm.description} onChange={(e) => setCustomForm({ ...customForm, description: e.target.value })}
+            <Label htmlFor="task-desc">Descripción (opcional)</Label>
+            <Input id="task-desc" value={customForm.description} onChange={(e) => setCustomForm({ ...customForm, description: e.target.value })}
               placeholder="Breve descripción" className="mt-1.5" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Puntos al completar</Label>
-              <Input type="number" value={customForm.points}
+              <Label htmlFor="task-points">Puntos al completar</Label>
+              <Input id="task-points" type="number" value={customForm.points}
                 onChange={(e) => setCustomForm({ ...customForm, points: e.target.value })} className="mt-1.5" />
             </div>
             <div>
-              <Label>Descuento si no se hace</Label>
-              <Input type="number" value={customForm.penaltyPoints} min={0}
+              <Label htmlFor="task-penalty">Descuento si no se hace</Label>
+              <Input id="task-penalty" type="number" value={customForm.penaltyPoints} min={0}
                 onChange={(e) => setCustomForm({ ...customForm, penaltyPoints: e.target.value })}
                 placeholder={`Por defecto ${customForm.points || "0"}`} className="mt-1.5" />
             </div>
@@ -366,13 +366,14 @@ export default function AddTaskClient() {
               <p className="text-xs text-muted-foreground">Se repite según el patrón</p>
             </div>
             <Switch checked={customForm.isRecurring}
-              onCheckedChange={(v) => setCustomForm({ ...customForm, isRecurring: v })} />
+              onCheckedChange={(v) => setCustomForm({ ...customForm, isRecurring: v })}
+              aria-label="Tarea recurrente" />
           </div>
           {!customForm.isRecurring && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Fecha límite (opcional)</Label>
-                <Input type="date" value={customForm.deadline}
+                <Label htmlFor="task-deadline">Fecha límite (opcional)</Label>
+                <Input id="task-deadline" type="date" value={customForm.deadline}
                   onChange={(e) => setCustomForm({ ...customForm, deadline: e.target.value })} className="mt-1.5" />
               </div>
               <div>
@@ -408,8 +409,8 @@ export default function AddTaskClient() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Hora (opcional)</Label>
-                  <Input type="time" value={customForm.time}
+                  <Label htmlFor="task-time">Hora (opcional)</Label>
+                  <Input id="task-time" type="time" value={customForm.time}
                     onChange={(e) => setCustomForm({ ...customForm, time: e.target.value })} className="mt-1.5" />
                 </div>
                 <div>

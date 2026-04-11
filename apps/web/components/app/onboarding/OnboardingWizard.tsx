@@ -89,10 +89,11 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="mt-5">
-                <Label className="text-sm mb-1.5 block">Nombre de la familia</Label>
+                <Label htmlFor="onboarding-family-name" className="text-sm mb-1.5 block">Nombre de la familia</Label>
                 <div className="relative">
-                  <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input
+                    id="onboarding-family-name"
                     value={nameValue}
                     onChange={(e) => setNameValue(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSaveFamilyName()}
@@ -131,8 +132,10 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="mt-5">
-                <Label className="text-sm mb-1.5 block">Codigo postal</Label>
+                <Label htmlFor="onboarding-postal" className="text-sm mb-1.5 block">Codigo postal</Label>
                 <Input
+                  id="onboarding-postal"
+                  autoComplete="postal-code"
                   placeholder="28001"
                   value={postalCode}
                   onChange={(e) => setPostalCodeInput(e.target.value)}
@@ -158,7 +161,7 @@ export default function OnboardingWizard() {
           {step === "done" && (
             <div className="flex flex-col flex-1">
               <div className="text-center space-y-2">
-                <div className="text-5xl">🎉</div>
+                <div className="text-5xl" aria-hidden="true">🎉</div>
                 <h2 className="text-2xl font-extrabold">{t("stepDone")}</h2>
                 <p className="text-muted-foreground text-sm">{t("stepDoneDesc")}</p>
               </div>

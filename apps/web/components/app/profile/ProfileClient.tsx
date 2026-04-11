@@ -175,16 +175,16 @@ export default function ProfileClient() {
           ) : (
             <div className="space-y-3 max-w-xs">
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
-                <Input type="password" inputMode="numeric" maxLength={4}
+                <Label htmlFor="profile-pin" className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
+                <Input id="profile-pin" type="password" inputMode="numeric" autoComplete="new-password" maxLength={4}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="····"
                   className="text-center text-lg tracking-[0.3em] font-bold" />
               </div>
               <div>
-                <Label className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
-                <Input type="password" inputMode="numeric" maxLength={4}
+                <Label htmlFor="profile-pin-confirm" className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
+                <Input id="profile-pin-confirm" type="password" inputMode="numeric" autoComplete="new-password" maxLength={4}
                   value={pinConfirm}
                   onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="····"

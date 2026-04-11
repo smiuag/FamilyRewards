@@ -250,7 +250,7 @@ export default function AddRewardClient() {
 
           {filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
-              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-4xl mb-3" aria-hidden="true">🔍</p>
               <p className="font-medium">Sin resultados</p>
               <p className="text-sm">Prueba con otro término o categoría</p>
             </div>
@@ -263,29 +263,29 @@ export default function AddRewardClient() {
         <div className="max-w-md space-y-4">
           <div className="grid grid-cols-5 gap-3">
             <div className="col-span-1">
-              <Label>Emoji</Label>
-              <Input value={customForm.emoji} maxLength={2}
+              <Label htmlFor="reward-emoji">Emoji</Label>
+              <Input id="reward-emoji" value={customForm.emoji} maxLength={2}
                 onChange={(e) => setCustomForm({ ...customForm, emoji: e.target.value })}
                 className="text-center text-xl mt-1.5" />
             </div>
             <div className="col-span-4">
-              <Label>Nombre</Label>
-              <Input value={customForm.title} placeholder="Nombre de la recompensa"
+              <Label htmlFor="reward-title">Nombre</Label>
+              <Input id="reward-title" value={customForm.title} placeholder="Nombre de la recompensa"
                 onChange={(e) => setCustomForm({ ...customForm, title: e.target.value })}
                 className="mt-1.5" autoFocus />
             </div>
           </div>
           <div>
-            <Label>Descripción (opcional)</Label>
-            <Input value={customForm.description} placeholder="Breve descripción"
+            <Label htmlFor="reward-desc">Descripción (opcional)</Label>
+            <Input id="reward-desc" value={customForm.description} placeholder="Breve descripción"
               onChange={(e) => setCustomForm({ ...customForm, description: e.target.value })}
               className="mt-1.5" />
           </div>
           <div>
-            <Label>Puntos</Label>
+            <Label htmlFor="reward-points">Puntos</Label>
             <div className="flex items-center gap-2 mt-1.5">
-              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" />
-              <Input type="number" value={customForm.points}
+              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" aria-hidden="true" />
+              <Input id="reward-points" type="number" value={customForm.points}
                 onChange={(e) => setCustomForm({ ...customForm, points: e.target.value })}
                 className="font-bold text-primary" />
             </div>
@@ -313,10 +313,10 @@ export default function AddRewardClient() {
         />
         <AppModalBody>
           <div>
-            <Label>Puntos para tu familia</Label>
+            <Label htmlFor="reward-confirm-points">Puntos para tu familia</Label>
             <div className="flex items-center gap-2 mt-1.5">
-              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" />
-              <Input type="number" value={confirmPoints}
+              <Star className="w-4 h-4 text-primary fill-primary flex-shrink-0" aria-hidden="true" />
+              <Input id="reward-confirm-points" type="number" value={confirmPoints}
                 onChange={(e) => setConfirmPoints(e.target.value)}
                 className="font-bold text-primary" autoFocus />
             </div>

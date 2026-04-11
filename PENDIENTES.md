@@ -63,24 +63,36 @@
 
 ## Pendiente — Técnico
 
-### Accesibilidad (a11y)
-- [ ] Roles ARIA y landmarks (`role="main"`, `role="navigation"`, etc.)
-- [ ] `aria-label` en todos los botones icono sin texto visible
-- [ ] Formularios: asociar `<Label>` con input vía `htmlFor`/`id`
-- [ ] Focus visible (outline) en todos los elementos interactivos
-- [ ] Navegación completa por teclado (Tab, Enter, Space, Escape)
-- [ ] Focus trap en modales (`aria-modal="true"`)
+### Accesibilidad (a11y) — WCAG 2.2 AA
+- [x] Roles ARIA y landmarks (`role="main"`, `role="navigation"`, etc.)
+- [x] `aria-label` en todos los botones icono sin texto visible
+- [x] Formularios: asociar `<Label>` con input vía `htmlFor`/`id`
+- [x] Focus visible (outline) en todos los elementos interactivos
+- [x] Emojis decorativos: `aria-hidden="true"`; informativos: `aria-label`
+- [x] Skip-to-main link bilingüe (ES/EN) con `useTranslations`
+- [x] Target size mínimo 44px en touch devices (WCAG 2.5.8)
+- [x] `autoComplete` en inputs de auth (email, password, name, postal-code)
+- [ ] Navegación completa por teclado (Tab, Enter, Space, Escape) — parcial, pendiente revisión completa
+- [ ] Focus trap en PIN modal del sidebar — funcional con Escape/Enter, falta migrar a Dialog de Base UI
 - [ ] Selectores de emoji/avatar: `aria-label` con nombre del emoji
 - [ ] Tablas admin: `<caption>` o `aria-label`
-- [ ] Emojis decorativos: `aria-hidden="true"`; informativos: `aria-label`
-- [ ] Contraste WCAG AA (4.5:1 texto normal, 3:1 texto grande)
+- [ ] Contraste WCAG AA — verificar ratios con herramienta (colores oklch)
 - [ ] `aria-live="polite"` para anuncios dinámicos (tarea completada, etc.)
 - [ ] Orden DOM = orden visual en grids
 
-### PWA / APK
-- [ ] `manifest.json` con iconos, theme-color, display: standalone
-- [ ] Bubblewrap para generar APK de pruebas (TWA)
-- [ ] Necesita Java 11+ y Android SDK
+### PWA
+- [x] `manifest.ts` dinámico con iconos, theme-color, display: standalone
+- [x] Service Worker (`public/sw.js`) con cache strategies (cache-first assets, network-first navigation)
+- [x] Página offline (`/offline`) con diseño branded
+- [x] Viewport y theme-color meta tags (light/dark)
+- [x] Apple Web App metadata (capable, statusBarStyle)
+- [x] Iconos PWA generados: 192x192, 512x512, maskable, apple-icon, favicon
+- [x] Headers de seguridad (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+- [x] Headers específicos para SW (no-cache, CSP)
+
+### APK (Android)
+- [ ] Bubblewrap para generar APK de pruebas (TWA) — requiere Java 11+ y Android SDK
+- [ ] Alternativa futura: Capacitor para iOS + Android desde el mismo codebase
 
 ### Calidad
 - [ ] Tests unitarios para lógica de puntos y transiciones de estado
