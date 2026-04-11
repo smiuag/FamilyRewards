@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { DayOfWeek } from "@/lib/types";
 
-import { DIFFICULTY_CONFIG, ALL_DAYS, DAY_LABELS as DAY_MAP } from "@/lib/config/constants";
+import { DIFFICULTY_CONFIG, ALL_DAYS, DAY_LABELS as DAY_MAP, DAY_NAMES } from "@/lib/config/constants";
 
 type Tab = "catalog" | "custom";
 
@@ -264,7 +264,7 @@ export default function AddTaskClient() {
                           {catConf.emoji} {catConf.label}
                         </Badge>
                       </div>
-                      <h3 className="font-bold text-sm leading-tight mb-1">{task.title}</h3>
+                      <h2 className="font-bold text-sm leading-tight mb-1">{task.title}</h2>
                       <p className="text-xs text-muted-foreground mb-2 leading-relaxed line-clamp-2">{task.description}</p>
                       <div className="h-6 flex items-center gap-1 mb-2">
                         {task.suggestedDays && task.suggestedDays.length > 0 ? (
@@ -272,7 +272,7 @@ export default function AddTaskClient() {
                             {ALL_DAYS.map((d) => (
                               <span key={d} className={cn(
                                 "w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center",
-                                task.suggestedDays?.includes(d) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground/40"
+                                task.suggestedDays?.includes(d) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                               )}>{DAY_MAP[d]}</span>
                             ))}
                             {task.suggestedTime && (
@@ -398,6 +398,7 @@ export default function AddTaskClient() {
                 <div className="flex gap-1.5">
                   {ALL_DAYS.map((d) => (
                     <button key={d} onClick={() => toggleCustomDay(d)}
+                      aria-label={DAY_NAMES[d]} aria-pressed={customForm.daysOfWeek.includes(d)}
                       className={cn("w-9 h-9 rounded-xl text-sm font-bold transition-all",
                         customForm.daysOfWeek.includes(d)
                           ? "bg-primary text-primary-foreground"
@@ -501,6 +502,7 @@ export default function AddTaskClient() {
               <div className="flex gap-1.5">
                 {ALL_DAYS.map((d) => (
                   <button key={d} type="button" onClick={() => toggleDay(d)}
+                    aria-label={DAY_NAMES[d]} aria-pressed={selectedDays.includes(d)}
                     className={cn("w-9 h-9 rounded-xl text-sm font-bold transition-all",
                       selectedDays.includes(d)
                         ? "bg-primary text-primary-foreground"

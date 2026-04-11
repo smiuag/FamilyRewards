@@ -208,7 +208,7 @@ export default function CatalogTasksClient() {
                               "w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center",
                               task.suggestedDays?.includes(d)
                                 ? "bg-primary/10 text-primary"
-                                : "bg-muted text-muted-foreground/40"
+                                : "bg-muted text-muted-foreground"
                             )}
                           >
                             {DAY_MAP[d]}

@@ -24,6 +24,9 @@ export const ALL_DAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri", "sat", 
 export const DAY_LABELS: Record<DayOfWeek, string> = {
   mon: "L", tue: "M", wed: "X", thu: "J", fri: "V", sat: "S", sun: "D",
 };
+export const DAY_NAMES: Record<DayOfWeek, string> = {
+  mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo",
+};
 
 // ── Thresholds ─────────────────────────────────────────────
 export const COMPLETION_RATE_GOOD = 80;
