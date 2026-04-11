@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Star, Mail, Lock, Eye, EyeOff, User, Home, ArrowRight, ArrowLeft, RefreshCw } from "lucide-react";
+import { Star, Mail, Lock, Eye, EyeOff, User, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -23,16 +23,15 @@ const AVATARS = [
   "🧑","🧕","🦸","🧙","👮","🧑‍🍳","🧑‍🎨","🧑‍💻","🥷","🧑‍🚀",
 ];
 
-type Step = "family" | "you" | "confirming";
+type Step = "register" | "confirming";
 
 export default function RegisterClient() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
 
-  const [step, setStep] = useState<Step>("family");
+  const [step, setStep] = useState<Step>("register");
 
-  const [familyName, setFamilyName] = useState("");
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("👨");
   const [email, setEmail] = useState("");
@@ -43,7 +42,6 @@ export default function RegisterClient() {
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Escucha cambios de sesión mientras esperamos la confirmación
   useEffect(() => {
     if (step !== "confirming") return;
 
@@ -57,19 +55,11 @@ export default function RegisterClient() {
     return () => subscription.unsubscribe();
   }, [step, locale, router]);
 
-  // Cuenta atrás del botón reenviar
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
-
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!familyName.trim()) return;
-    setError(null);
-    setStep("you");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +79,6 @@ export default function RegisterClient() {
         data: {
           name: name.trim(),
           avatar,
-          family_name: familyName.trim(),
         },
       },
     });
@@ -104,14 +93,11 @@ export default function RegisterClient() {
       return;
     }
 
-    // Si Supabase devuelve sesión directamente (confirmación desactivada)
-    // vamos al selector de perfil sin pasar por login
     if (data.session) {
       router.push(`/${locale}/profile-select`);
       return;
     }
 
-    // Si requiere confirmación de email, mostramos la pantalla de espera
     setLoading(false);
     setResendCooldown(60);
     setStep("confirming");
@@ -143,155 +129,87 @@ export default function RegisterClient() {
             <Star className="w-8 h-8 text-white fill-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
-
-          {step !== "confirming" && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <div className={cn("h-2 rounded-full transition-all duration-300", step === "family" ? "w-5 bg-primary" : "w-2 bg-primary/30")} />
-              <div className={cn("h-2 rounded-full transition-all duration-300", step === "you" ? "w-5 bg-primary" : "w-2 bg-muted")} />
-            </div>
-          )}
+          <p className="text-muted-foreground mt-1 text-sm">Crea tu familia y empieza a motivar</p>
         </div>
 
-        {/* PASO 1: Familia */}
-        {step === "family" && (
+        {/* REGISTRO */}
+        {step === "register" && (
           <div className="space-y-4">
-            {/* Opción rápida: Google */}
-            <div className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-              <div>
-                <h2 className="text-lg font-extrabold">Crear familia</h2>
-                <p className="text-sm text-muted-foreground">Elige cómo quieres registrarte</p>
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tu avatar</label>
+                <div className="grid grid-cols-10 gap-1">
+                  {AVATARS.map((a) => (
+                    <button key={a} type="button" onClick={() => setAvatar(a)}
+                      className={cn("text-xl p-1 rounded-lg transition-all", avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted")}>
+                      {a}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleGoogleRegister}
-                disabled={loading}
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Tu nombre</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    placeholder="Ana" required autoFocus
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu@email.com" required
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Contraseña</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres" required
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+
+              <button type="submit" disabled={loading || !name.trim()}
+                className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all flex items-center justify-center gap-2",
+                  loading || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
+                {loading ? "Creando..." : "Crear familia"}
+                {!loading && <ArrowRight className="w-4 h-4" />}
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">o</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <button type="button" onClick={handleGoogleRegister} disabled={loading}
                 className={cn(
                   "w-full py-2.5 rounded-xl font-semibold text-sm border bg-white transition-all flex items-center justify-center gap-2",
                   loading ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/40 active:scale-[0.98]"
-                )}
-              >
+                )}>
                 <GoogleIcon />
                 Continuar con Google
               </button>
-              <p className="text-xs text-muted-foreground text-center">
-                Tu familia se creará con el nombre &ldquo;Mi familia&rdquo;. Podrás cambiarlo en Ajustes.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 px-1">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">o con email</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-          <form onSubmit={handleNext} className="bg-white rounded-2xl shadow-sm border p-6 space-y-5">
-            <div>
-              <h2 className="text-lg font-extrabold">Tu familia</h2>
-              <p className="text-sm text-muted-foreground">¿Cómo se llama vuestra familia?</p>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Nombre de la familia</label>
-              <div className="relative">
-                <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={familyName}
-                  onChange={(e) => setFamilyName(e.target.value)}
-                  placeholder="Familia García"
-                  required
-                  autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={!familyName.trim()}
-              className={cn(
-                "w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all flex items-center justify-center gap-2",
-                !familyName.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
-              )}
-            >
-              Siguiente <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+            </form>
           </div>
         )}
 
-        {/* PASO 2: Tú */}
-        {step === "you" && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <button type="button" onClick={() => { setStep("family"); setError(null); }} className="text-muted-foreground hover:text-foreground transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <div>
-                <h2 className="text-lg font-extrabold leading-tight">Tú</h2>
-                <p className="text-xs text-muted-foreground">
-                  Primer administrador de <span className="font-semibold text-foreground">{familyName}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tu avatar</label>
-              <div className="grid grid-cols-10 gap-1">
-                {AVATARS.map((a) => (
-                  <button key={a} type="button" onClick={() => setAvatar(a)}
-                    className={cn("text-xl p-1 rounded-lg transition-all", avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted")}>
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Tu nombre</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder="Ana" required autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com" required
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Contraseña</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres" required
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
-
-            <button type="submit" disabled={loading || !name.trim()}
-              className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
-                loading || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
-              {loading ? "Creando familia..." : "Crear familia"}
-            </button>
-          </form>
-        )}
-
-        {/* PASO 3: Confirmar email */}
+        {/* CONFIRMAR EMAIL */}
         {step === "confirming" && (
           <div className="bg-white rounded-2xl shadow-sm border p-6 space-y-5 text-center">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -312,7 +230,6 @@ export default function RegisterClient() {
               <p className="text-xs text-amber-700">· Puede tardar unos minutos en llegar</p>
             </div>
 
-            {/* Indicador de espera */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
               Esperando confirmación...
@@ -322,15 +239,11 @@ export default function RegisterClient() {
               En cuanto confirmes el email, esta pantalla avanzará sola.
             </p>
 
-            {/* Reenviar */}
-            <button
-              onClick={handleResend}
-              disabled={resendCooldown > 0}
+            <button onClick={handleResend} disabled={resendCooldown > 0}
               className={cn(
                 "flex items-center gap-1.5 mx-auto text-sm font-medium transition-colors",
                 resendCooldown > 0 ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:underline"
-              )}
-            >
+              )}>
               <RefreshCw className="w-3.5 h-3.5" />
               {resendCooldown > 0 ? `Reenviar en ${resendCooldown}s` : "Reenviar correo"}
             </button>

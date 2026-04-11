@@ -71,11 +71,11 @@ export default function OnboardingWizard() {
           </div>
         )}
 
-        <div className="p-7">
+        <div className="p-7 min-h-[360px] flex flex-col">
 
           {/* FAMILY NAME */}
           {step === "family" && (
-            <div className="space-y-5">
+            <div className="flex flex-col flex-1">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                   <Sparkles className="w-8 h-8 text-primary" />
@@ -88,7 +88,7 @@ export default function OnboardingWizard() {
                 </div>
               </div>
 
-              <div>
+              <div className="mt-5">
                 <Label className="text-sm mb-1.5 block">Nombre de la familia</Label>
                 <div className="relative">
                   <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -103,21 +103,23 @@ export default function OnboardingWizard() {
                 </div>
               </div>
 
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleSaveFamilyName}
-                disabled={saving}
-              >
-                {saving ? "Guardando..." : "Seguir"}
-                <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
+              <div className="mt-auto pt-5">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleSaveFamilyName}
+                  disabled={saving}
+                >
+                  {saving ? "Guardando..." : "Seguir"}
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </div>
             </div>
           )}
 
           {/* LOCATION */}
           {step === "location" && (
-            <div className="space-y-5">
+            <div className="flex flex-col flex-1">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                   <MapPin className="w-5 h-5" />
@@ -128,7 +130,7 @@ export default function OnboardingWizard() {
                 </div>
               </div>
 
-              <div>
+              <div className="mt-5">
                 <Label className="text-sm mb-1.5 block">Codigo postal</Label>
                 <Input
                   placeholder="28001"
@@ -143,23 +145,25 @@ export default function OnboardingWizard() {
                 </p>
               </div>
 
-              <Button className="w-full" size="lg" onClick={handleSaveLocation}>
-                Seguir
-                <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
+              <div className="mt-auto pt-5">
+                <Button className="w-full" size="lg" onClick={handleSaveLocation}>
+                  Seguir
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </div>
             </div>
           )}
 
           {/* DONE */}
           {step === "done" && (
-            <div className="space-y-5 py-1">
+            <div className="flex flex-col flex-1">
               <div className="text-center space-y-2">
                 <div className="text-5xl">🎉</div>
                 <h2 className="text-2xl font-extrabold">{t("stepDone")}</h2>
                 <p className="text-muted-foreground text-sm">{t("stepDoneDesc")}</p>
               </div>
 
-              <div className="bg-muted/50 rounded-2xl p-4 space-y-3">
+              <div className="mt-5 bg-muted/50 rounded-2xl p-4 space-y-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Proximos pasos sugeridos</p>
                 {[
                   { icon: "👨‍👩‍👧", text: "Añade a los miembros de tu familia" },
@@ -173,10 +177,12 @@ export default function OnboardingWizard() {
                 ))}
               </div>
 
-              <Button className="w-full" size="lg" onClick={handleFinish}>
-                <PartyPopper className="w-4 h-4 mr-2" />
-                {t("goToDashboard")}
-              </Button>
+              <div className="mt-auto pt-5">
+                <Button className="w-full" size="lg" onClick={handleFinish}>
+                  <PartyPopper className="w-4 h-4 mr-2" />
+                  {t("goToDashboard")}
+                </Button>
+              </div>
             </div>
           )}
         </div>
