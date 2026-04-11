@@ -108,6 +108,21 @@
   }
 }
 
+/* Focus visible for all interactive elements — ensures keyboard users see focus */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ring;
+}
+
+/* Skip to main content — hidden until focused */
+.skip-to-main {
+  @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-semibold;
+}
+
 /* Utility for task state colors */
 .state-completed { @apply text-green-600 bg-green-50; }
 .state-pending { @apply text-amber-600 bg-amber-50; }

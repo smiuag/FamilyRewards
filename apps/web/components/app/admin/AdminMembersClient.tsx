@@ -325,7 +325,7 @@ export default function AdminMembersClient() {
       {/* Members table */}
       <Card className="shadow-sm">
         <CardContent className="p-0">
-          <Table>
+          <Table aria-label="Miembros de la familia">
             <TableHeader>
               <TableRow>
                 <TableHead>{t("name")}</TableHead>

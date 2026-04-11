@@ -304,11 +304,11 @@ export default function AdminTasksClient() {
                   {/* Right actions column */}
                   <div className="flex flex-col items-end justify-between gap-3 flex-shrink-0 self-stretch">
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(task)} aria-label={`Editar ${task.title}`}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setTaskToDelete(task)}>
+                        onClick={() => setTaskToDelete(task)} aria-label={`Eliminar ${task.title}`}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>

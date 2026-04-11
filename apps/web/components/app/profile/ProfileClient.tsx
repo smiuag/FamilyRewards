@@ -140,7 +140,7 @@ export default function ProfileClient() {
               Sin historial todavía.
             </p>
           ) : (
-            <Table>
+            <Table aria-label="Historial de puntos">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("historyDate")}</TableHead>

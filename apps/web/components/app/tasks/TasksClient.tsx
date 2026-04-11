@@ -522,9 +522,10 @@ function TaskCard({
                     ? "bg-green-500 text-white"
                     : "bg-muted text-muted-foreground hover:bg-green-100 hover:text-green-600"
                 )}
-                title="Completada"
+                aria-label={`Marcar "${task.title}" como completada`}
+                aria-pressed={state === "completed"}
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 onClick={() => onStateChange(task, instance, "failed")}
@@ -533,9 +534,10 @@ function TaskCard({
                     ? "bg-red-500 text-white"
                     : "bg-muted text-muted-foreground hover:bg-red-100 hover:text-red-600"
                 )}
-                title="No realizada"
+                aria-label={`Marcar "${task.title}" como no realizada`}
+                aria-pressed={state === "failed"}
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           )}

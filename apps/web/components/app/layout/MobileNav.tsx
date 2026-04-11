@@ -25,7 +25,7 @@ export default function MobileNav() {
   if (!currentUser) return null;
 
   return (
-    <div className="flex items-center justify-around bg-white border-t border-border py-2 px-2 safe-area-inset-bottom">
+    <div className="flex items-center justify-around bg-white border-t border-border py-2 px-2 safe-area-inset-bottom" role="navigation" aria-label="Navegación principal">
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -33,12 +33,14 @@ export default function MobileNav() {
           <button
             key={item.href}
             onClick={() => router.push(item.href)}
+            aria-label={item.label}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[56px]",
               active ? "text-primary" : "text-muted-foreground"
             )}
           >
-            <Icon className={cn("w-5 h-5", active && "fill-primary/10")} />
+            <Icon className={cn("w-5 h-5", active && "fill-primary/10")} aria-hidden="true" />
             <span className={cn("text-[10px] font-medium", active && "font-semibold")}>
               {item.label}
             </span>

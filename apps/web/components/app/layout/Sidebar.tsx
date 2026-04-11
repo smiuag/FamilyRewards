@@ -229,7 +229,7 @@ export default function Sidebar() {
       </div>
 
       {/* Sections */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1" aria-label="Menú principal">
 
         {/* -- YO -- */}
         <SectionHeader
@@ -331,7 +331,7 @@ export default function Sidebar() {
 
       {/* PIN modal */}
       {pinTarget && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Introducir PIN">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
             <div className="text-center">
               <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
@@ -403,6 +403,8 @@ function SectionHeader({
   return (
     <button
       onClick={onClick}
+      aria-expanded={open}
+      aria-label={`${label}${badge ? `, ${badge}` : ""}`}
       className={cn(
         "flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
         active
@@ -412,18 +414,19 @@ function SectionHeader({
           : "text-sidebar-foreground/60 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
       )}
     >
-      {emoji && <span className="text-sm">{emoji}</span>}
+      {emoji && <span className="text-sm" aria-hidden="true">{emoji}</span>}
       <span className="flex-1 text-left">{label}</span>
       {badge && (
         <span className={cn(
           "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
           active ? "bg-white/20 text-white" : "bg-sidebar-border"
-        )}>
+        )} aria-hidden="true">
           {badge}
         </span>
       )}
       <ChevronDown
         className={cn("w-3.5 h-3.5 transition-transform duration-200", open && "rotate-180")}
+        aria-hidden="true"
       />
     </button>
   );
@@ -442,6 +445,8 @@ function NavBtn({
   return (
     <button
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      aria-label={item.alert ? `${item.label} (requiere atención)` : item.label}
       className={cn(
         "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
         active
@@ -449,10 +454,10 @@ function NavBtn({
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
       )}
     >
-      <Icon className="w-4 h-4 flex-shrink-0" />
+      <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
       <span className="flex-1 text-left">{item.label}</span>
       {item.alert && (
-        <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+        <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" aria-hidden="true">
           !
         </span>
       )}

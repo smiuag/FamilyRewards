@@ -160,7 +160,7 @@ export default function AdminRewardsClient() {
               {pendingClaims.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center">No hay solicitudes pendientes 🎉</p>
               ) : (
-                <Table>
+                <Table aria-label="Solicitudes de canje pendientes">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Recompensa</TableHead>
@@ -244,10 +244,10 @@ export default function AdminRewardsClient() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setRewardToDelete(reward)}>
+                            onClick={() => setRewardToDelete(reward)} aria-label={`Eliminar ${reward.title}`}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(reward)}>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(reward)} aria-label={`Editar ${reward.title}`}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                         </div>
