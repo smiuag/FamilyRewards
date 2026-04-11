@@ -309,7 +309,24 @@ export async function backfillInstances(
   for (const task of tasks) {
     if (!task.assignedTo.includes(profileId)) continue;
     if (!task.isActive) continue;
-    if (!task.isRecurring) continue;
+
+    // Non-recurring tasks: ensure instance exists (may have failed at creation)
+    if (!task.isRecurring) {
+      const createdDate = task.createdAt.slice(0, 10);
+      const key = `${task.id}::${createdDate}`;
+      if (!existingMap.has(key)) {
+        const defaultState = (task.defaultState ?? "pending") as string;
+        const pointsAwarded = defaultState === "completed" ? task.points : 0;
+        toInsert.push({
+          task_id: task.id,
+          profile_id: profileId,
+          date: createdDate,
+          state: defaultState,
+          points_awarded: pointsAwarded,
+        });
+      }
+      continue;
+    }
 
     const days = task.recurringPattern?.daysOfWeek ?? [];
     const defaultState = task.recurringPattern?.defaultState ?? "pending";

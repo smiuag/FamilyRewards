@@ -36,13 +36,9 @@ export default function DashboardClient() {
     if (!currentUser) return;
     async function loadAll() {
       try {
-        // Load tasks + backfill instances for today
-        const store = useAppStore.getState();
-        let activeTasks = store.tasks;
-        if (activeTasks.length === 0) {
-          activeTasks = await fetchFamilyTasks();
-          useAppStore.setState({ tasks: activeTasks });
-        }
+        // Always fetch fresh tasks + backfill instances for today
+        const activeTasks = await fetchFamilyTasks();
+        useAppStore.setState({ tasks: activeTasks });
         const instances = await backfillInstances(activeTasks, currentUser!.id, new Date());
         useAppStore.setState((prev) => ({
           taskInstances: [
@@ -93,10 +89,26 @@ export default function DashboardClient() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Get today's task instances for current user
-  const todayInstances = taskInstances.filter(
-    (ti) => ti.userId === currentUser.id && ti.date === today
-  );
+  // Get today's tasks using the same logic as TasksClient
+  const dow = ["sun","mon","tue","wed","thu","fri","sat"][new Date().getDay()] as import("@/lib/types").DayOfWeek;
+  const myTodayTasks = tasks.filter((t) => {
+    if (!t.isActive) return false;
+    if (!t.assignedTo.includes(currentUser.id) && t.assignedTo.length > 0) return false;
+    if (t.isRecurring) return (t.recurringPattern?.daysOfWeek ?? []).includes(dow);
+    const created = t.createdAt.slice(0, 10);
+    if (today < created) return false;
+    if (t.deadline && today > t.deadline) return false;
+    return true;
+  });
+
+  // Match each task with its instance
+  const todayInstances = myTodayTasks
+    .filter((t) => t.assignedTo.includes(currentUser.id))
+    .map((t) => taskInstances.find((ti) =>
+      ti.taskId === t.id && ti.userId === currentUser.id &&
+      (t.isRecurring ? ti.date === today : true)
+    ))
+    .filter((ti): ti is NonNullable<typeof ti> => !!ti);
 
   const completedToday = todayInstances.filter((ti) => ti.state === "completed");
   const pendingToday = todayInstances.filter((ti) => ti.state === "pending");
@@ -144,26 +156,25 @@ export default function DashboardClient() {
 
   const recentAchievements = ACHIEVEMENTS.filter((a) => a.condition(stats)).slice(-3).reverse();
 
-  // Map task instances to tasks for display
-  const todayTasksWithInfo = todayInstances.slice(0, 4).map((ti) => {
-    const task = tasks.find((t) => t.id === ti.taskId);
-    return { instance: ti, task, isClaimable: false as boolean };
-  });
+  // Build task list for today — same logic as TasksClient
+  const todayTasksWithInfo: Array<{ instance: (typeof todayInstances)[0] | null; task: (typeof tasks)[0] | undefined; isClaimable: boolean }> = [];
 
-  // Add claimable tasks (unassigned, no instance yet for today)
-  const claimableTasks = tasks.filter((t) => {
-    if (!t.isActive || t.assignedTo.length > 0) return false;
-    const dow = ["sun","mon","tue","wed","thu","fri","sat"][new Date().getDay()];
-    if (t.isRecurring) return (t.recurringPattern?.daysOfWeek ?? []).includes(dow as import("@/lib/types").DayOfWeek);
-    return t.createdAt.slice(0, 10) === today;
-  }).filter((t) =>
-    // Not already claimed by anyone today
-    !taskInstances.some((ti) => ti.taskId === t.id && ti.date === today)
-  ).slice(0, 2);
+  // Assigned tasks with instances
+  for (const t of myTodayTasks.filter((t) => t.assignedTo.includes(currentUser.id))) {
+    const instance = taskInstances.find((ti) =>
+      ti.taskId === t.id && ti.userId === currentUser.id &&
+      (t.isRecurring ? ti.date === today : true)
+    ) ?? null;
+    if (todayTasksWithInfo.length < 6) {
+      todayTasksWithInfo.push({ instance, task: t, isClaimable: false });
+    }
+  }
 
-  for (const ct of claimableTasks) {
-    if (todayTasksWithInfo.length < 4) {
-      todayTasksWithInfo.push({ instance: null as unknown as typeof todayInstances[0], task: ct, isClaimable: true });
+  // Claimable tasks (unassigned)
+  for (const t of myTodayTasks.filter((t) => t.assignedTo.length === 0)) {
+    const claimed = taskInstances.some((ti) => ti.taskId === t.id && ti.date === today);
+    if (!claimed && todayTasksWithInfo.length < 6) {
+      todayTasksWithInfo.push({ instance: null, task: t, isClaimable: true });
     }
   }
 
@@ -274,11 +285,11 @@ export default function DashboardClient() {
             ) : (
               todayTasksWithInfo.map(({ instance, task, isClaimable }) => (
                 <div
-                  key={isClaimable ? `claim-${task?.id}` : instance.id}
+                  key={isClaimable ? `claim-${task?.id}` : instance?.id ?? task?.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
                 >
                   <div className="text-xl">
-                    {isClaimable ? "🙋" : instance.state === "completed" ? "✅" : "⏰"}
+                    {isClaimable ? "🙋" : instance?.state === "completed" ? "✅" : "⏰"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task?.title ?? "—"}</p>
@@ -300,7 +311,7 @@ export default function DashboardClient() {
                       <Hand className="w-3 h-3 mr-1" />
                       Reclamar
                     </Button>
-                  ) : instance.state === "pending" ? (
+                  ) : instance?.state === "pending" ? (
                     <Button
                       size="sm"
                       className="h-7 text-xs"
@@ -315,10 +326,12 @@ export default function DashboardClient() {
                     >
                       {t("quickComplete")}
                     </Button>
-                  ) : instance.state === "completed" ? (
+                  ) : instance?.state === "completed" ? (
                     <Badge variant="secondary" className="text-green-600 bg-green-100 border-0 text-xs">
                       ✓ Hecho
                     </Badge>
+                  ) : !instance ? (
+                    <span className="text-xs text-muted-foreground">Cargando...</span>
                   ) : null}
                 </div>
               ))

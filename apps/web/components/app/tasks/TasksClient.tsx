@@ -82,19 +82,21 @@ export default function TasksClient() {
   const selectedDateStr = dateStr(selectedDate);
   const isFutureDay = selectedDateStr > dateStr(today);
 
-  // Load and backfill up to selected date
+  // Always fetch fresh tasks and backfill instances
   useEffect(() => {
     if (!currentUser) return;
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
-        let activeTasks = tasks;
-        if (tasks.length === 0) {
-          activeTasks = await fetchFamilyTasks();
-          loadTasks(activeTasks);
-        }
+        // Always fetch fresh from server
+        const freshTasks = await fetchFamilyTasks();
+        if (cancelled) return;
+        loadTasks(freshTasks);
+
         if (!isFutureDay) {
-          const instances = await backfillInstances(activeTasks, currentUser.id, selectedDate);
+          const instances = await backfillInstances(freshTasks, currentUser.id, selectedDate);
+          if (cancelled) return;
           loadTaskInstances([
             ...useAppStore.getState().taskInstances.filter((ti) => ti.userId !== currentUser.id),
             ...instances,
@@ -103,10 +105,11 @@ export default function TasksClient() {
       } catch {
         toast.error("Error al cargar las tareas");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
+    return () => { cancelled = true; };
   }, [currentUser?.id, selectedDateStr]);
 
   if (!currentUser) return null;
