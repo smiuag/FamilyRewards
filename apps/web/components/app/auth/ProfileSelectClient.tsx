@@ -61,8 +61,28 @@ export default function ProfileSelectClient() {
         return;
       }
 
+      // Procesar invitación pendiente ANTES de cargar perfiles
+      // (Google OAuth desde /join: el trigger creó familia equivocada, hay que arreglarlo primero)
+      const pendingRaw = localStorage.getItem("pending_invitation");
+      if (pendingRaw) {
+        localStorage.removeItem("pending_invitation");
+        try {
+          const pending = JSON.parse(pendingRaw) as { token?: string; name?: string | null; avatar?: string };
+          if (pending.token) {
+            await acceptInvitationAction({
+              token: pending.token,
+              authUserId: user.id,
+              name: pending.name,
+              avatar: pending.avatar,
+            });
+          }
+        } catch (err) {
+          console.error("Error aceptando invitación:", err);
+        }
+      }
+
       // Cargar perfiles de la familia (RLS filtra automáticamente)
-      let { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: true });
@@ -80,31 +100,6 @@ export default function ProfileSelectClient() {
 
       // Cargar configuración de la familia (nombre + estado onboarding)
       const familySettings = await fetchFamilySettings(familyId);
-
-      // Procesar invitación pendiente (Google OAuth desde /join)
-      const pendingRaw = localStorage.getItem("pending_invitation");
-      if (pendingRaw) {
-        localStorage.removeItem("pending_invitation");
-        try {
-          const pending = JSON.parse(pendingRaw) as { token?: string; name?: string | null; avatar?: string };
-          if (pending.token) {
-            await acceptInvitationAction({
-              token: pending.token,
-              authUserId: user.id,
-              name: pending.name,
-              avatar: pending.avatar,
-            });
-            // Recargar perfiles tras aceptar la invitación
-            const { data: freshProfiles } = await supabase
-              .from("profiles")
-              .select("*")
-              .order("created_at", { ascending: true });
-            if (freshProfiles?.length) {
-              profilesData = freshProfiles;
-            }
-          }
-        } catch { /* invitación ya aceptada o expirada, continuar normal */ }
-      }
 
       // Auto-login: buscar el perfil que corresponde al auth user
       const myProfile = profilesData.find((p) => p.auth_user_id === user.id);
