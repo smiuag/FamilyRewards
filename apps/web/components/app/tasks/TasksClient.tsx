@@ -278,7 +278,7 @@ export default function TasksClient() {
       </div>
 
       {isFutureDay && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm text-blue-700 dark:text-blue-400">
           <CalendarDays className="w-4 h-4 flex-shrink-0" />
           <span>{t("futurePreview")}</span>
         </div>
@@ -299,11 +299,11 @@ export default function TasksClient() {
               strong: (chunks) => <strong>{chunks}</strong>,
             })}
           </p>
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
+          <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-3 flex items-center gap-3">
             <Flame className="w-5 h-5 text-orange-500 flex-shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-orange-800">{t("streakBonusTitle")}</p>
-              <p className="text-xs text-orange-600">{t("streakBonusDetails")}</p>
+              <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">{t("streakBonusTitle")}</p>
+              <p className="text-xs text-orange-600 dark:text-orange-400">{t("streakBonusDetails")}</p>
             </div>
           </div>
         </AppModalBody>
@@ -493,9 +493,9 @@ function TaskCard({
   const state: TaskState = instance?.state ?? "pending";
 
   const borderColor =
-    state === "completed" ? "border-green-200 bg-green-50/50" :
-    state === "failed"    ? "border-red-200 bg-red-50/50" :
-    state === "cancelled" ? "border-gray-200 bg-gray-50/50" :
+    state === "completed" ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30" :
+    state === "failed"    ? "border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30" :
+    state === "cancelled" ? "border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/30" :
     "border-border bg-card";
 
   const stateIcon =
@@ -537,7 +537,7 @@ function TaskCard({
               </div>
               {isDeadlineTask && deadlineLabel && (
                 <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded-full",
-                  isOverdue ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>
+                  isOverdue ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400")}>
                   {t("deadline", { date: deadlineLabel })}
                 </span>
               )}
@@ -644,9 +644,9 @@ function ClaimableTaskCard({
       "border-2 shadow-sm transition-all",
       isClaimed
         ? claimedByMe
-          ? "border-green-200 bg-green-50/50"
-          : "border-gray-200 bg-gray-50/50"
-        : "border-amber-200 bg-amber-50/30",
+          ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
+          : "border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/30"
+        : "border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30",
       isFuture && "opacity-70"
     )}>
       <CardContent className="py-4">
@@ -661,7 +661,7 @@ function ClaimableTaskCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold">{task.title}</span>
               {!isClaimed && (
-                <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{t("unassignedSection")}</Badge>
+                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-0 text-xs">{t("unassignedSection")}</Badge>
               )}
             </div>
             {task.description && (

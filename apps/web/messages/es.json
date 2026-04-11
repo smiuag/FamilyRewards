@@ -302,7 +302,6 @@
     "appearance": "Apariencia",
     "theme_light": "Claro",
     "theme_dark": "Oscuro",
-    "theme_system": "Sistema",
     "language": "Idioma",
     "pinTitle": "PIN de acceso",
     "pinDescription": "Protege tu perfil con un PIN de 4 dígitos. Se pedirá al cambiar de usuario.",

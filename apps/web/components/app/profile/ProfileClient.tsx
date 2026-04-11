@@ -21,17 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Flame, Trophy, CheckCircle2, Sun, Moon, Monitor, Globe, Lock, Trash2, Palette } from "lucide-react";
-import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { Star, Sun, Moon, Globe, Lock, Trash2, Palette } from "lucide-react";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { MAX_STREAK_LOOKBACK_DAYS } from "@/lib/config/constants";
 import { toast } from "sonner";
 
 export default function ProfileClient() {
   const t = useTranslations("profile");
   const tRoles = useTranslations("roles");
-  const { currentUser, transactions, taskInstances, loadTransactions } = useAppStore();
+  const { currentUser, transactions, loadTransactions } = useAppStore();
   const { hasPin, setPin, removePin } = usePinStore();
   const { theme, setTheme } = useThemeStore();
   const intlRouter = useIntlRouter();
@@ -63,133 +62,27 @@ export default function ProfileClient() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 50);
 
-  // Completed tasks this month
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const completedThisMonth = taskInstances.filter(
-    (ti) =>
-      ti.userId === currentUser.id &&
-      ti.state === "completed" &&
-      isWithinInterval(new Date(ti.date + "T12:00:00"), { start: monthStart, end: monthEnd })
-  ).length;
-
-  // Current streak: consecutive days (ending today) where user completed all their tasks
-  const today = format(now, "yyyy-MM-dd");
-  let streak = 0;
-  for (let i = 0; i < MAX_STREAK_LOOKBACK_DAYS; i++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    const dateStr = format(d, "yyyy-MM-dd");
-    if (dateStr > today) continue;
-    const dayInstances = taskInstances.filter(
-      (ti) => ti.userId === currentUser.id && ti.date === dateStr
-    );
-    if (dayInstances.length === 0) break;
-    if (dayInstances.every((ti) => ti.state === "completed")) streak++;
-    else break;
-  }
-
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-extrabold">{t("title")}</h1>
-
-      {/* Profile card */}
-      <Card className="shadow-sm overflow-hidden">
-        <div className="h-16 bg-gradient-to-r from-primary to-orange-400" />
-        <CardContent className="pt-0">
-          <div className="-mt-8 flex items-end gap-4 mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-white border-4 border-white shadow-md flex items-center justify-center text-5xl">
-              {currentUser.avatar}
-            </div>
-            <div className="pb-1">
-              <h2 className="text-xl font-extrabold">{currentUser.name}</h2>
-              <Badge variant={currentUser.role === "admin" ? "default" : "secondary"}>
-                {tRoles(currentUser.role)}
-              </Badge>
-            </div>
+      {/* Profile header */}
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-muted border shadow-sm flex items-center justify-center text-3xl">
+          {currentUser.avatar}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-extrabold">{currentUser.name}</h1>
+            <Badge variant={currentUser.role === "admin" ? "default" : "secondary"} className="text-[10px]">
+              {tRoles(currentUser.role)}
+            </Badge>
           </div>
-
-          {/* Points */}
-          <div className="flex items-center gap-2 p-4 rounded-2xl bg-primary/10">
-            <Star className="w-6 h-6 text-primary fill-primary" />
-            <div>
-              <p className="text-3xl font-extrabold text-primary">
-                {currentUser.pointsBalance.toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground">{t("totalPoints")}</p>
-            </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+            <span className="font-bold text-primary">{currentUser.pointsBalance.toLocaleString()}</span>
+            <span>{t("totalPoints")}</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          icon={<Flame className="w-5 h-5 text-orange-500" />}
-          label={t("streak")}
-          value={String(streak)}
-          suffix={t("days")}
-          bg="bg-orange-50"
-        />
-        <StatCard
-          icon={<Trophy className="w-5 h-5 text-yellow-500" />}
-          label={t("completedThisMonth")}
-          value={String(completedThisMonth)}
-          suffix={t("tasks")}
-          bg="bg-yellow-50"
-        />
-        <StatCard
-          icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-          label={t("totalTransactions")}
-          value={String(history.length)}
-          suffix={t("movements")}
-          bg="bg-green-50"
-          className="col-span-2 lg:col-span-1"
-        />
+        </div>
       </div>
-
-      {/* Points history */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">{t("pointsHistory")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {history.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-4">
-              {t("noHistory")}
-            </p>
-          ) : (
-            <Table aria-label="Historial de puntos">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("historyDate")}</TableHead>
-                  <TableHead>{t("historyReason")}</TableHead>
-                  <TableHead className="text-right">{t("historyAmount")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {format(new Date(tx.createdAt), "d MMM", { locale: es })}
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      <span className="mr-1.5">{tx.emoji}</span>
-                      {tx.description}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={cn("font-bold text-sm", tx.amount > 0 ? "text-green-600" : "text-red-500")}>
-                        {tx.amount > 0 ? "+" : ""}{tx.amount}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Preferences */}
       <h2 className="text-lg font-bold pt-2">{t("preferences")}</h2>
@@ -204,7 +97,7 @@ export default function ProfileClient() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
-            {(["light", "dark", "system"] as const).map((opt) => (
+            {(["light", "dark"] as const).map((opt) => (
               <button
                 key={opt}
                 onClick={() => setTheme(opt)}
@@ -217,7 +110,6 @@ export default function ProfileClient() {
               >
                 {opt === "light" && <Sun className="w-5 h-5" />}
                 {opt === "dark" && <Moon className="w-5 h-5" />}
-                {opt === "system" && <Monitor className="w-5 h-5" />}
                 <span className="text-xs font-medium">{t(`theme_${opt}`)}</span>
               </button>
             ))}
@@ -269,7 +161,7 @@ export default function ProfileClient() {
           <p className="text-sm text-muted-foreground">{t("pinDescription")}</p>
           {currentHasPin ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg">
+              <span className="text-sm font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-3 py-1.5 rounded-lg">
                 {t("pinActive")}
               </span>
               <Button
@@ -314,30 +206,49 @@ export default function ProfileClient() {
           )}
         </CardContent>
       </Card>
+
+      {/* Points history */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base">{t("pointsHistory")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {history.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">
+              {t("noHistory")}
+            </p>
+          ) : (
+            <Table aria-label="Historial de puntos">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("historyDate")}</TableHead>
+                  <TableHead>{t("historyReason")}</TableHead>
+                  <TableHead className="text-right">{t("historyAmount")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((tx) => (
+                  <TableRow key={tx.id}>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {format(new Date(tx.createdAt), "d MMM", { locale: es })}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      <span className="mr-1.5">{tx.emoji}</span>
+                      {tx.description}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={cn("font-bold text-sm", tx.amount > 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400")}>
+                        {tx.amount > 0 ? "+" : ""}{tx.amount}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function StatCard({
-  icon, label, value, suffix, bg, className,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  suffix: string;
-  bg: string;
-  className?: string;
-}) {
-  return (
-    <Card className={cn("shadow-sm", className)}>
-      <CardContent className="pt-5">
-        <div className={`inline-flex p-2 rounded-xl ${bg} mb-2`}>{icon}</div>
-        <div className="flex items-baseline gap-1">
-          <p className="text-3xl font-extrabold">{value}</p>
-          <p className="text-sm text-muted-foreground">{suffix}</p>
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}

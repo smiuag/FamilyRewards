@@ -17,15 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    if (theme === "system") {
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      applyTheme(mq.matches);
-      const handler = (e: MediaQueryListEvent) => applyTheme(e.matches);
-      mq.addEventListener("change", handler);
-      return () => mq.removeEventListener("change", handler);
-    } else {
-      applyTheme(theme === "dark");
-    }
+    applyTheme(theme === "dark");
   }, [theme]);
 
   return <>{children}</>;

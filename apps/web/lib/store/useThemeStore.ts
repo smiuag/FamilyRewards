@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark";
 
 interface ThemeStore {
   theme: Theme;
@@ -11,9 +11,19 @@ interface ThemeStore {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set) => ({
-      theme: "system",
+      theme: "light",
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "family-rewards-theme" }
+    {
+      name: "family-rewards-theme",
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as Record<string, unknown> | undefined;
+        const theme = state?.theme;
+        return {
+          theme: theme === "light" || theme === "dark" ? theme : "light",
+        } as ThemeStore;
+      },
+    }
   )
 );

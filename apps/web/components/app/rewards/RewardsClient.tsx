@@ -81,9 +81,9 @@ export default function RewardsClient() {
           "border-2 shadow-sm transition-all hover:shadow-md relative",
           !canAfford && "opacity-75",
           isApproved
-            ? "border-green-200 bg-green-50/50"
+            ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
             : isTarget
-              ? "border-green-200 bg-green-50/50"
+              ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
               : "border-border bg-card"
         )}
       >

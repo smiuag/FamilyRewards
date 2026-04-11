@@ -338,7 +338,7 @@ export default function Sidebar() {
       {/* PIN modal */}
       {pinTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Introducir PIN">
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
             <div className="text-center">
               <span className="text-4xl">{users.find((u) => u.id === pinTarget)?.avatar}</span>
               <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
@@ -360,8 +360,8 @@ export default function Sidebar() {
                 if (e.key === "Escape") setPinTarget(null);
               }}
               className={cn(
-                "w-full text-center text-2xl tracking-[0.5em] font-bold border-2 rounded-xl py-3 outline-none transition-colors",
-                pinError ? "border-red-400 bg-red-50" : "border-border focus:border-primary"
+                "w-full text-center text-2xl tracking-[0.5em] font-bold border-2 rounded-xl py-3 outline-none transition-colors bg-background text-foreground",
+                pinError ? "border-red-400 bg-red-50 dark:bg-red-950/30" : "border-border focus:border-primary"
               )}
               placeholder="····"
               autoFocus
