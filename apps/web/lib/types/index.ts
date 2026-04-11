@@ -19,6 +19,7 @@ export interface User {
   pointsBalance: number;
   createdAt: string;
   authUserId?: string | null;
+  vacationUntil?: string | null; // "YYYY-MM-DD"
 }
 
 export interface Family {

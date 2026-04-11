@@ -282,6 +282,14 @@ export async function backfillInstances(
   const today = dateStr(new Date());
   const target = dateStr(targetDate);
 
+  // Check vacation mode
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("vacation_until")
+    .eq("id", profileId)
+    .single();
+  const vacationUntil = (profileData as { vacation_until: string | null } | null)?.vacation_until ?? null;
+
   // Fetch all existing instances for this profile up to targetDate
   const { data: existing } = await supabase
     .from("task_instances")
@@ -316,7 +324,9 @@ export async function backfillInstances(
 
     while (cur <= end) {
       const ds = dateStr(cur);
-      if (ds >= taskStartStr && days.includes(getDow(cur))) {
+      // Skip vacation days — no instances created, no penalties
+      const isOnVacation = vacationUntil && ds <= vacationUntil;
+      if (!isOnVacation && ds >= taskStartStr && days.includes(getDow(cur))) {
         const key = `${task.id}::${ds}`;
         const existing = existingMap.get(key);
 

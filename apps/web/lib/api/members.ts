@@ -10,6 +10,7 @@ export interface SupabaseProfile {
   role: "admin" | "member";
   points_balance: number;
   created_at: string;
+  vacation_until: string | null;
 }
 
 export function toUser(p: SupabaseProfile): User {
@@ -22,7 +23,20 @@ export function toUser(p: SupabaseProfile): User {
     pointsBalance: p.points_balance,
     createdAt: p.created_at,
     authUserId: p.auth_user_id,
+    vacationUntil: p.vacation_until,
   };
+}
+
+export async function setVacationMode(
+  profileId: string,
+  until: string | null
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ vacation_until: until })
+    .eq("id", profileId);
+  if (error) throw error;
 }
 
 export async function fetchFamilyProfiles(): Promise<User[]> {
