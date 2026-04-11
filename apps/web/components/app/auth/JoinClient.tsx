@@ -87,6 +87,11 @@ export default function JoinClient() {
       return;
     }
 
+    // Clear previous session stores so the new user starts clean
+    for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
+      localStorage.removeItem(key);
+    }
+
     if (data.session) {
       router.push(`/${locale}/profile-select`);
     } else {

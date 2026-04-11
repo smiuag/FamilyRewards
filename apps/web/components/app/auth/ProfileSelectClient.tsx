@@ -43,6 +43,15 @@ export default function ProfileSelectClient() {
   const locale = (params?.locale as string) ?? "es";
   const next = searchParams.get("next") ?? `/${locale}/dashboard`;
 
+  const isFresh = searchParams.get("fresh") === "1";
+
+  // Clear stale stores synchronously before first render when coming from auth confirmation
+  if (isFresh && typeof window !== "undefined") {
+    for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
+      localStorage.removeItem(key);
+    }
+  }
+
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -51,6 +60,11 @@ export default function ProfileSelectClient() {
   useEffect(() => {
     let cancelled = false;
 
+    // Reset in-memory state if stores were cleared
+    if (isFresh) {
+      useAppStore.getState().initRealAuth([], null as unknown as User, "");
+    }
+
     async function load() {
       const supabase = createClient();
 
@@ -58,6 +72,15 @@ export default function ProfileSelectClient() {
       if (!user) {
         router.replace(`/${locale}/login`);
         return;
+      }
+
+      // If a different auth user was stored, clear stale session data
+      const storedUser = useAppStore.getState().currentUser;
+      if (storedUser && storedUser.authUserId !== user.id) {
+        for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
+          localStorage.removeItem(key);
+        }
+        useAppStore.getState().initRealAuth([], null as unknown as User, "");
       }
 
       // Cargar perfiles de la familia (RLS filtra automáticamente)
@@ -133,6 +156,9 @@ export default function ProfileSelectClient() {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
+      localStorage.removeItem(key);
+    }
     router.push(`/${locale}/login`);
   };
 
