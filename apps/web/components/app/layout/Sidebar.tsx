@@ -56,6 +56,11 @@ export default function Sidebar() {
 
   const [openSection, setOpenSection] = useState<Section>(activeSection);
 
+  // Sincronizar sección abierta cuando cambia la ruta
+  useEffect(() => {
+    setOpenSection(activeSection);
+  }, [activeSection]);
+
   // Edición inline del nombre de familia
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(familyName);
@@ -201,7 +206,10 @@ export default function Sidebar() {
           emoji={currentUser?.avatar}
           open={openSection === "me"}
           active={activeSection === "me"}
-          onClick={() => setOpenSection("me")}
+          onClick={() => {
+            setOpenSection("me");
+            if (openSection !== "me") router.push(`/${locale}/dashboard`);
+          }}
           badge={currentUser ? `${currentUser.pointsBalance.toLocaleString()} pts` : undefined}
         />
         {openSection === "me" && (
@@ -226,7 +234,10 @@ export default function Sidebar() {
               emoji="⚙️"
               open={openSection === "admin"}
               active={activeSection === "admin"}
-              onClick={() => setOpenSection("admin")}
+              onClick={() => {
+                setOpenSection("admin");
+                if (openSection !== "admin") router.push(`/${locale}/admin/members`);
+              }}
             />
             {openSection === "admin" && (
               <div className="space-y-0.5 pb-1">

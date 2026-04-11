@@ -50,11 +50,11 @@ function getTasksForDay(tasks: Task[], day: Date, userId: string): Task[] {
     if (t.isRecurring) {
       return (t.recurringPattern?.daysOfWeek ?? []).includes(dow);
     }
-    if (t.deadline) {
-      const created = t.createdAt.slice(0, 10);
-      return ds >= created && ds <= t.deadline;
-    }
-    return t.createdAt.slice(0, 10) === ds;
+    // Non-recurring: show from creation date onwards (until deadline if set)
+    const created = t.createdAt.slice(0, 10);
+    if (ds < created) return false;
+    if (t.deadline && ds > t.deadline) return false;
+    return true;
   });
 }
 

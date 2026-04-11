@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchBoardMessages } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
+import { fetchFamilyTasks, backfillInstances, syncInstanceState } from "@/lib/api/tasks";
 import type { BoardMessage } from "@/lib/api/board";
 import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,10 +31,27 @@ export default function DashboardClient() {
   // Feed del tablón: mensajes + transacciones recientes
   const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; emoji?: string; userName?: string; amount?: number }>>([]);
 
+  // Load tasks, instances, feed
   useEffect(() => {
     if (!currentUser) return;
-    async function loadFeed() {
+    async function loadAll() {
       try {
+        // Load tasks + backfill instances for today
+        const store = useAppStore.getState();
+        let activeTasks = store.tasks;
+        if (activeTasks.length === 0) {
+          activeTasks = await fetchFamilyTasks();
+          useAppStore.setState({ tasks: activeTasks });
+        }
+        const instances = await backfillInstances(activeTasks, currentUser!.id, new Date());
+        useAppStore.setState((prev) => ({
+          taskInstances: [
+            ...prev.taskInstances.filter((ti) => ti.userId !== currentUser!.id),
+            ...instances,
+          ],
+        }));
+
+        // Load feed
         const [msgs, txs] = await Promise.all([
           fetchBoardMessages(10),
           fetchFamilyTransactions(),
@@ -68,7 +86,7 @@ export default function DashboardClient() {
         setFeedItems(combined);
       } catch {}
     }
-    loadFeed();
+    loadAll();
   }, [currentUser]);
 
   if (!currentUser) return null;
@@ -286,7 +304,14 @@ export default function DashboardClient() {
                     <Button
                       size="sm"
                       className="h-7 text-xs"
-                      onClick={() => updateTaskInstance(instance.id, "completed")}
+                      onClick={async () => {
+                        updateTaskInstance(instance.id, "completed");
+                        try {
+                          await syncInstanceState(instance.id, "completed", task!, currentUser!.id, "pending");
+                        } catch {
+                          updateTaskInstance(instance.id, "pending");
+                        }
+                      }}
                     >
                       {t("quickComplete")}
                     </Button>
