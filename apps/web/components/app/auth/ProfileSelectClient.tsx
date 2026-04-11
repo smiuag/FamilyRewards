@@ -8,6 +8,7 @@ import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 import { fetchFamilySettings } from "@/lib/api/members";
 import { fetchFamilyTasks } from "@/lib/api/tasks";
 import { fetchFamilyRewards } from "@/lib/api/rewards";
+import { acceptInvitationAction } from "@/lib/actions/accept-invitation";
 import { Star, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
@@ -61,7 +62,7 @@ export default function ProfileSelectClient() {
       }
 
       // Cargar perfiles de la familia (RLS filtra automáticamente)
-      const { data: profilesData, error: profilesError } = await supabase
+      let { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: true });
@@ -86,17 +87,23 @@ export default function ProfileSelectClient() {
         localStorage.removeItem("pending_invitation");
         try {
           const pending = JSON.parse(pendingRaw) as { token?: string; name?: string | null; avatar?: string };
-          // Actualizar perfil con nombre/avatar elegidos en /join si los hay
-          const myProf = profilesData.find((p) => p.auth_user_id === user.id);
-          if (myProf && (pending.name || pending.avatar)) {
-            const updates: Record<string, string> = {};
-            if (pending.name) updates.name = pending.name;
-            if (pending.avatar) updates.avatar = pending.avatar;
-            await supabase.from("profiles").update(updates).eq("id", myProf.id);
-            if (pending.name) myProf.name = pending.name;
-            if (pending.avatar) myProf.avatar = pending.avatar;
+          if (pending.token) {
+            await acceptInvitationAction({
+              token: pending.token,
+              authUserId: user.id,
+              name: pending.name,
+              avatar: pending.avatar,
+            });
+            // Recargar perfiles tras aceptar la invitación
+            const { data: freshProfiles } = await supabase
+              .from("profiles")
+              .select("*")
+              .order("created_at", { ascending: true });
+            if (freshProfiles?.length) {
+              profilesData = freshProfiles;
+            }
           }
-        } catch { /* ignore parse errors */ }
+        } catch { /* invitación ya aceptada o expirada, continuar normal */ }
       }
 
       // Auto-login: buscar el perfil que corresponde al auth user

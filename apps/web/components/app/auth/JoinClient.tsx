@@ -101,6 +101,13 @@ export default function JoinClient() {
       return;
     }
 
+    // Guardar invitación pendiente como fallback (por si el trigger no la resolvió)
+    localStorage.setItem("pending_invitation", JSON.stringify({
+      token,
+      name: name.trim() || null,
+      avatar,
+    }));
+
     if (data.session) {
       router.push(`/${locale}/profile-select`);
     } else {
