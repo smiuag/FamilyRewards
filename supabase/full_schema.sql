@@ -344,6 +344,12 @@ create policy "admins can manage assignments"
   on task_assignments for all
   using (is_family_admin());
 
+create policy "members can insert own assignments"
+  on task_assignments for insert
+  with check (
+    profile_id in (select id from profiles where auth_user_id = auth.uid())
+  );
+
 -- ── task_instances ──────────────────────────────────────────
 create policy "family members can read instances"
   on task_instances for select
@@ -354,6 +360,18 @@ create policy "family members can read instances"
 create policy "admins can manage instances"
   on task_instances for all
   using (is_family_admin());
+
+create policy "members can insert own instances"
+  on task_instances for insert
+  with check (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+  );
+
+create policy "members can update own instances"
+  on task_instances for update
+  using (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+  );
 
 -- ── rewards ─────────────────────────────────────────────────
 create policy "family members can read rewards"
@@ -391,9 +409,11 @@ create policy "family members can read transactions"
     profile_id in (select id from profiles where family_id = get_my_family_id())
   );
 
-create policy "admins can insert transactions"
+create policy "family members can insert transactions"
   on points_transactions for insert
-  with check (is_family_admin());
+  with check (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+  );
 
 -- ── board_messages ──────────────────────────────────────────
 create policy "family members can read board messages"
