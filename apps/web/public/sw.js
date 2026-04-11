@@ -2,10 +2,15 @@ const CACHE_NAME = "familyrewards-v1";
 
 const STATIC_ASSETS = ["/offline"];
 
-// Install: pre-cache offline page
+// Install: pre-cache offline page (non-blocking if it fails)
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .catch(() => {
+        // Pre-cache failed (e.g. offline page not available yet) — continue anyway
+      })
   );
   self.skipWaiting();
 });
@@ -65,7 +70,10 @@ self.addEventListener("fetch", (event) => {
   // Navigation requests: network-first, fallback to offline page
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/offline"))
+      fetch(request).catch(async () => {
+        const cached = await caches.match("/offline");
+        return cached || new Response("Offline", { status: 503, headers: { "Content-Type": "text/html" } });
+      })
     );
     return;
   }
@@ -78,7 +86,10 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         return response;
       })
-      .catch(() => caches.match(request))
+      .catch(async () => {
+        const cached = await caches.match(request);
+        return cached || new Response("", { status: 408 });
+      })
   );
 });
 

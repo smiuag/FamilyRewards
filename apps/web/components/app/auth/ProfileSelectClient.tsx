@@ -159,18 +159,18 @@ export default function ProfileSelectClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Entrando...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+      <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-6 text-center max-w-sm space-y-3">
           <p className="text-red-500 text-sm">{error}</p>
           <button
@@ -180,12 +180,12 @@ export default function ProfileSelectClient() {
             Volver al inicio
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -240,6 +240,6 @@ export default function ProfileSelectClient() {
           Cerrar sesión
         </button>
       </div>
-    </div>
+    </main>
   );
 }

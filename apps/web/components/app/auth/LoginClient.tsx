@@ -62,7 +62,7 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -165,6 +165,6 @@ export default function LoginClient() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

@@ -136,17 +136,17 @@ export default function JoinClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-      </div>
+      </main>
     );
   }
 
   if (error && !inviteInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+      <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-6 text-center max-w-sm space-y-3 shadow-sm border">
-          <p className="text-4xl">⚠️</p>
+          <p className="text-4xl" aria-hidden="true">⚠️</p>
           <p className="font-semibold">Invitación inválida</p>
           <p className="text-sm text-muted-foreground">{error}</p>
           <button onClick={() => router.push(`/${locale}/login`)}
@@ -154,12 +154,12 @@ export default function JoinClient() {
             Ir al inicio de sesión
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-4">
@@ -177,9 +177,10 @@ export default function JoinClient() {
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Tu avatar</label>
-            <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto pr-1">
+            <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto pr-1" role="radiogroup" aria-label="Tu avatar">
               {AVATARS.map((a) => (
                 <button key={a} type="button" onClick={() => setAvatar(a)}
+                  role="radio" aria-checked={avatar === a} aria-label={`Avatar ${a}`}
                   className={cn("text-xl p-1 rounded-lg transition-all",
                     avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted")}>
                   {a}
@@ -253,6 +254,6 @@ export default function JoinClient() {
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

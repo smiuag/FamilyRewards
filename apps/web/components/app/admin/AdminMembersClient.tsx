@@ -472,12 +472,14 @@ export default function AdminMembersClient() {
             <Label>{t("pointsAmount")}</Label>
             <div className="flex items-center gap-2 mt-1.5">
               <Button size="icon" variant="outline" className="h-10 w-10 rounded-xl"
+                aria-label="Restar 10 puntos"
                 onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) - 10))}>
                 <Minus className="w-4 h-4" />
               </Button>
-              <Input type="number" placeholder="ej: +50 o -100" value={adjustAmount}
+              <Input id="adjust-points" type="number" placeholder="ej: +50 o -100" value={adjustAmount}
                 onChange={(e) => setAdjustAmount(e.target.value)} className="text-center text-lg font-bold" />
               <Button size="icon" variant="outline" className="h-10 w-10 rounded-xl"
+                aria-label="Sumar 10 puntos"
                 onClick={() => setAdjustAmount((v) => String((parseInt(v) || 0) + 10))}>
                 <Plus className="w-4 h-4" />
               </Button>

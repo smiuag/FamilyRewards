@@ -120,7 +120,7 @@ export default function RegisterClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
@@ -138,9 +138,10 @@ export default function RegisterClient() {
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Tu avatar</label>
-                <div className="grid grid-cols-10 gap-1">
+                <div className="grid grid-cols-10 gap-1" role="radiogroup" aria-label="Tu avatar">
                   {AVATARS.map((a) => (
                     <button key={a} type="button" onClick={() => setAvatar(a)}
+                      role="radio" aria-checked={avatar === a} aria-label={`Avatar ${a}`}
                       className={cn("text-xl p-1 rounded-lg transition-all", avatar === a ? "bg-primary/15 ring-2 ring-primary scale-110" : "hover:bg-muted")}>
                       {a}
                     </button>
@@ -260,6 +261,6 @@ export default function RegisterClient() {
           </p>
         )}
       </div>
-    </div>
+    </main>
   );
 }
