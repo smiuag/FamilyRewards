@@ -58,11 +58,8 @@ export async function sendInviteAction(params: {
   const token = (invite as { token: string }).token;
   const joinUrl = `${origin}/es/join?token=${token}`;
 
-  // redirectTo goes to /auth/confirm so the PKCE code is exchanged properly
-  // and the new user's session replaces any existing one
   const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/confirm`,
-    data: { invitation_token: token },
+    redirectTo: joinUrl,
   });
 
   if (emailError) {

@@ -132,10 +132,6 @@ export default function Sidebar() {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
-    // Clear session-specific stores from localStorage
-    for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
-      localStorage.removeItem(key);
-    }
     logout();
     router.push(`/${locale}/login`);
   };
