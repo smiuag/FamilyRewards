@@ -26,7 +26,8 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
     let cancelled = false;
 
     async function verify() {
-      // If store already has a user, just validate the session is still alive
+      // If store already has a user, validate the session is still alive
+      // AND belongs to the same auth user (prevents stale data after user switch)
       if (currentUser) {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -34,6 +35,15 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           // Session expired — clear store and redirect
           useAppStore.getState().logout();
           router.replace(`/${locale}/login`);
+          return;
+        }
+        if (currentUser.authUserId && currentUser.authUserId !== user.id) {
+          // Different auth user — clear stale stores and reload from server
+          for (const key of ["family-rewards-store", "family-rewards-multipliers", "family-rewards-challenges"]) {
+            localStorage.removeItem(key);
+          }
+          useAppStore.getState().logout();
+          router.replace(`/${locale}/profile-select?fresh=1`);
           return;
         }
         if (!cancelled) setChecked(true);
