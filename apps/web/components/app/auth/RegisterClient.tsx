@@ -126,7 +126,7 @@ export default function RegisterClient() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-4">
-            <Star className="w-8 h-8 text-white fill-white" />
+            <Star className="w-8 h-8 text-primary-foreground fill-primary-foreground" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
           <p className="text-muted-foreground mt-1 text-sm">Crea tu familia y empieza a motivar</p>
@@ -187,7 +187,7 @@ export default function RegisterClient() {
               {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
               <button type="submit" disabled={loading || !name.trim()}
-                className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all flex items-center justify-center gap-2",
+                className={cn("w-full py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary transition-all flex items-center justify-center gap-2",
                   loading || !name.trim() ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]")}>
                 {loading ? "Creando..." : "Crear familia"}
                 {!loading && <ArrowRight className="w-4 h-4" />}

@@ -67,7 +67,7 @@ export default function LoginClient() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-4">
-            <Star className="w-8 h-8 text-white fill-white" />
+            <Star className="w-8 h-8 text-primary-foreground fill-primary-foreground" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">FamilyRewards</h1>
           <p className="text-muted-foreground mt-1 text-sm">{t("signInSubtitle")}</p>
@@ -131,7 +131,7 @@ export default function LoginClient() {
             type="submit"
             disabled={loading}
             className={cn(
-              "w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-primary transition-all",
+              "w-full py-2.5 rounded-xl font-semibold text-sm text-primary-foreground bg-primary transition-all",
               loading ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/90 active:scale-[0.98]"
             )}
           >

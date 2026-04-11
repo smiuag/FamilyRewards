@@ -190,7 +190,7 @@ export default function ProfileSelectClient() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-4">
-            <Star className="w-8 h-8 text-white fill-white" />
+            <Star className="w-8 h-8 text-primary-foreground fill-primary-foreground" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">{familyName}</h1>
           <p className="text-muted-foreground mt-1 text-sm">Selecciona tu perfil</p>
@@ -221,7 +221,7 @@ export default function ProfileSelectClient() {
               </div>
               <div className={cn(
                 "w-8 h-8 rounded-full bg-muted flex items-center justify-center transition-colors",
-                "group-hover:bg-primary group-hover:text-white"
+                "group-hover:bg-primary group-hover:text-primary-foreground"
               )}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

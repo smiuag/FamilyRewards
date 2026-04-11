@@ -11,7 +11,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#C74F0B" },
+    { media: "(prefers-color-scheme: light)", color: "#F97316" },
     { media: "(prefers-color-scheme: dark)", color: "#1f1a16" },
   ],
   width: "device-width",
