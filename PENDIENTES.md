@@ -57,7 +57,7 @@
 - [x] Reacciones emoji en mensajes del tablón
 
 ### Admin
-- [ ] Admin/Stats — enriquecer con datos de reports (ya hay datos, falta UI)
+- [x] Admin/Stats — enriquecido: periodo (semana/mes/todo), gráfico actividad diaria, economía de puntos, resumen canjes, tabla detalle
 
 ---
 
