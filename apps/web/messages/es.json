@@ -536,7 +536,7 @@
       "prizeWeight": "Peso",
       "prizeWeightHint": "Mayor peso = más probabilidad",
       "removePrize": "Quitar",
-      "mysteryMinPrizes": "Añade al menos 2 premios",
+      "mysteryMinPrizes": "Añade al menos 1 premio",
       "mysteryBadge": "Misteriosa"
     },
     "stats": {

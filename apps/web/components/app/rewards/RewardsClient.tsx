@@ -42,7 +42,7 @@ export default function RewardsClient() {
   const handleRedeem = async () => {
     if (!confirmReward) return;
     const isAdmin = currentUser.role === "admin";
-    const isMystery = confirmReward.mysteryPrizes && confirmReward.mysteryPrizes.length >= 2;
+    const isMystery = confirmReward.mysteryPrizes && confirmReward.mysteryPrizes.length >= 1;
     setRedeeming(true);
     try {
       // Mystery boxes always auto-approve with a random prize
@@ -92,7 +92,7 @@ export default function RewardsClient() {
     const isResolved = (isApproved || isRejected) && !!claim;
     const isArchived = isResolved && archivedClaimIds.includes(claim!.id);
     const isTarget = targetRewardIds.includes(reward.id);
-    const isMystery = reward.mysteryPrizes && reward.mysteryPrizes.length >= 2;
+    const isMystery = reward.mysteryPrizes && reward.mysteryPrizes.length >= 1;
 
     if (isArchived) return null;
 
@@ -289,7 +289,7 @@ export default function RewardsClient() {
       {/* Confirm modal */}
       <AppModal open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
         {(() => {
-          const isMystery = confirmReward?.mysteryPrizes && confirmReward.mysteryPrizes.length >= 2;
+          const isMystery = confirmReward?.mysteryPrizes && confirmReward.mysteryPrizes.length >= 1;
           return (
             <>
               <AppModalHeader

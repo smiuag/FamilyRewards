@@ -30,6 +30,14 @@ import { TIER_CONFIG, MAX_REWARD_POINTS as MAX_POINTS } from "@/lib/config/const
 
 type Tab = "catalog" | "custom";
 
+const REWARD_EMOJIS = [
+  "🎁", "📦", "🎉", "🎊", "🏆", "👑", "⭐", "🌟", "💎", "🔮",
+  "🎬", "🍰", "🍕", "🍔", "🍦", "🎮", "📱", "🎧", "🎸", "⚽",
+  "🚲", "🎨", "📚", "🎪", "🎢", "🎯", "🎳", "🏖️", "✈️", "🎠",
+  "🍿", "🧁", "🍩", "🎂", "🥤", "🌈", "🦄", "🐶", "🎃", "🪄",
+  "💰", "🪙", "🎟️", "🎫", "🏅", "🥇", "🧸", "🎈", "🕹️", "📸",
+];
+
 export default function AddRewardClient() {
   const router = useRouter();
   const params = useParams();
@@ -54,8 +62,9 @@ export default function AddRewardClient() {
   const [isMystery, setIsMystery] = useState(false);
   const [mysteryPrizes, setMysteryPrizes] = useState<MysteryPrize[]>([
     { name: "", emoji: "🎬", weight: 3 },
-    { name: "", emoji: "🍰", weight: 3 },
   ]);
+  // Emoji picker: "main" for the reward emoji, or index for prize emoji
+  const [emojiPickerFor, setEmojiPickerFor] = useState<"main" | number | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -98,15 +107,16 @@ export default function AddRewardClient() {
   };
 
   const validMysteryPrizes = mysteryPrizes.filter((p) => p.name.trim());
-  const canSaveMystery = !isMystery || validMysteryPrizes.length >= 2;
+  const canSaveMystery = !isMystery || validMysteryPrizes.length >= 1;
 
   const handleSaveCustom = async () => {
-    if (!customForm.title.trim()) return;
-    if (isMystery && validMysteryPrizes.length < 2) return;
+    if (!customForm.title.trim() && !isMystery) return;
+    if (isMystery && validMysteryPrizes.length < 1) return;
     setSaving(true);
     try {
+      const title = customForm.title.trim() || (isMystery ? ta("mysteryToggle") : "");
       await saveReward({
-        title: customForm.title, description: customForm.description,
+        title, description: customForm.description,
         emoji: customForm.emoji, pointsCost: parseInt(customForm.points) || 100,
         mysteryPrizes: isMystery ? validMysteryPrizes : null,
       });
@@ -277,17 +287,34 @@ export default function AddRewardClient() {
 
       {/* ── Custom tab ─────────────────────────────────────────────────────────── */}
       {tab === "custom" && (
-        <div className="max-w-md space-y-4">
-          <div className="grid grid-cols-5 gap-3">
-            <div className="col-span-1">
-              <Label htmlFor="reward-emoji">Emoji</Label>
-              <Input id="reward-emoji" value={customForm.emoji} maxLength={2}
-                onChange={(e) => setCustomForm({ ...customForm, emoji: e.target.value })}
-                className="text-center text-xl mt-1.5" />
+        <Card className="max-w-md shadow-sm">
+          <CardContent className="pt-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="relative">
+              <button
+                onClick={() => setEmojiPickerFor(emojiPickerFor === "main" ? null : "main")}
+                className="w-14 h-14 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center text-3xl transition-colors border-2 border-transparent hover:border-primary/30"
+                aria-label="Elegir emoji"
+              >
+                {customForm.emoji}
+              </button>
+              {emojiPickerFor === "main" && (
+                <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2 w-64">
+                  <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                    {REWARD_EMOJIS.map((em) => (
+                      <button key={em} onClick={() => { setCustomForm({ ...customForm, emoji: em }); setEmojiPickerFor(null); }}
+                        className={cn("w-7 h-7 rounded-lg text-base flex items-center justify-center transition-all hover:bg-muted",
+                          customForm.emoji === em && "bg-primary/20 ring-1 ring-primary")}>
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="col-span-4">
+            <div className="flex-1">
               <Label htmlFor="reward-title">Nombre</Label>
-              <Input id="reward-title" value={customForm.title} placeholder="Nombre de la recompensa"
+              <Input id="reward-title" value={customForm.title} placeholder={isMystery ? ta("mysteryToggle") : "Nombre de la recompensa"}
                 onChange={(e) => setCustomForm({ ...customForm, title: e.target.value })}
                 className="mt-1.5" autoFocus />
             </div>
@@ -302,7 +329,11 @@ export default function AddRewardClient() {
           {/* Mystery box toggle */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
             <button
-              onClick={() => { setIsMystery(!isMystery); if (!isMystery) setCustomForm({ ...customForm, emoji: "📦" }); }}
+              onClick={() => {
+                const willBeMystery = !isMystery;
+                setIsMystery(willBeMystery);
+                if (willBeMystery) setCustomForm({ ...customForm, emoji: "📦", title: customForm.title || ta("mysteryToggle") });
+              }}
               className={cn(
                 "w-10 h-6 rounded-full transition-colors flex-shrink-0 relative",
                 isMystery ? "bg-purple-500" : "bg-muted"
@@ -327,18 +358,32 @@ export default function AddRewardClient() {
             <div className="space-y-3 p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
               <p className="text-sm font-semibold">{ta("mysteryPrizes")}</p>
               {mysteryPrizes.map((prize, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    value={prize.emoji}
-                    onChange={(e) => {
-                      const updated = [...mysteryPrizes];
-                      updated[i] = { ...prize, emoji: e.target.value };
-                      setMysteryPrizes(updated);
-                    }}
-                    className="w-12 text-center text-lg"
-                    maxLength={2}
+                <div key={i} className="flex items-center gap-2 relative">
+                  <button
+                    onClick={() => setEmojiPickerFor(emojiPickerFor === i ? null : i)}
+                    className="w-10 h-10 rounded-lg bg-white dark:bg-muted flex items-center justify-center text-lg border border-border hover:border-primary/30 transition-colors flex-shrink-0"
                     aria-label={ta("prizeEmoji")}
-                  />
+                  >
+                    {prize.emoji}
+                  </button>
+                  {emojiPickerFor === i && (
+                    <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2 w-64">
+                      <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                        {REWARD_EMOJIS.map((em) => (
+                          <button key={em} onClick={() => {
+                            const updated = [...mysteryPrizes];
+                            updated[i] = { ...prize, emoji: em };
+                            setMysteryPrizes(updated);
+                            setEmojiPickerFor(null);
+                          }}
+                            className={cn("w-7 h-7 rounded-lg text-base flex items-center justify-center transition-all hover:bg-muted",
+                              prize.emoji === em && "bg-primary/20 ring-1 ring-primary")}>
+                            {em}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <Input
                     value={prize.name}
                     onChange={(e) => {
@@ -362,7 +407,7 @@ export default function AddRewardClient() {
                     title={ta("prizeWeightHint")}
                     aria-label={ta("prizeWeight")}
                   />
-                  {mysteryPrizes.length > 2 && (
+                  {mysteryPrizes.length > 1 && (
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-600"
                       onClick={() => setMysteryPrizes(mysteryPrizes.filter((_, j) => j !== i))}>
                       <Trash2 className="w-3.5 h-3.5" />
@@ -376,7 +421,7 @@ export default function AddRewardClient() {
                 </Button>
                 <p className="text-xs text-muted-foreground">{ta("prizeWeightHint")}</p>
               </div>
-              {validMysteryPrizes.length < 2 && (
+              {validMysteryPrizes.length < 1 && (
                 <p className="text-xs text-amber-600 font-medium">{ta("mysteryMinPrizes")}</p>
               )}
             </div>
@@ -395,12 +440,13 @@ export default function AddRewardClient() {
             <Button variant="outline" onClick={() => router.push(`/${locale}/admin/rewards`)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveCustom} disabled={saving || !customForm.title.trim() || !canSaveMystery}>
+            <Button onClick={handleSaveCustom} disabled={saving || (!customForm.title.trim() && !isMystery) || !canSaveMystery}>
               <Plus className="w-4 h-4 mr-1.5" />
               {saving ? "Creando..." : "Crear recompensa"}
             </Button>
           </div>
-        </div>
+        </CardContent>
+        </Card>
       )}
 
       {/* Confirm catalog item */}
