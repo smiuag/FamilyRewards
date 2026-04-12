@@ -4,10 +4,10 @@ import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useAnnounce } from "@/components/AriaLiveAnnouncer";
-import { fetchBoardMessages } from "@/lib/api/board";
+import { fetchBoardMessages, fetchReactions } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import { fetchFamilyTasks, backfillInstances, syncInstanceState, claimTask } from "@/lib/api/tasks";
-import type { BoardMessage } from "@/lib/api/board";
+import type { BoardMessage, Reaction } from "@/lib/api/board";
 import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +33,8 @@ export default function DashboardClient() {
   const locale = (params?.locale as string) ?? "es";
 
   // Feed del tablón: mensajes + transacciones recientes
-  const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; emoji?: string; userName?: string; amount?: number }>>([]);
-  const [pinnedItems, setPinnedItems] = useState<Array<{ id: string; content: string; userName: string; emoji?: string }>>([]);
+  const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; userName?: string; amount?: number; reactions?: Record<string, number> }>>([]);
+  const [pinnedItems, setPinnedItems] = useState<Array<{ id: string; content: string; userName: string }>>([]);
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
   const [targetRewardIdx, setTargetRewardIdx] = useState(0);
 
@@ -63,9 +63,18 @@ export default function DashboardClient() {
         // Pinned messages for top of board section
         const pinned = msgs.filter((m: BoardMessage) => m.pinned).map((m: BoardMessage) => {
           const author = allUsers.find((u) => u.id === m.profileId);
-          return { id: m.id, content: m.content, userName: author?.name ?? t("systemUser"), emoji: author?.avatar };
+          return { id: m.id, content: m.content, userName: author?.name ?? t("systemUser") };
         });
         setPinnedItems(pinned);
+        // Fetch reactions for board messages
+        const msgIds = msgs.map((m: BoardMessage) => m.id);
+        const allReactions = msgIds.length > 0 ? await fetchReactions(msgIds) : [];
+        // Group reactions by message: { msgId: { "👍": 3, "❤️": 1 } }
+        const reactionsByMsg: Record<string, Record<string, number>> = {};
+        for (const r of allReactions) {
+          if (!reactionsByMsg[r.messageId]) reactionsByMsg[r.messageId] = {};
+          reactionsByMsg[r.messageId][r.emoji] = (reactionsByMsg[r.messageId][r.emoji] || 0) + 1;
+        }
         const boardItems = msgs.filter((m: BoardMessage) => !m.pinned).slice(0, 5).map((m: BoardMessage) => {
           const author = allUsers.find((u) => u.id === m.profileId);
           return {
@@ -74,7 +83,7 @@ export default function DashboardClient() {
             createdAt: m.createdAt,
             content: m.content,
             userName: author?.name ?? t("systemUser"),
-            emoji: author?.avatar,
+            reactions: reactionsByMsg[m.id],
           };
         });
         const txItems = txs.slice(0, 5).map((tx: PointsTransaction) => {
@@ -85,7 +94,6 @@ export default function DashboardClient() {
             createdAt: tx.createdAt,
             content: tx.description,
             userName: u?.name ?? t("unknownUser"),
-            emoji: tx.emoji,
             amount: tx.amount,
           };
         });
@@ -578,24 +586,33 @@ export default function DashboardClient() {
             ) : feedItems.length > 0 ? (
               <div className="space-y-2.5">
                 {feedItems.map((item) => (
-                  <div key={item.id} className="flex items-start gap-2.5">
-                    {item.emoji && (
-                      <span className="text-base flex-shrink-0 mt-0.5">{item.emoji}</span>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm leading-snug">
-                        <span className="font-semibold">{item.userName}</span>
-                        {" "}
-                        <span className="text-muted-foreground">{item.content}</span>
-                      </p>
+                  <div key={item.id} className="space-y-1">
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-snug">
+                          <span className="font-semibold">{item.userName}</span>
+                          {" "}
+                          <span className="text-muted-foreground">{item.content}</span>
+                        </p>
+                      </div>
+                      {item.amount != null && (
+                        <span className={cn(
+                          "text-xs font-bold flex-shrink-0",
+                          item.amount > 0 ? "text-green-600" : "text-orange-500"
+                        )}>
+                          {item.amount > 0 ? "+" : ""}{item.amount}
+                        </span>
+                      )}
                     </div>
-                    {item.amount != null && (
-                      <span className={cn(
-                        "text-xs font-bold flex-shrink-0",
-                        item.amount > 0 ? "text-green-600" : "text-orange-500"
-                      )}>
-                        {item.amount > 0 ? "+" : ""}{item.amount}
-                      </span>
+                    {item.reactions && Object.keys(item.reactions).length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {Object.entries(item.reactions).map(([emoji, count]) => (
+                          <span key={emoji} className="inline-flex items-center gap-0.5 text-xs bg-muted/50 rounded-full px-1.5 py-0.5">
+                            <span>{emoji}</span>
+                            <span className="text-muted-foreground font-medium">{count}</span>
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}
