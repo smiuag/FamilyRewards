@@ -8,6 +8,7 @@ import { ElectricBody } from "../pets/svg/bodies/ElectricBody";
 import { ShadowBody } from "../pets/svg/bodies/ShadowBody";
 import { PetEyes } from "../pets/svg/eyes/PetEyes";
 import { AccessoryLayer } from "../pets/svg/accessories/AccessoryLayer";
+import { BackgroundLayer } from "../pets/svg/backgrounds/BackgroundLayer";
 import type { PetCardConfig } from "@/lib/minigame/constants";
 
 interface MiniPetDisplayProps {
@@ -19,11 +20,12 @@ interface MiniPetDisplayProps {
  * Renders species body + eyes + optional accessory directly (no inventory lookup).
  */
 export function MiniPetDisplay({ pet }: MiniPetDisplayProps) {
-  const { species, stage, primaryColor, secondaryColor, eyeStyle, accessorySvgKey, accessorySlot } = pet;
+  const { species, stage, primaryColor, secondaryColor, eyeStyle, accessorySvgKey, accessorySlot, backgroundSvgKey } = pet;
   const bodyStage = stage as "baby" | "juvenile" | "adult";
 
   return (
     <div className="relative w-full h-full">
+      {backgroundSvgKey && <BackgroundLayer svgKey={backgroundSvgKey} />}
       <SpeciesBody
         species={species}
         stage={bodyStage}

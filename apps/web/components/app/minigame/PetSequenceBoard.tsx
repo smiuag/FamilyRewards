@@ -60,6 +60,7 @@ export function PetSequenceBoard({ difficulty, pointsBase, onComplete }: PetSequ
     setPhase("showing");
 
     // Play the sequence with highlights
+    const gapMs = Math.max(100, config.showDelayMs / 2);
     let i = 0;
     const playNext = () => {
       if (i < newSequence.length) {
@@ -67,13 +68,13 @@ export function PetSequenceBoard({ difficulty, pointsBase, onComplete }: PetSequ
         setTimeout(() => {
           setHighlightIdx(null);
           i++;
-          setTimeout(playNext, 200);
+          setTimeout(playNext, gapMs);
         }, config.showDelayMs);
       } else {
         setPhase("input");
       }
     };
-    setTimeout(playNext, 500);
+    setTimeout(playNext, 300);
   }
 
   const handleTap = useCallback(
@@ -157,20 +158,18 @@ export function PetSequenceBoard({ difficulty, pointsBase, onComplete }: PetSequ
         </div>
       </div>
 
-      {/* Progress dots */}
-      {phase === "input" && (
-        <div className="flex justify-center gap-1.5">
-          {sequence.map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "w-2.5 h-2.5 rounded-full transition-all",
-                i < inputSoFar.length ? "bg-primary scale-110" : "bg-muted",
-              )}
-            />
-          ))}
-        </div>
-      )}
+      {/* Progress dots — always rendered to reserve space */}
+      <div className={cn("flex justify-center gap-1.5 min-h-[10px]", phase !== "input" && "invisible")}>
+        {sequence.map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "w-2.5 h-2.5 rounded-full transition-all",
+              i < inputSoFar.length ? "bg-primary scale-110" : "bg-muted",
+            )}
+          />
+        ))}
+      </div>
 
       {/* Pet pool */}
       <div className={cn(
@@ -197,21 +196,25 @@ export function PetSequenceBoard({ difficulty, pointsBase, onComplete }: PetSequ
                 phase === "input" && "cursor-pointer hover:border-primary/40 active:scale-95",
               )}
             >
-              <div className="w-full h-full">
-                <MiniPetDisplay pet={pet} />
+              <div className="w-full h-full overflow-hidden">
+                <div className="w-full h-full scale-125">
+                  <MiniPetDisplay pet={pet} />
+                </div>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Feedback */}
-      {phase === "feedback" && (
-        <p className="text-center text-sm font-bold text-green-500">{t("sequenceCorrect")}</p>
-      )}
-      {phase === "done" && wrongIdx !== null && (
-        <p className="text-center text-sm font-bold text-red-500">{t("sequenceWrong")}</p>
-      )}
+      {/* Feedback — fixed height to avoid layout shift */}
+      <div className="h-5 flex items-center justify-center">
+        {phase === "feedback" && (
+          <p className="text-sm font-bold text-green-500">{t("sequenceCorrect")}</p>
+        )}
+        {phase === "done" && wrongIdx !== null && (
+          <p className="text-sm font-bold text-red-500">{t("sequenceWrong")}</p>
+        )}
+      </div>
     </div>
   );
 }

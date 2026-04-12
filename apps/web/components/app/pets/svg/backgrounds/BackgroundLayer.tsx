@@ -18,7 +18,7 @@ export function BackgroundLayer({ svgKey }: BackgroundLayerProps) {
 
 function RainbowBg() {
   return (
-    <g opacity="0.2">
+    <g opacity="0.55">
       <path d="M20 160 Q100 20 180 160" fill="none" stroke="#EF4444" strokeWidth="4" />
       <path d="M25 160 Q100 30 175 160" fill="none" stroke="#F97316" strokeWidth="4" />
       <path d="M30 160 Q100 40 170 160" fill="none" stroke="#FBBF24" strokeWidth="4" />
@@ -37,7 +37,7 @@ function StarsBg() {
     { x: 150, y: 175, s: 3 },
   ];
   return (
-    <g opacity="0.25">
+    <g opacity="0.6">
       {stars.map((st, i) => (
         <path
           key={i}
@@ -56,7 +56,7 @@ function HeartsBg() {
     { x: 50, y: 175, s: 0.3 }, { x: 145, y: 178, s: 0.35 },
   ];
   return (
-    <g opacity="0.2">
+    <g opacity="0.5">
       {hearts.map((h, i) => (
         <path
           key={i}
@@ -71,7 +71,7 @@ function HeartsBg() {
 
 function FlamesBg() {
   return (
-    <g opacity="0.15">
+    <g opacity="0.5">
       <path d="M20 180 Q25 150 20 130 Q30 145 35 120 Q38 140 45 180" fill="#F97316" />
       <path d="M155 180 Q160 145 155 120 Q165 140 170 115 Q175 140 180 180" fill="#F97316" />
       <path d="M10 180 Q15 160 12 145 Q18 155 22 180" fill="#FBBF24" />
@@ -87,7 +87,7 @@ function BubblesBg() {
     { x: 35, y: 160, r: 7 }, { x: 165, y: 155, r: 6 }, { x: 50, y: 180, r: 4 },
   ];
   return (
-    <g opacity="0.15">
+    <g opacity="0.5">
       {bubbles.map((b, i) => (
         <g key={i}>
           <circle cx={b.x} cy={b.y} r={b.r} fill="none" stroke="#3B82F6" strokeWidth="1.5" />

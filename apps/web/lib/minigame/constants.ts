@@ -31,15 +31,16 @@ export const MATCH_CONFIG: Record<MinigameDifficulty, MatchConfig> = {
 
 export interface QuizConfig {
   rounds: number;
+  options: number;       // number of choices (including the correct one)
   showTimeMs: number;    // initial time to memorize (ms)
   minShowTimeMs: number; // minimum show time at later rounds
   maxTimeForBonus: number;
 }
 
 export const QUIZ_CONFIG: Record<MinigameDifficulty, QuizConfig> = {
-  easy:   { rounds: 5,  showTimeMs: 3000, minShowTimeMs: 2000, maxTimeForBonus: 60 },
-  medium: { rounds: 8,  showTimeMs: 2500, minShowTimeMs: 1500, maxTimeForBonus: 90 },
-  hard:   { rounds: 12, showTimeMs: 2000, minShowTimeMs: 1000, maxTimeForBonus: 120 },
+  easy:   { rounds: 5, options: 4,  showTimeMs: 3000, minShowTimeMs: 2000, maxTimeForBonus: 60 },
+  medium: { rounds: 5, options: 9,  showTimeMs: 2000, minShowTimeMs: 1200, maxTimeForBonus: 90 },
+  hard:   { rounds: 5, options: 16, showTimeMs: 1500, minShowTimeMs: 800,  maxTimeForBonus: 120 },
 };
 
 // ── Sequence config ───────────────────────────────────────
@@ -52,9 +53,9 @@ export interface SequenceConfig {
 }
 
 export const SEQUENCE_CONFIG: Record<MinigameDifficulty, SequenceConfig> = {
-  easy:   { maxRounds: 6,  poolSize: 4, showDelayMs: 800, maxTimeForBonus: 60 },
-  medium: { maxRounds: 10, poolSize: 5, showDelayMs: 600, maxTimeForBonus: 120 },
-  hard:   { maxRounds: 14, poolSize: 6, showDelayMs: 500, maxTimeForBonus: 180 },
+  easy:   { maxRounds: 6,  poolSize: 4, showDelayMs: 500, maxTimeForBonus: 60 },
+  medium: { maxRounds: 10, poolSize: 5, showDelayMs: 350, maxTimeForBonus: 120 },
+  hard:   { maxRounds: 14, poolSize: 6, showDelayMs: 250, maxTimeForBonus: 180 },
 };
 
 // ── Odd-one config ────────────────────────────────────────
@@ -83,6 +84,7 @@ export interface PetCardConfig {
   eyeStyle: string;
   primaryColor: string;
   secondaryColor: string;
+  backgroundSvgKey: string | null;
   accessorySvgKey: string | null;
   accessorySlot: "head" | "body" | null;
 }

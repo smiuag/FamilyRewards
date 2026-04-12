@@ -6,6 +6,7 @@ const SPECIES: PetSpecies[] = ["fire", "water", "plant", "electric", "shadow"];
 const STAGES: Exclude<PetStage, "egg">[] = ["baby", "juvenile", "adult"];
 const HEAD_ACCESSORIES = ["crown", "party-hat", "sunglasses", "bow", "wizard-hat"];
 const BODY_ACCESSORIES = ["cape", "scarf", "star-necklace", "bowtie", "armor"];
+const BACKGROUNDS = ["rainbow", "stars-bg", "hearts-bg", "flames-bg", "bubbles-bg"];
 
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -33,6 +34,7 @@ function buildPool(): PetCardConfig[] {
           eyeStyle,
           primaryColor: defaultPrimary,
           secondaryColor: defaultSecondary,
+          backgroundSvgKey: null,
           accessorySvgKey: null,
           accessorySlot: null,
         });
@@ -58,6 +60,13 @@ export function maybeAddAccessory(config: PetCardConfig, chance = 0.4): void {
     const isHead = Math.random() < 0.5;
     config.accessorySlot = isHead ? "head" : "body";
     config.accessorySvgKey = randomPick(isHead ? HEAD_ACCESSORIES : BODY_ACCESSORIES);
+  }
+}
+
+/** Optionally attach a random background to a pet (mutates). */
+export function maybeAddBackground(config: PetCardConfig, chance = 0.4): void {
+  if (Math.random() < chance) {
+    config.backgroundSvgKey = randomPick(BACKGROUNDS);
   }
 }
 
@@ -106,6 +115,7 @@ export function generateOddOne(reference: PetCardConfig): PetCardConfig {
     eyeStyle,
     primaryColor: defaultPrimary,
     secondaryColor: defaultSecondary,
+    backgroundSvgKey: null,
     accessorySvgKey: null,
     accessorySlot: null,
   };

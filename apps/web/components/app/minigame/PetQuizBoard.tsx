@@ -29,10 +29,10 @@ interface Round {
   correctIndex: number;
 }
 
-function generateRound(): Round {
+function generateRound(optionCount: number): Round {
   const target = generateRandomPet();
   maybeAddAccessory(target, 0.5);
-  const distractors = generateSimilarOptions(target, 3);
+  const distractors = generateSimilarOptions(target, optionCount - 1);
   const options = shuffle([target, ...distractors]);
   return { target, options, correctIndex: options.indexOf(target) };
 }
@@ -42,7 +42,7 @@ export function PetQuizBoard({ difficulty, pointsBase, onComplete }: PetQuizBoar
   const config = QUIZ_CONFIG[difficulty];
 
   const [round, setRound] = useState(0);
-  const [currentRound, setCurrentRound] = useState<Round>(() => generateRound());
+  const [currentRound, setCurrentRound] = useState<Round>(() => generateRound(config.options));
   const [phase, setPhase] = useState<"showing" | "choosing" | "feedback">("showing");
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
@@ -100,7 +100,7 @@ export function PetQuizBoard({ difficulty, pointsBase, onComplete }: PetQuizBoar
           });
         } else {
           setRound(nextRound);
-          setCurrentRound(generateRound());
+          setCurrentRound(generateRound(config.options));
           setSelectedIdx(null);
           setPhase("showing");
         }
@@ -136,8 +136,10 @@ export function PetQuizBoard({ difficulty, pointsBase, onComplete }: PetQuizBoar
       {phase === "showing" && (
         <div className="flex flex-col items-center gap-3 py-6">
           <p className="text-sm font-medium text-muted-foreground">{t("quizMemorize")}</p>
-          <div className="w-32 h-32 sm:w-40 sm:h-40">
-            <MiniPetDisplay pet={currentRound.target} />
+          <div className="w-32 h-32 sm:w-40 sm:h-40 overflow-hidden">
+            <div className="w-full h-full scale-125">
+              <MiniPetDisplay pet={currentRound.target} />
+            </div>
           </div>
           <div className="w-24 h-1 bg-primary/30 rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full animate-shrink" />
@@ -151,7 +153,10 @@ export function PetQuizBoard({ difficulty, pointsBase, onComplete }: PetQuizBoar
           <p className="text-center text-sm font-medium text-muted-foreground">
             {t("quizWhichOne")}
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn(
+            "grid gap-2",
+            config.options <= 4 ? "grid-cols-2" : config.options <= 9 ? "grid-cols-3" : "grid-cols-4",
+          )}>
             {currentRound.options.map((opt, idx) => {
               const isCorrect = idx === currentRound.correctIndex;
               const isSelected = selectedIdx === idx;
@@ -171,8 +176,10 @@ export function PetQuizBoard({ difficulty, pointsBase, onComplete }: PetQuizBoar
                     showResult && !isCorrect && !isSelected && "opacity-40",
                   )}
                 >
-                  <div className="w-full h-full relative">
-                    <MiniPetDisplay pet={opt} />
+                  <div className="w-full h-full relative overflow-hidden">
+                    <div className="w-full h-full scale-125">
+                      <MiniPetDisplay pet={opt} />
+                    </div>
                     {showResult && isCorrect && (
                       <CheckCircle className="absolute top-0 right-0 w-6 h-6 text-green-500" />
                     )}

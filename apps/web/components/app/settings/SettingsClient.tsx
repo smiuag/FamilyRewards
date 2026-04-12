@@ -136,8 +136,8 @@ export default function SettingsClient() {
   const ts2 = useTranslations("minigame.adminSettings");
   const { loadConfig: loadMinigameConfig } = useMinigameStore();
   const [mgEnabled, setMgEnabled] = useState(false);
-  const [mgMaxDaily, setMgMaxDaily] = useState("");
-  const [mgPointsBase, setMgPointsBase] = useState("10");
+  const [mgMaxDaily, setMgMaxDaily] = useState("2");
+  const [mgPointsBase, setMgPointsBase] = useState("3");
   const [mgLoaded, setMgLoaded] = useState(false);
   const [mgSaving, setMgSaving] = useState(false);
 

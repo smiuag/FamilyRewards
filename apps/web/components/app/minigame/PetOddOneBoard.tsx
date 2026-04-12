@@ -10,6 +10,7 @@ import {
   generateSharesAttribute,
   shuffle,
   maybeAddAccessory,
+  maybeAddBackground,
 } from "@/lib/minigame/pet-generators";
 import type { PetCardConfig } from "@/lib/minigame/constants";
 import { MiniPetDisplay } from "./MiniPetDisplay";
@@ -38,8 +39,14 @@ interface Round {
 function generateRound(optionCount: number): Round {
   const reference = generateRandomPet();
   maybeAddAccessory(reference, 0.5);
+  maybeAddBackground(reference, 0.5);
   const oddOne = generateOddOne(reference);
+  // oddOne has no accessory and no background — stands out
   const similar = generateSharesAttribute(reference, optionCount - 1);
+  for (const s of similar) {
+    maybeAddAccessory(s, 0.3);
+    maybeAddBackground(s, 0.3);
+  }
   const options = shuffle([oddOne, ...similar]);
   return { reference, options, oddIndex: options.indexOf(oddOne) };
 }
@@ -48,17 +55,18 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
   const t = useTranslations("minigame");
   const config = ODDONE_CONFIG[difficulty];
 
-  const [round, setRound] = useState(0);
   const [currentRound, setCurrentRound] = useState<Round>(() => generateRound(config.optionCount));
   const [phase, setPhase] = useState<"playing" | "feedback" | "timeout">("playing");
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
   const [timer, setTimer] = useState(0);
   const [roundTimer, setRoundTimer] = useState(config.roundTimeMs);
-  const [done, setDone] = useState(false);
 
+  // Use refs for values read inside timeouts to avoid stale closures
+  const roundRef = useRef(0);
+  const correctRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const roundTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const doneRef = useRef(false);
 
   // Global timer
   useEffect(() => {
@@ -73,7 +81,6 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
     roundTimerRef.current = setInterval(() => {
       setRoundTimer((t) => {
         if (t <= 100) {
-          // Time's up
           clearInterval(roundTimerRef.current!);
           setPhase("timeout");
           return 0;
@@ -82,43 +89,45 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
       });
     }, 100);
     return () => { if (roundTimerRef.current) clearInterval(roundTimerRef.current); };
-  }, [phase, round, config.roundTimeMs]);
+  }, [phase, roundRef.current, config.roundTimeMs]);
 
-  // Handle timeout — advance to next round or finish
+  // Handle timeout
   useEffect(() => {
     if (phase !== "timeout") return;
     const timeout = setTimeout(() => advanceRound(false), 1000);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   function advanceRound(wasCorrect: boolean) {
-    const nextRound = round + 1;
-    const newCorrect = correctCount + (wasCorrect ? 1 : 0);
-    if (nextRound >= config.rounds) {
-      finishGame(newCorrect);
+    if (doneRef.current) return;
+    if (wasCorrect) correctRef.current += 1;
+    roundRef.current += 1;
+
+    if (roundRef.current >= config.rounds) {
+      finishGame();
     } else {
-      setRound(nextRound);
-      setCorrectCount(newCorrect);
       setCurrentRound(generateRound(config.optionCount));
       setSelectedIdx(null);
       setPhase("playing");
     }
   }
 
-  function finishGame(finalCorrect: number) {
-    setDone(true);
+  function finishGame() {
+    doneRef.current = true;
     if (timerRef.current) clearInterval(timerRef.current);
     if (roundTimerRef.current) clearInterval(roundTimerRef.current);
+
+    const finalCorrect = correctRef.current;
+    const finalTimer = timer;
     const perfect = finalCorrect === config.rounds;
     const ratio = finalCorrect / config.rounds;
-    const speedBonus = Math.max(0, Math.floor(pointsBase * (1 - timer / config.maxTimeForBonus)));
+    const speedBonus = Math.max(0, Math.floor(pointsBase * (1 - finalTimer / config.maxTimeForBonus)));
     const accuracyBonus = Math.floor(pointsBase * ratio);
     onComplete({
       pairsFound: finalCorrect,
       totalPairs: config.rounds,
       moves: config.rounds,
-      timeSeconds: timer,
+      timeSeconds: finalTimer,
       perfect,
       score: {
         base: pointsBase,
@@ -131,15 +140,14 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
 
   const handleChoice = useCallback(
     (idx: number) => {
-      if (phase !== "playing" || done) return;
+      if (phase !== "playing" || doneRef.current) return;
       if (roundTimerRef.current) clearInterval(roundTimerRef.current);
       setSelectedIdx(idx);
       const isCorrect = idx === currentRound.oddIndex;
       setPhase("feedback");
       setTimeout(() => advanceRound(isCorrect), 1000);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [phase, done, currentRound],
+    [phase, currentRound.oddIndex],
   );
 
   const formatTime = (s: number) => {
@@ -159,11 +167,11 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
           <span>{formatTime(timer)}</span>
         </div>
         <div className="text-sm font-semibold">
-          {t("round")} {round + 1}/{config.rounds}
+          {t("round")} {roundRef.current + 1}/{config.rounds}
         </div>
         <div className="flex items-center gap-1.5 text-sm font-semibold">
           <CheckCircle className="w-4 h-4 text-green-500" />
-          <span>{correctCount}</span>
+          <span>{correctRef.current}</span>
         </div>
       </div>
 
@@ -183,8 +191,10 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
       {/* Reference pet */}
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs font-medium text-muted-foreground">{t("oddOneReference")}</p>
-        <div className="w-28 h-28 sm:w-32 sm:h-32 border-2 border-primary/30 rounded-xl p-1.5">
-          <MiniPetDisplay pet={currentRound.reference} />
+        <div className="w-28 h-28 sm:w-32 sm:h-32 border-2 border-primary/30 rounded-xl p-1.5 overflow-hidden">
+          <div className="w-full h-full scale-125">
+            <MiniPetDisplay pet={currentRound.reference} />
+          </div>
         </div>
       </div>
 
@@ -216,8 +226,10 @@ export function PetOddOneBoard({ difficulty, pointsBase, onComplete }: PetOddOne
                   showResult && !isOdd && !isSelected && "opacity-40",
                 )}
               >
-                <div className="w-full h-full">
-                  <MiniPetDisplay pet={opt} />
+                <div className="w-full h-full overflow-hidden">
+                  <div className="w-full h-full scale-125">
+                    <MiniPetDisplay pet={opt} />
+                  </div>
                 </div>
               </button>
             );

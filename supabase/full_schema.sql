@@ -22,8 +22,8 @@ alter table families
   add column if not exists setup_visited_rewards boolean not null default false,
   add column if not exists pets_enabled boolean not null default false,
   add column if not exists minigame_enabled boolean not null default false,
-  add column if not exists minigame_max_daily integer,
-  add column if not exists minigame_points_base integer not null default 10;
+  add column if not exists minigame_max_daily integer not null default 2,
+  add column if not exists minigame_points_base integer not null default 3;
 
 -- ── PROFILES ────────────────────────────────────────────────
 create table if not exists profiles (
