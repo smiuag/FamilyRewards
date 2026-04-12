@@ -36,7 +36,7 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           router.replace(`/${locale}/login`);
           return;
         }
-        // tasks/rewards are not persisted in localStorage — reload if needed
+        // tasks/rewards are not persisted in localStorage �� reload if needed
         const state = useAppStore.getState();
         if (!state.catalogsLoaded) {
           const [tasks, rewards] = await Promise.all([
@@ -46,6 +46,16 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           if (!cancelled) {
             useAppStore.setState({ tasks, rewards, catalogsLoaded: true });
           }
+        }
+        // Always load feature flags from BD (store might have stale values)
+        if (currentUser.familyId) {
+          fetchFamilyFeatureFlags(currentUser.familyId).then((flags) => {
+            if (cancelled) return;
+            const features: string[] = [];
+            if (flags.petsEnabled) features.push("pets");
+            if (flags.minigameEnabled) features.push("minigame");
+            useAppStore.setState({ featuresUnlocked: features });
+          });
         }
         if (!cancelled) setChecked(true);
         return;
