@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import { useTranslations } from "next-intl";
@@ -7,8 +8,9 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import MobileNav from "./MobileNav";
 import SessionGuard from "./SessionGuard";
-import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
-import BirthdayModal from "./BirthdayModal";
+
+const OnboardingWizard = dynamic(() => import("@/components/app/onboarding/OnboardingWizard"), { ssr: false });
+const BirthdayModal = dynamic(() => import("./BirthdayModal"), { ssr: false });
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const { currentUser, onboardingCompleted } = useAppStore();

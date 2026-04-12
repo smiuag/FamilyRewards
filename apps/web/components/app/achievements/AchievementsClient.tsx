@@ -180,6 +180,11 @@ export default function AchievementsClient() {
   const locked = ACHIEVEMENTS.filter((a) => !a.condition(stats));
   const totalPoints = unlocked.reduce((acc, a) => acc + a.points, 0);
   const currentLevel = getLevelForAchievementCount(unlocked.length);
+
+  // Persist count in store so TopBar can read it without importing ACHIEVEMENTS
+  useEffect(() => {
+    useAppStore.setState({ achievementCount: unlocked.length });
+  }, [unlocked.length]);
   const nextLevel = getNextLevel(currentLevel);
   const levelTitle = locale === "en" ? currentLevel.titleEn : currentLevel.titleEs;
 

@@ -8,7 +8,6 @@ import { usePinStore } from "@/lib/store/usePinStore";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getLevelForAchievementCount } from "@/lib/levels";
-import { ACHIEVEMENTS, type UserStats } from "@/lib/achievements";
 import {
   Star, HelpCircle, Settings, LogOut, ArrowLeftRight, ChevronDown,
 } from "lucide-react";
@@ -21,7 +20,7 @@ export default function TopBar() {
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
 
-  const { currentUser, users, taskInstances, claims, rewards, logout, setCurrentProfile } = useAppStore();
+  const { currentUser, users, logout, setCurrentProfile } = useAppStore();
   const { hasPin, verifyPin } = usePinStore();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -49,36 +48,9 @@ export default function TopBar() {
 
   if (!currentUser) return null;
 
-  // Level calculation
-  const myCompleted = taskInstances.filter((ti) => ti.userId === currentUser.id && ti.state === "completed");
-  const completedDays = new Set(myCompleted.map((ti) => ti.date));
-  const sortedDays = Array.from(completedDays).sort();
-  let bestStreak = 0, runStreak = 0;
-  let prevDate: Date | null = null;
-  for (const ds of sortedDays) {
-    const d = new Date(ds);
-    if (prevDate) {
-      runStreak = (d.getTime() - prevDate.getTime()) / 86400000 === 1 ? runStreak + 1 : 1;
-    } else { runStreak = 1; }
-    bestStreak = Math.max(bestStreak, runStreak);
-    prevDate = d;
-  }
-  const approvedClaims = claims.filter((c) => c.userId === currentUser.id && c.status === "approved");
-  const stats: UserStats = {
-    totalTasksCompleted: myCompleted.length, currentStreak: 0, bestStreak,
-    totalPoints: currentUser.pointsBalance, rewardsClaimed: approvedClaims.length,
-    perfectWeeks: 0, totalPointsEarned: myCompleted.reduce((s, ti) => s + ti.pointsAwarded, 0),
-    daysActive: completedDays.size, hasEarlyCompletion: false,
-    maxRewardCost: approvedClaims.reduce((max, c) => {
-      const r = rewards.find((rw) => rw.id === c.rewardId);
-      return r ? Math.max(max, r.pointsCost) : max;
-    }, 0),
-    boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
-    maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
-    minigamesPlayed: 0, perfectMinigames: 0, bestTimeEasy: null, bestTimeHard: null,
-  };
-  const unlockedCount = ACHIEVEMENTS.filter((a) => a.condition(stats)).length;
-  const currentLevel = getLevelForAchievementCount(unlockedCount);
+  // Level — read persisted count from store (set by AchievementsClient)
+  const achievementCount = useAppStore((s) => s.achievementCount);
+  const currentLevel = getLevelForAchievementCount(achievementCount);
   const levelTitle = locale === "en" ? currentLevel.titleEn : currentLevel.titleEs;
 
   const handleLogout = async () => {

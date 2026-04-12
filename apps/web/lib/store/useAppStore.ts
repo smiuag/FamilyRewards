@@ -50,6 +50,8 @@ interface AppState {
   featuresUnlocked: string[];
   unlockFeature: (feature: string) => void;
 
+  achievementCount: number;
+
   streakAlert: { userId: string; userName: string; days: number } | null;
   clearStreakAlert: () => void;
 
@@ -90,6 +92,7 @@ export const useAppStore = create<AppState>()(
       targetRewardIds: [],
       archivedClaimIds: [],
       featuresUnlocked: [],
+      achievementCount: 0,
       streakAlert: null,
 
       login: (userId) => {
@@ -118,6 +121,7 @@ export const useAppStore = create<AppState>()(
         targetRewardIds: [],
         archivedClaimIds: [],
         featuresUnlocked: [],
+        achievementCount: 0,
         catalogsLoaded: false,
         streakAlert: null,
       }),
@@ -441,6 +445,7 @@ export const useAppStore = create<AppState>()(
         targetRewardIds: state.targetRewardIds,
         archivedClaimIds: state.archivedClaimIds,
         featuresUnlocked: state.featuresUnlocked,
+        achievementCount: state.achievementCount,
       }),
     }
   )

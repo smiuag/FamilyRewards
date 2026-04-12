@@ -1,5 +1,3 @@
-import { ACHIEVEMENTS, type UserStats } from "@/lib/achievements";
-
 export interface Level {
   level: number;
   titleEs: string;
@@ -27,8 +25,4 @@ export function getLevelForAchievementCount(count: number): Level {
 export function getNextLevel(current: Level): Level | null {
   const idx = LEVELS.findIndex((l) => l.level === current.level);
   return idx < LEVELS.length - 1 ? LEVELS[idx + 1] : null;
-}
-
-export function getUnlockedCount(stats: UserStats): number {
-  return ACHIEVEMENTS.filter((a) => a.condition(stats)).length;
 }
