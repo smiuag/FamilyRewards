@@ -130,15 +130,21 @@ export async function createTask(
     if (days.includes(todayDow)) {
       const defaultState = data.recurringPattern?.defaultState ?? "pending";
       const pointsAwarded = defaultState === "completed" ? data.points : 0;
+
+      // With rotation, only create instance for the first member in rotation order
+      const recipients = (data.recurringPattern?.rotation?.enabled && data.assignedTo.length > 1)
+        ? [[...data.assignedTo].sort()[0]]
+        : data.assignedTo;
+
       await supabase.from("task_instances").upsert(
-        data.assignedTo.map((profileId) => ({
+        recipients.map((profileId) => ({
           task_id: task.id, profile_id: profileId,
           date: dateStr(new Date()), state: defaultState, points_awarded: pointsAwarded,
         })),
         { onConflict: "task_id,profile_id,date", ignoreDuplicates: true },
       );
       if (defaultState === "completed" && pointsAwarded > 0) {
-        for (const profileId of data.assignedTo) {
+        for (const profileId of recipients) {
           const balance = await fetchBalance(supabase, profileId);
           await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea completada: ${data.title}`, "✅");
         }
@@ -275,6 +281,36 @@ async function createNonRecurringInstance(
   }
 }
 
+// ── Rotation helper ────────────────────────────────────────────
+// Returns which profile should get the instance for this date, or null if all on vacation.
+function getRotationMember(
+  task: Task,
+  date: string,
+  vacations: Map<string, string | null>
+): string | null {
+  const rotation = task.recurringPattern?.rotation;
+  if (!rotation?.enabled || task.assignedTo.length < 2) return null;
+
+  const sorted = [...task.assignedTo].sort();
+  const taskStart = new Date(task.createdAt);
+  taskStart.setHours(0, 0, 0, 0);
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((d.getTime() - taskStart.getTime()) / 86400000);
+  const offset = rotation.frequency === "weekly"
+    ? Math.floor(diffDays / 7)
+    : diffDays;
+
+  for (let attempt = 0; attempt < sorted.length; attempt++) {
+    const idx = ((offset % sorted.length) + sorted.length + attempt) % sorted.length;
+    const memberId = sorted[idx];
+    const vacUntil = vacations.get(memberId);
+    if (!vacUntil || date > vacUntil) return memberId;
+  }
+  return null; // all on vacation
+}
+
 // ── C6+C8: backfill instances from task.createdAt to targetDate ──
 export async function backfillInstances(
   tasks: Task[],
@@ -285,13 +321,15 @@ export async function backfillInstances(
   const today = dateStr(new Date());
   const target = dateStr(targetDate);
 
-  // Check vacation mode
+  // Check vacation mode — fetch for all family profiles (needed for rotation)
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("vacation_until")
-    .eq("id", profileId)
-    .single();
-  const vacationUntil = (profileData as { vacation_until: string | null } | null)?.vacation_until ?? null;
+    .select("id, vacation_until");
+  const allVacations = new Map<string, string | null>();
+  for (const p of (profileData ?? []) as { id: string; vacation_until: string | null }[]) {
+    allVacations.set(p.id, p.vacation_until);
+  }
+  const vacationUntil = allVacations.get(profileId) ?? null;
 
   // Fetch all existing instances for this profile up to targetDate
   const { data: existing } = await supabase
@@ -347,6 +385,11 @@ export async function backfillInstances(
       // Skip vacation days — no instances created, no penalties
       const isOnVacation = vacationUntil && ds <= vacationUntil;
       if (!isOnVacation && ds >= taskStartStr && days.includes(getDow(cur))) {
+        // Rotation: skip if it's not this profile's turn
+        if (task.recurringPattern?.rotation?.enabled && task.assignedTo.length > 1) {
+          const rotMember = getRotationMember(task, ds, allVacations);
+          if (rotMember && rotMember !== profileId) { cur = addDays(cur, 1); continue; }
+        }
         const key = `${task.id}::${ds}`;
         const existing = existingMap.get(key);
 

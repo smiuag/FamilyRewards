@@ -34,6 +34,10 @@ export interface RecurringPattern {
   time?: string; // "HH:mm"
   durationHours?: number;
   defaultState: "completed" | "pending";
+  rotation?: {
+    enabled: boolean;
+    frequency: "daily" | "weekly";
+  };
 }
 
 export interface Task {

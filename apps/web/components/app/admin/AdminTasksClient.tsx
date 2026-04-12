@@ -37,6 +37,8 @@ const emptyForm = () => ({
   time: "",
   defaultState: "pending" as "pending" | "completed",
   deadline: "",
+  rotation: false,
+  rotationFreq: "weekly" as "weekly" | "daily",
 });
 
 export default function AdminTasksClient() {
@@ -104,6 +106,8 @@ export default function AdminTasksClient() {
       time: task.recurringPattern?.time ?? "",
       defaultState: task.recurringPattern?.defaultState ?? "pending",
       deadline: task.deadline ?? "",
+      rotation: task.recurringPattern?.rotation?.enabled ?? false,
+      rotationFreq: (task.recurringPattern?.rotation?.frequency ?? "weekly") as "weekly" | "daily",
     });
     setOpen(true);
   };
@@ -112,7 +116,14 @@ export default function AdminTasksClient() {
     if (!form.title.trim()) { toast.error(t("nameRequired")); return; }
     setSaving(true);
     const recurringPattern = form.isRecurring
-      ? { daysOfWeek: form.daysOfWeek, time: form.time || undefined, defaultState: form.defaultState }
+      ? {
+          daysOfWeek: form.daysOfWeek,
+          time: form.time || undefined,
+          defaultState: form.defaultState,
+          ...(form.rotation && form.assignedTo.length > 1
+            ? { rotation: { enabled: true, frequency: form.rotationFreq } }
+            : {}),
+        }
       : undefined;
     const defaultState = !form.isRecurring ? form.defaultState : undefined;
     const deadline = !form.isRecurring && form.deadline ? form.deadline : undefined;
@@ -461,6 +472,30 @@ export default function AdminTasksClient() {
                   </Select>
                 </div>
               </div>
+              {form.assignedTo.length > 1 && (
+                <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{t("rotation")}</p>
+                      <p className="text-xs text-muted-foreground">{t("rotationDesc")}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {form.rotation && (
+                      <select
+                        value={form.rotationFreq}
+                        onChange={(e) => setForm({ ...form, rotationFreq: e.target.value as "weekly" | "daily" })}
+                        className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                      >
+                        <option value="weekly">{t("rotationWeekly")}</option>
+                        <option value="daily">{t("rotationDaily")}</option>
+                      </select>
+                    )}
+                    <Switch checked={form.rotation} onCheckedChange={(v) => setForm({ ...form, rotation: v })} />
+                  </div>
+                </div>
+              )}
             </>
           )}
         </AppModalBody>

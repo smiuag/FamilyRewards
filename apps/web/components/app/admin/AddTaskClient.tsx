@@ -52,6 +52,8 @@ export default function AddTaskClient() {
   const [catalogPenalty, setCatalogPenalty] = useState("");
   const [catalogDeadline, setCatalogDeadline] = useState("");
   const [catalogDefaultState, setCatalogDefaultState] = useState<"pending" | "completed">("pending");
+  const [catalogRotation, setCatalogRotation] = useState(false);
+  const [catalogRotationFreq, setCatalogRotationFreq] = useState<"weekly" | "daily">("weekly");
 
   // ── Custom form state ────────────────────────────────────────────────────────
   const [customForm, setCustomForm] = useState(() => ({
@@ -62,6 +64,8 @@ export default function AddTaskClient() {
     time: "",
     defaultState: "pending" as "pending" | "completed",
     deadline: new Date().toISOString().split("T")[0],
+    rotation: false,
+    rotationFreq: "weekly" as "weekly" | "daily",
   }));
 
   const [saving, setSaving] = useState(false);
@@ -107,7 +111,12 @@ export default function AddTaskClient() {
     try {
       const isRec = makeRecurring && selectedDays.length > 0;
       const recurringPattern = isRec
-        ? { daysOfWeek: selectedDays, time: configuringTask.suggestedTime, defaultState: "pending" as const }
+        ? {
+            daysOfWeek: selectedDays,
+            time: configuringTask.suggestedTime,
+            defaultState: "pending" as const,
+            ...(catalogRotation && selectedUsers.length > 1 ? { rotation: { enabled: true, frequency: catalogRotationFreq } } : {}),
+          }
         : undefined;
       const defaultState = !isRec ? catalogDefaultState : undefined;
       const deadline = !isRec && catalogDeadline ? catalogDeadline : undefined;
@@ -160,7 +169,14 @@ export default function AddTaskClient() {
     if (!currentUser?.familyId) return;
     setSaving(true);
     const recurringPattern = customForm.isRecurring
-      ? { daysOfWeek: customForm.daysOfWeek, time: customForm.time || undefined, defaultState: customForm.defaultState }
+      ? {
+          daysOfWeek: customForm.daysOfWeek,
+          time: customForm.time || undefined,
+          defaultState: customForm.defaultState,
+          ...(customForm.rotation && customForm.assignedTo.length > 1
+            ? { rotation: { enabled: true, frequency: customForm.rotationFreq } }
+            : {}),
+        }
       : undefined;
     const defaultState = !customForm.isRecurring ? customForm.defaultState : undefined;
     const deadline = !customForm.isRecurring && customForm.deadline ? customForm.deadline : undefined;
@@ -432,6 +448,31 @@ export default function AddTaskClient() {
                   </Select>
                 </div>
               </div>
+              {customForm.assignedTo.length > 1 && (
+                <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Rotación</p>
+                      <p className="text-xs text-muted-foreground">Alternar entre los miembros</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {customForm.rotation && (
+                      <select
+                        value={customForm.rotationFreq}
+                        onChange={(e) => setCustomForm({ ...customForm, rotationFreq: e.target.value as "weekly" | "daily" })}
+                        className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                      >
+                        <option value="weekly">Semanal</option>
+                        <option value="daily">Diaria</option>
+                      </select>
+                    )}
+                    <Switch checked={customForm.rotation}
+                      onCheckedChange={(v) => setCustomForm({ ...customForm, rotation: v })} />
+                  </div>
+                </div>
+              )}
             </>
           )}
           <div className="flex gap-2 pt-2">
@@ -514,6 +555,30 @@ export default function AddTaskClient() {
                     {DAY_MAP[d]}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+          {makeRecurring && selectedUsers.length > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Rotación</p>
+                  <p className="text-xs text-muted-foreground">Alternar entre los miembros</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {catalogRotation && (
+                  <select
+                    value={catalogRotationFreq}
+                    onChange={(e) => setCatalogRotationFreq(e.target.value as "weekly" | "daily")}
+                    className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                  >
+                    <option value="weekly">Semanal</option>
+                    <option value="daily">Diaria</option>
+                  </select>
+                )}
+                <Switch checked={catalogRotation} onCheckedChange={setCatalogRotation} />
               </div>
             </div>
           )}
