@@ -251,10 +251,14 @@ export default function AddTaskClient() {
               const catConf = TASK_CATEGORIES[task.category];
               return (
                 <Card key={task.id}
-                  className={cn("shadow-sm hover:shadow-md transition-all border-2 flex flex-col cursor-pointer",
+                  className={cn("shadow-sm hover:shadow-md transition-all border-2 flex flex-col cursor-pointer focus-visible:outline-2 focus-visible:outline-primary",
                     isAdded ? "border-green-300 bg-green-50/50 cursor-default" : "border-transparent hover:border-primary/30"
                   )}
+                  tabIndex={isAdded ? -1 : 0}
+                  role="button"
+                  aria-disabled={isAdded}
                   onClick={() => !isAdded && openConfigure(task)}
+                  onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !isAdded) { e.preventDefault(); openConfigure(task); } }}
                 >
                   <CardContent className="pt-4 pb-4 flex flex-col flex-1">
                     <div className="flex-1">

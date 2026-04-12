@@ -72,13 +72,13 @@
 - [x] Skip-to-main link bilingüe (ES/EN) con `useTranslations`
 - [x] Target size mínimo 44px en touch devices (WCAG 2.5.8)
 - [x] `autoComplete` en inputs de auth (email, password, name, postal-code)
-- [ ] Navegación completa por teclado (Tab, Enter, Space, Escape) — parcial, pendiente revisión completa
-- [ ] Focus trap en PIN modal del sidebar — funcional con Escape/Enter, falta migrar a Dialog de Base UI
-- [ ] Selectores de emoji/avatar: `aria-label` con nombre del emoji
-- [ ] Tablas admin: `<caption>` o `aria-label`
+- [x] Navegación completa por teclado (Tab, Enter, Space, Escape) — Cards clickables con tabIndex + onKeyDown
+- [x] Focus trap en PIN modal del sidebar — ya usa Dialog de Base UI con focus trap nativo
+- [x] Selectores de emoji/avatar: `aria-label` con nombre del emoji
+- [x] Tablas admin: `aria-label` en ambas tablas (members + claims)
 - [ ] Contraste WCAG AA — verificar ratios con herramienta (colores oklch)
-- [ ] `aria-live="polite"` para anuncios dinámicos (tarea completada, etc.)
-- [ ] Orden DOM = orden visual en grids
+- [x] `aria-live="polite"` para anuncios dinámicos (tareas, rewards, claims)
+- [x] Orden DOM = orden visual en grids (verificado, solo flex-col-reverse menor en dialog footer)
 
 ### PWA
 - [x] `manifest.ts` dinámico con iconos, theme-color, display: standalone

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useAnnounce } from "@/components/AriaLiveAnnouncer";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyRewards, fetchFamilyClaims, createClaim, approveClaim } from "@/lib/api/rewards";
 import type { RewardClaim } from "@/lib/types";
@@ -15,6 +16,7 @@ import type { Reward } from "@/lib/types";
 
 export default function RewardsClient() {
   const t = useTranslations("rewards");
+  const announce = useAnnounce();
   const { currentUser, rewards, claims, addClaim, updateClaim, loadRewards, loadClaims, targetRewardIds, toggleTargetReward, archivedClaimIds, archiveClaim } = useAppStore();
   const [confirmReward, setConfirmReward] = useState<Reward | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -51,10 +53,12 @@ export default function RewardsClient() {
         toast.success(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }), {
           description: t("toastAdminRedeemedDesc"),
         });
+        announce(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }));
       } else {
         toast.success(t("toastRequestSent"), {
           description: t("toastRequestSentDesc"),
         });
+        announce(t("toastRequestSent"));
       }
     } catch {
       toast.error(t("toastRedeemError"));

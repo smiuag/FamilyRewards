@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useAnnounce } from "@/components/AriaLiveAnnouncer";
 import { useAppStore } from "@/lib/store/useAppStore";
 import {
   fetchFamilyRewards,
@@ -34,6 +35,7 @@ export default function AdminRewardsClient() {
 
   const t = useTranslations("admin.rewards");
   const tc = useTranslations("common");
+  const announce = useAnnounce();
 
   const {
     rewards: storeRewards, users, claims,
@@ -91,6 +93,7 @@ export default function AdminRewardsClient() {
     try {
       await approveClaim(claimId, claim.userId, reward.pointsCost, user.pointsBalance, reward.title, reward.emoji);
       toast.success(t("toastApproved"));
+      announce(t("toastApproved"));
     } catch {
       storeUpdateClaim(claimId, "pending");
       toast.error(t("toastApproveError"));
@@ -102,6 +105,7 @@ export default function AdminRewardsClient() {
     try {
       await rejectClaim(claimId);
       toast.success(t("toastRejected"));
+      announce(t("toastRejected"));
     } catch {
       storeUpdateClaim(claimId, "pending");
       toast.error(t("toastRejectError"));

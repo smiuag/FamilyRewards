@@ -202,6 +202,7 @@ export default function ProfileSelectClient() {
             <button
               key={profile.id}
               onClick={() => handleSelect(profile)}
+              aria-label={`${profile.name} — ${profile.role === "admin" ? "Admin" : "Miembro"}, ${profile.points_balance} puntos`}
               className="group flex items-center gap-4 p-4 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:border-primary hover:shadow-md hover:shadow-primary/10 transition-all text-left"
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl flex-shrink-0">

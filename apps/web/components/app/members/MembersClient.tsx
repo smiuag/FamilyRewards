@@ -88,8 +88,11 @@ export default function MembersClient() {
           return (
             <Card
               key={user.id}
-              className="shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              className="shadow-sm hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+              tabIndex={0}
+              role="link"
               onClick={() => router.push(`/${locale}/members/${user.id}`)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/${locale}/members/${user.id}`); } }}
             >
               <CardContent className="py-4 px-5">
                 <div className="flex items-center gap-4">

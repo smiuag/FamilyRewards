@@ -393,8 +393,12 @@ export default function TemplatesClient() {
               >
                 <CardContent className="pt-5 pb-4">
                   <div
-                    className="flex items-center gap-4 cursor-pointer select-none"
+                    className="flex items-center gap-4 cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-primary rounded-lg"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
                     onClick={() => setExpandedId(isExpanded ? null : template.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : template.id); } }}
                   >
                     <div className="text-4xl flex-shrink-0">{template.emoji}</div>
                     <div className="flex-1 min-w-0">
