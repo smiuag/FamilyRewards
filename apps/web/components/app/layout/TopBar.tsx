@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { usePinStore } from "@/lib/store/usePinStore";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getLevelForAchievementCount } from "@/lib/levels";
 import {
@@ -105,10 +106,10 @@ export default function TopBar() {
         <div className="flex items-baseline gap-3 min-w-0">
           <h2 className="text-xl font-extrabold truncate flex-shrink-0">{currentUser.name}</h2>
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
-            <span className="flex items-center gap-1 text-primary font-semibold">
+            <PointsLink className="flex items-center gap-1 text-primary font-semibold hover:underline">
               <Star className="w-3 h-3 fill-primary" aria-hidden="true" />
               {currentUser.pointsBalance.toLocaleString()} pts
-            </span>
+            </PointsLink>
             <span className="flex items-center gap-1">
               <span aria-hidden="true">{currentLevel.emoji}</span>
               {levelTitle}
