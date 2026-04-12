@@ -72,18 +72,20 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           return;
         }
 
-        const familySettings = await fetchFamilySettings(myProfile.familyId);
+        const [familySettings, flags] = await Promise.all([
+          fetchFamilySettings(myProfile.familyId),
+          fetchFamilyFeatureFlags(myProfile.familyId),
+        ]);
         const store = useAppStore.getState();
         store.initRealAuth(profiles, myProfile, familySettings.name);
+        // Set features AFTER initRealAuth (which resets featuresUnlocked)
+        const features: string[] = [];
+        if (flags.petsEnabled) features.push("pets");
+        if (flags.minigameEnabled) features.push("minigame");
         useAppStore.setState({
           onboardingCompleted: familySettings.onboardingCompleted,
           setupVisited: familySettings.setupVisited,
-        });
-
-        // Load feature flags (non-blocking — missing columns won't break the app)
-        fetchFamilyFeatureFlags(myProfile.familyId).then((flags) => {
-          if (flags.petsEnabled) store.unlockFeature("pets");
-          if (flags.minigameEnabled) store.unlockFeature("minigame");
+          featuresUnlocked: features,
         });
 
         const [tasks, rewards] = await Promise.all([

@@ -105,11 +105,21 @@ export default function SettingsClient() {
   const [unsubName, setUnsubName] = useState("");
   const [unsubSaving, setUnsubSaving] = useState(false);
 
-  // Pets admin config
-  const [petsEnabled, setPetsEnabled] = useState(
-    useAppStore.getState().featuresUnlocked.includes("pets"),
-  );
+  // Pets admin config — read initial from BD via feature flags
+  const [petsEnabled, setPetsEnabled] = useState(false);
   const [petsSaving, setPetsSaving] = useState(false);
+  const [petsLoaded, setPetsLoaded] = useState(false);
+
+  useState(() => {
+    if (currentUser?.familyId) {
+      import("@/lib/api/members").then(({ fetchFamilyFeatureFlags }) => {
+        fetchFamilyFeatureFlags(currentUser.familyId).then((flags) => {
+          setPetsEnabled(flags.petsEnabled);
+          setPetsLoaded(true);
+        });
+      });
+    }
+  });
 
   const handleTogglePets = async (enabled: boolean) => {
     if (!currentUser?.familyId) return;
@@ -260,7 +270,7 @@ export default function SettingsClient() {
       </Card>
 
       {/* Pets config (admin only) */}
-      {currentUser?.role === "admin" && (
+      {currentUser?.role === "admin" && petsLoaded && (
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

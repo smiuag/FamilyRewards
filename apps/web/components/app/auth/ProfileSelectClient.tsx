@@ -143,15 +143,18 @@ export default function ProfileSelectClient() {
 
   const handleSelect = async (profile: SupabaseProfile) => {
     const allUsers = profiles.map(toUser);
-    const familySettings = await fetchFamilySettings(profile.family_id);
+    const [familySettings, flags] = await Promise.all([
+      fetchFamilySettings(profile.family_id),
+      fetchFamilyFeatureFlags(profile.family_id),
+    ]);
     useAppStore.getState().initRealAuth(allUsers, toUser(profile), familySettings.name);
+    const features: string[] = [];
+    if (flags.petsEnabled) features.push("pets");
+    if (flags.minigameEnabled) features.push("minigame");
     useAppStore.setState({
       onboardingCompleted: familySettings.onboardingCompleted,
       setupVisited: familySettings.setupVisited,
-    });
-    fetchFamilyFeatureFlags(profile.family_id).then((flags) => {
-      if (flags.petsEnabled) useAppStore.getState().unlockFeature("pets");
-      if (flags.minigameEnabled) useAppStore.getState().unlockFeature("minigame");
+      featuresUnlocked: features,
     });
     const [familyTasks, familyRewards] = await Promise.all([
       fetchFamilyTasks().catch(() => []),
