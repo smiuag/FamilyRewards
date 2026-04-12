@@ -145,6 +145,26 @@ export async function toggleReaction(params: {
   }
 }
 
+/** Toggle pinned state of a board message (admin only) */
+export async function togglePinMessage(messageId: string, pinned: boolean): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("board_messages")
+    .update({ pinned })
+    .eq("id", messageId);
+  if (error) throw error;
+}
+
+/** Delete a board message (admin only) */
+export async function deleteBoardMessage(messageId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("board_messages")
+    .delete()
+    .eq("id", messageId);
+  if (error) throw error;
+}
+
 export async function postSystemBoardMessage(params: {
   familyId: string;
   content: string;

@@ -553,7 +553,16 @@
     "typeAnnouncement": "Announcement",
     "typePoints": "Points",
     "pointsAmount": "{sign}{amount} pts",
-    "addReaction": "Add reaction"
+    "addReaction": "Add reaction",
+    "pin": "Pin message",
+    "unpin": "Unpin message",
+    "delete": "Delete message",
+    "confirmDelete": "Confirm",
+    "pinSuccess": "Message pinned",
+    "unpinSuccess": "Message unpinned",
+    "pinError": "Error pinning message",
+    "deleteSuccess": "Message deleted",
+    "deleteError": "Error deleting message"
   },
   "roles": {
     "admin": "Administrator",

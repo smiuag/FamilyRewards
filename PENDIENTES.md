@@ -53,7 +53,7 @@
 - [ ] Modo vacaciones: pausar tareas recurrentes N días sin romper rachas
 
 ### Tablón / Social
-- [ ] Botones sin handler: pin/delete mensajes del board
+- [x] Botones pin/delete mensajes del board (admin only, con confirmación)
 - [x] Reacciones emoji en mensajes del tablón
 
 ### Admin

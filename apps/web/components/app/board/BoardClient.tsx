@@ -8,6 +8,8 @@ import {
   postBoardMessage,
   fetchReactions,
   toggleReaction,
+  togglePinMessage,
+  deleteBoardMessage,
 } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import type { BoardMessage, Reaction } from "@/lib/api/board";
@@ -17,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Pin,
+  PinOff,
   Send,
   Megaphone,
   Trophy,
@@ -26,7 +29,9 @@ import {
   TrendingUp,
   TrendingDown,
   SmilePlus,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -145,6 +150,35 @@ export default function BoardClient() {
     }
   };
 
+  const isAdmin = currentUser.role === "admin";
+
+  const handlePin = async (messageId: string, pinned: boolean) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, pinned } : m))
+    );
+    try {
+      await togglePinMessage(messageId, pinned);
+      toast.success(pinned ? t("pinSuccess") : t("unpinSuccess"));
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, pinned: !pinned } : m))
+      );
+      toast.error(t("pinError"));
+    }
+  };
+
+  const handleDelete = async (messageId: string) => {
+    const removed = messages.find((m) => m.id === messageId);
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    try {
+      await deleteBoardMessage(messageId);
+      toast.success(t("deleteSuccess"));
+    } catch {
+      if (removed) setMessages((prev) => [...prev, removed].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      toast.error(t("deleteError"));
+    }
+  };
+
   const pinnedMessages = messages.filter((m) => m.pinned);
 
   return (
@@ -192,7 +226,10 @@ export default function BoardClient() {
               users={users}
               reactions={reactions.filter((r) => r.messageId === msg.id)}
               currentProfileId={currentUser.id}
+              isAdmin={isAdmin}
               onToggleReaction={handleToggleReaction}
+              onPin={handlePin}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -225,7 +262,10 @@ export default function BoardClient() {
                 users={users}
                 reactions={reactions.filter((r) => r.messageId === item.id)}
                 currentProfileId={currentUser.id}
+                isAdmin={isAdmin}
                 onToggleReaction={handleToggleReaction}
+                onPin={handlePin}
+                onDelete={handleDelete}
               />
             ) : (
               <TransactionCard
@@ -248,16 +288,23 @@ function BoardMessageCard({
   users,
   reactions,
   currentProfileId,
+  isAdmin,
   onToggleReaction,
+  onPin,
+  onDelete,
 }: {
   msg: BoardMessage;
   users: ReturnType<typeof useAppStore.getState>["users"];
   reactions: Reaction[];
   currentProfileId: string;
+  isAdmin: boolean;
   onToggleReaction: (messageId: string, emoji: string) => void;
+  onPin: (messageId: string, pinned: boolean) => void;
+  onDelete: (messageId: string) => void;
 }) {
   const t = useTranslations("board");
   const [showPicker, setShowPicker] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const author = users.find((u) => u.id === msg.profileId);
   const isSystem = !msg.profileId;
@@ -317,6 +364,39 @@ function BoardMessageCard({
               <span className="text-xs text-muted-foreground ml-auto">
                 {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: es })}
               </span>
+              {/* Admin actions */}
+              {isAdmin && (
+                <div className="flex items-center gap-0.5 ml-1">
+                  <button
+                    onClick={() => onPin(msg.id, !msg.pinned)}
+                    aria-label={msg.pinned ? t("unpin") : t("pin")}
+                    title={msg.pinned ? t("unpin") : t("pin")}
+                    className="inline-flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    {msg.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                  </button>
+                  {!confirmDelete ? (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      aria-label={t("delete")}
+                      title={t("delete")}
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { onDelete(msg.id); setConfirmDelete(false); }}
+                      onBlur={() => setConfirmDelete(false)}
+                      aria-label={t("confirmDelete")}
+                      className="inline-flex items-center gap-1 px-2 h-6 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      {t("confirmDelete")}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
               {msg.content}

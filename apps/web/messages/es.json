@@ -553,7 +553,16 @@
     "typeAnnouncement": "Anuncio",
     "typePoints": "Puntos",
     "pointsAmount": "{sign}{amount} pts",
-    "addReaction": "Añadir reacción"
+    "addReaction": "Añadir reacción",
+    "pin": "Anclar mensaje",
+    "unpin": "Desanclar mensaje",
+    "delete": "Eliminar mensaje",
+    "confirmDelete": "Confirmar",
+    "pinSuccess": "Mensaje anclado",
+    "unpinSuccess": "Mensaje desanclado",
+    "pinError": "Error al anclar el mensaje",
+    "deleteSuccess": "Mensaje eliminado",
+    "deleteError": "Error al eliminar el mensaje"
   },
   "roles": {
     "admin": "Administrador",
