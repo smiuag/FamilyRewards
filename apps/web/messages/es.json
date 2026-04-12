@@ -198,7 +198,8 @@
     "sharePoints": "Compartir puntos",
     "deadline": "Límite: {date}",
     "markFailed": "Marcar \"{title}\" como no realizada",
-    "cancelTask": "Cancelar \"{title}\""
+    "cancelTask": "Cancelar \"{title}\"",
+    "multiplierBadge": "×{multiplier}"
   },
   "calendar": {
     "title": "Calendario",
@@ -391,7 +392,21 @@
       "vacationActivated": "Vacaciones activadas para {name} hasta el {date}",
       "vacationDeactivated": "Vacaciones desactivadas para {name}",
       "vacationError": "Error al cambiar el modo vacaciones",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "promoteTitle": "Hacer administrador",
+      "demoteTitle": "Quitar admin",
+      "promoteDesc": "{name} se convertirá en administrador y podrá gestionar tareas, recompensas y miembros.",
+      "demoteDesc": "{name} dejará de ser administrador y pasará a ser miembro.",
+      "demoteSelfOnly": "No puedes dejar de ser admin: eres el único administrador de la familia.",
+      "promoteSuccess": "{name} ahora es administrador",
+      "demoteSuccess": "{name} ahora es miembro",
+      "demoteError": "No puedes dejar de ser admin: eres el único administrador",
+      "roleError": "Error al cambiar el rol",
+      "roleSaving": "Cambiando...",
+      "makeAdmin": "Hacer admin",
+      "removeAdmin": "Quitar admin",
+      "administrator": "Administrador",
+      "member": "Miembro"
     },
     "tasks": {
       "title": "Gestión de Tareas",

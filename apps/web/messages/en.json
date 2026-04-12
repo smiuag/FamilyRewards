@@ -198,7 +198,8 @@
     "sharePoints": "Share points",
     "deadline": "Deadline: {date}",
     "markFailed": "Mark \"{title}\" as not completed",
-    "cancelTask": "Cancel \"{title}\""
+    "cancelTask": "Cancel \"{title}\"",
+    "multiplierBadge": "×{multiplier}"
   },
   "calendar": {
     "title": "Calendar",
@@ -391,7 +392,21 @@
       "vacationActivated": "Vacation activated for {name} until {date}",
       "vacationDeactivated": "Vacation deactivated for {name}",
       "vacationError": "Error changing vacation mode",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "promoteTitle": "Make administrator",
+      "demoteTitle": "Remove admin",
+      "promoteDesc": "{name} will become an administrator and will be able to manage tasks, rewards and members.",
+      "demoteDesc": "{name} will no longer be an administrator and will become a member.",
+      "demoteSelfOnly": "You cannot remove admin: you are the only administrator in the family.",
+      "promoteSuccess": "{name} is now an administrator",
+      "demoteSuccess": "{name} is now a member",
+      "demoteError": "You cannot remove admin: you are the only administrator",
+      "roleError": "Error changing role",
+      "roleSaving": "Changing...",
+      "makeAdmin": "Make admin",
+      "removeAdmin": "Remove admin",
+      "administrator": "Administrator",
+      "member": "Member"
     },
     "tasks": {
       "title": "Task Management",

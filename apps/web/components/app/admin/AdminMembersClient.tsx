@@ -300,7 +300,7 @@ export default function AdminMembersClient() {
     if (newRole === "member" && selectedUser.id === currentUser?.id) {
       const adminCount = users.filter((u) => u.role === "admin").length;
       if (adminCount <= 1) {
-        toast.error("No puedes dejar de ser admin: eres el único administrador");
+        toast.error(t("demoteError"));
         return;
       }
     }
@@ -310,12 +310,12 @@ export default function AdminMembersClient() {
       await updateProfile(selectedUser.id, { role: newRole });
       updateMember(selectedUser.id, { role: newRole });
       toast.success(newRole === "admin"
-        ? `${selectedUser.name} ahora es administrador`
-        : `${selectedUser.name} ahora es miembro`
+        ? t("promoteSuccess", { name: selectedUser.name })
+        : t("demoteSuccess", { name: selectedUser.name })
       );
       closeDialog();
     } catch {
-      toast.error("Error al cambiar el rol");
+      toast.error(t("roleError"));
     } finally {
       setSaving(false);
     }
@@ -397,7 +397,7 @@ export default function AdminMembersClient() {
                     <TableCell>
                       <button onClick={() => openRole(user)} className="hover:opacity-80 transition-opacity">
                         <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                          {user.role === "admin" ? "Administrador" : "Miembro"}
+                          {user.role === "admin" ? t("administrator") : t("member")}
                         </Badge>
                       </button>
                     </TableCell>
@@ -668,7 +668,7 @@ export default function AdminMembersClient() {
       <AppModal open={mode === "role"} onOpenChange={closeDialog}>
         <AppModalHeader
           emoji={selectedUser?.role === "admin" ? "👤" : "🛡️"}
-          title={selectedUser?.role === "admin" ? "Quitar admin" : "Hacer administrador"}
+          title={selectedUser?.role === "admin" ? t("demoteTitle") : t("promoteTitle")}
           description={selectedUser?.name}
           color={selectedUser?.role === "admin"
             ? "bg-gradient-to-br from-amber-500 to-orange-600"
@@ -678,30 +678,30 @@ export default function AdminMembersClient() {
           {selectedUser?.role === "admin" ? (
             <>
               <p className="text-sm text-muted-foreground">
-                <strong>{selectedUser.name}</strong> dejará de ser administrador y pasará a ser miembro.
+                {t("demoteDesc", { name: selectedUser.name })}
               </p>
               {selectedUser.id === currentUser?.id && adminsCount <= 1 && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-                  No puedes dejar de ser admin: eres el único administrador de la familia.
+                  {t("demoteSelfOnly")}
                 </div>
               )}
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              <strong>{selectedUser?.name}</strong> se convertirá en administrador y podrá gestionar tareas, recompensas y miembros.
+              {t("promoteDesc", { name: selectedUser?.name ?? "" })}
             </p>
           )}
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button variant="outline" onClick={closeDialog}>{t("cancel")}</Button>
           <Button
             onClick={handleToggleRole}
             disabled={saving || (selectedUser?.role === "admin" && selectedUser?.id === currentUser?.id && adminsCount <= 1)}
           >
             {selectedUser?.role === "admin" ? (
-              <><ShieldOff className="w-4 h-4 mr-1.5" />{saving ? "Cambiando..." : "Quitar admin"}</>
+              <><ShieldOff className="w-4 h-4 mr-1.5" />{saving ? t("roleSaving") : t("removeAdmin")}</>
             ) : (
-              <><Shield className="w-4 h-4 mr-1.5" />{saving ? "Cambiando..." : "Hacer admin"}</>
+              <><Shield className="w-4 h-4 mr-1.5" />{saving ? t("roleSaving") : t("makeAdmin")}</>
             )}
           </Button>
         </AppModalFooter>

@@ -20,6 +20,8 @@ import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/compon
 import { cn } from "@/lib/utils";
 import { format, isToday } from "date-fns";
 import { es } from "date-fns/locale";
+import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
+import { getActiveMultiplier } from "@/lib/multipliers";
 
 const DOW_MAP = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -72,6 +74,8 @@ export default function TasksClient() {
     currentUser, users, tasks, taskInstances, updateTaskInstance, loadTasks, loadTaskInstances,
     streakAlert, clearStreakAlert, unlockFeature, adjustPoints,
   } = useAppStore();
+
+  const { multipliers } = useMultipliersStore();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -373,6 +377,7 @@ export default function TasksClient() {
               onShare={openShareModal}
               currentUserId={currentUser.id}
               isAdmin={currentUser.role === "admin"}
+              multiplier={getActiveMultiplier(currentUser.id, task.id, multipliers)}
             />
           ))}
 
@@ -399,6 +404,7 @@ export default function TasksClient() {
                   onShare={openShareModal}
                   currentUserId={currentUser.id}
                   users={users}
+                  multiplier={getActiveMultiplier(currentUser.id, task.id, multipliers)}
                 />
               ))}
             </>
@@ -501,6 +507,7 @@ function TaskCard({
   onShare,
   currentUserId,
   isAdmin,
+  multiplier,
 }: {
   task: Task;
   instance: TaskInstance | null;
@@ -510,6 +517,7 @@ function TaskCard({
   onShare: (task: Task, instance: TaskInstance) => void;
   currentUserId: string;
   isAdmin: boolean;
+  multiplier: number;
 }) {
   const t = useTranslations("tasks");
   const state: TaskState = instance?.state ?? "pending";
@@ -555,6 +563,11 @@ function TaskCard({
                 <span className="text-xs font-medium text-primary">+{task.points} pts</span>
                 {penalty > 0 && (
                   <span className="text-xs text-red-500 font-medium">/ -{penalty}</span>
+                )}
+                {multiplier > 1 && (
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {t("multiplierBadge", { multiplier })}
+                  </span>
                 )}
               </div>
               {isDeadlineTask && deadlineLabel && (
@@ -643,6 +656,7 @@ function ClaimableTaskCard({
   onShare,
   currentUserId,
   users,
+  multiplier,
 }: {
   task: Task;
   instance: TaskInstance | null;
@@ -654,6 +668,7 @@ function ClaimableTaskCard({
   onShare: (task: Task, instance: TaskInstance) => void;
   currentUserId: string;
   users: Array<{ id: string; name: string; avatar: string }>;
+  multiplier: number;
 }) {
   const t = useTranslations("tasks");
   const isClaimed = !!instance;
@@ -693,6 +708,11 @@ function ClaimableTaskCard({
               <div className="flex items-center gap-1">
                 <Star className="w-3 h-3 text-primary fill-primary" />
                 <span className="text-xs font-medium text-primary">+{task.points} pts</span>
+                {multiplier > 1 && (
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {t("multiplierBadge", { multiplier })}
+                  </span>
+                )}
               </div>
               {claimedByMe && (
                 <span className="text-xs text-green-600 font-medium">{t("claimedByYou")}</span>

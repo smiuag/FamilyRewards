@@ -41,15 +41,15 @@
 - [x] **Realtime**: suscripciones Supabase en task_instances, reward_claims, profiles, rewards, tasks — cambios se reflejan sin recargar
 
 ### Gestión de roles
-- [ ] UI para promover miembro a admin
-- [ ] UI para degradarse a sí mismo (validar que queda al menos otro admin)
+- [x] UI para promover miembro a admin
+- [x] UI para degradarse a sí mismo (validar que queda al menos otro admin)
 
 ### Plantillas
 - [ ] Reactivar en el menú cuando se quiera usar
 - [ ] Ya está implementado: guardar config actual, crear/editar/eliminar, aplicar a miembros seleccionados
 
 ### Tareas
-- [ ] Multiplicador activo debería verse también en la vista de Tareas junto a cada tarea afectada
+- [x] Multiplicador activo debería verse también en la vista de Tareas junto a cada tarea afectada
 - [x] Modo vacaciones: pausar tareas recurrentes N días sin romper rachas (Settings + Admin, i18n)
 
 ### Tablón / Social
