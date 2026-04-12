@@ -26,6 +26,8 @@ interface SupabasePet {
   secondary_color: string;
   eye_style: string;
   active_accessories: Record<AccessorySlot, string | null>;
+  is_active: boolean;
+  retired_at: string | null;
   hatched_at: string | null;
   created_at: string;
 }
@@ -73,6 +75,8 @@ function toPet(r: SupabasePet): FamilyPet {
     secondaryColor: r.secondary_color,
     eyeStyle: r.eye_style,
     activeAccessories: r.active_accessories,
+    isActive: r.is_active ?? true,
+    retiredAt: r.retired_at,
     hatchedAt: r.hatched_at,
     createdAt: r.created_at,
   };
@@ -120,9 +124,45 @@ export async function fetchFamilyPet(): Promise<FamilyPet | null> {
   const { data, error } = await supabase
     .from("family_pets")
     .select("*")
+    .eq("is_active", true)
     .maybeSingle();
   if (error) throw error;
   return data ? toPet(data as SupabasePet) : null;
+}
+
+export async function fetchMuseumPets(familyId: string): Promise<FamilyPet[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("family_pets")
+    .select("*")
+    .eq("family_id", familyId)
+    .eq("is_active", false)
+    .order("retired_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => toPet(r as SupabasePet));
+}
+
+export async function retirePetToMuseum(petId: string, familyId: string): Promise<void> {
+  const supabase = createClient();
+
+  // 1. Retire the pet
+  const { error: retireErr } = await supabase
+    .from("family_pets")
+    .update({ is_active: false, retired_at: new Date().toISOString() })
+    .eq("id", petId);
+  if (retireErr) throw retireErr;
+
+  // 2. Clear family inventory (accessories go with the pet)
+  await supabase
+    .from("pet_inventory")
+    .delete()
+    .eq("family_id", familyId);
+
+  // 3. Disable pets feature so family can start fresh
+  await supabase
+    .from("families")
+    .update({ pets_enabled: false })
+    .eq("id", familyId);
 }
 
 export async function createFamilyPet(

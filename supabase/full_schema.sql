@@ -205,7 +205,7 @@ create table if not exists task_template_items (
 -- ── FAMILY PETS ─────────────────────────────────────────────
 create table if not exists family_pets (
   id                 uuid primary key default gen_random_uuid(),
-  family_id          uuid not null unique references families(id) on delete cascade,
+  family_id          uuid not null references families(id) on delete cascade,
   name               text not null default 'Mascota',
   species            text check (species in ('fire','water','plant','electric','shadow')),
   stage              text not null default 'egg' check (stage in ('egg','baby','juvenile','adult')),
@@ -215,8 +215,14 @@ create table if not exists family_pets (
   eye_style          text not null default 'happy',
   active_accessories jsonb not null default '{"head":null,"body":null,"background":null}'::jsonb,
   hatched_at         timestamptz,
+  is_active          boolean not null default true,
+  retired_at         timestamptz,
   created_at         timestamptz not null default now()
 );
+
+-- Only one active pet per family (retired pets keep their family_id)
+create unique index if not exists idx_family_pets_active
+  on family_pets (family_id) where is_active = true;
 
 -- ── PET ACCESSORIES (catálogo global) ───────────────────────
 create table if not exists pet_accessories (

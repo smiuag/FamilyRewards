@@ -16,8 +16,10 @@ import {
   equipAccessory,
   fetchCareLog,
   calculatePetMood,
+  fetchMuseumPets,
+  retirePetToMuseum,
 } from "@/lib/api/pets";
-import { PET_SPECIES_CONFIG, PET_STAGE_THRESHOLDS, PET_STAGE_ORDER } from "@/lib/pet/constants";
+import { PET_SPECIES_CONFIG, PET_STAGE_THRESHOLDS, PET_STAGE_ORDER, MUSEUM_CARE_THRESHOLD } from "@/lib/pet/constants";
 import type { PetSpecies, PetMood, AccessorySlot } from "@/lib/types";
 import { PetDisplay } from "./PetDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
-import { PawPrint, Sparkles, ShoppingBag, Palette, Star } from "lucide-react";
+import { PawPrint, Sparkles, ShoppingBag, Palette, Star, Building2 } from "lucide-react";
+import { PetMuseum } from "./PetMuseum";
 import { toast } from "sonner";
 
 const MOOD_EMOJI: Record<PetMood, string> = { happy: "😊", neutral: "😐", sad: "😢" };
@@ -38,8 +41,8 @@ export default function PetsClient() {
   const locale = (params?.locale as string) ?? "es";
   const { currentUser, users, taskInstances } = useAppStore();
   const {
-    pet, accessories, inventory, careLog,
-    loadPet, loadAccessories, loadInventory, loadCareLog,
+    pet, accessories, inventory, careLog, museumPets,
+    loadPet, loadAccessories, loadInventory, loadCareLog, loadMuseumPets,
     setPetSpecies, setPetName, setPetColors, setPetEyeStyle,
     equipAccessoryLocal, addToInventory,
   } = usePetStore();
@@ -49,21 +52,25 @@ export default function PetsClient() {
   const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
   const [activeSlotTab, setActiveSlotTab] = useState<AccessorySlot>("head");
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [showRetireConfirm, setShowRetireConfirm] = useState(false);
+  const [retiring, setRetiring] = useState(false);
 
   // Load everything on mount
   useEffect(() => {
     async function load() {
       try {
-        const [petData, catalogData, invData, logData] = await Promise.all([
+        const [petData, catalogData, invData, logData, museum] = await Promise.all([
           fetchFamilyPet(),
           fetchAccessoryCatalog(),
           fetchFamilyInventory(),
           fetchCareLog(30),
+          currentUser ? fetchMuseumPets(currentUser.familyId) : [],
         ]);
         loadPet(petData);
         loadAccessories(catalogData);
         loadInventory(invData);
         loadCareLog(logData);
+        loadMuseumPets(museum);
       } catch {
         // ignore
       } finally {
@@ -532,6 +539,78 @@ export default function PetsClient() {
           </Button>
         </AppModalFooter>
       </AppModal>
+
+      {/* Retire to museum button (admin only, adult with enough care points) */}
+      {pet && currentUser?.role === "admin" && pet.stage === "adult" && pet.carePoints >= MUSEUM_CARE_THRESHOLD && (
+        <Card className="shadow-sm border-amber-200 dark:border-amber-800">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Building2 className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="font-bold text-sm">{t("readyForMuseum")}</p>
+                  <p className="text-xs text-muted-foreground">{t("retireDescription")}</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                onClick={() => setShowRetireConfirm(true)}
+              >
+                {t("retirePet")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Retire confirmation modal */}
+      <AppModal open={showRetireConfirm} onOpenChange={setShowRetireConfirm}>
+        <AppModalHeader
+          emoji="🏛️"
+          title={t("retirePet")}
+          description={t("retireConfirmDesc")}
+          color="bg-gradient-to-r from-amber-500 to-yellow-400"
+          onClose={() => setShowRetireConfirm(false)}
+        />
+        <AppModalBody>
+          <p className="text-sm text-muted-foreground">{t("retireConfirmBody")}</p>
+        </AppModalBody>
+        <AppModalFooter>
+          <Button variant="outline" onClick={() => setShowRetireConfirm(false)}>
+            {tc("cancel")}
+          </Button>
+          <Button
+            disabled={retiring}
+            onClick={async () => {
+              if (!pet || !currentUser) return;
+              setRetiring(true);
+              try {
+                await retirePetToMuseum(pet.id, currentUser.familyId);
+                loadPet(null);
+                loadInventory([]);
+                const museum = await fetchMuseumPets(currentUser.familyId);
+                loadMuseumPets(museum);
+                useAppStore.setState((s) => ({
+                  featuresUnlocked: s.featuresUnlocked.filter((f) => f !== "pets"),
+                }));
+                toast.success(t("petRetired"));
+              } catch {
+                toast.error(tc("error"));
+              } finally {
+                setRetiring(false);
+                setShowRetireConfirm(false);
+              }
+            }}
+          >
+            {retiring ? "..." : t("retireConfirm")}
+          </Button>
+        </AppModalFooter>
+      </AppModal>
+
+      {/* Museum section */}
+      {museumPets.length > 0 && <PetMuseum pets={museumPets} />}
     </div>
   );
 }

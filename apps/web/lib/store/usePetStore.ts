@@ -19,12 +19,14 @@ interface PetState {
   accessories: PetAccessory[];
   inventory: PetInventoryItem[];
   careLog: PetCareLogEntry[];
+  museumPets: FamilyPet[];
 
   // Loaders
   loadPet: (pet: FamilyPet | null) => void;
   loadAccessories: (items: PetAccessory[]) => void;
   loadInventory: (items: PetInventoryItem[]) => void;
   loadCareLog: (entries: PetCareLogEntry[]) => void;
+  loadMuseumPets: (pets: FamilyPet[]) => void;
 
   // Optimistic updates
   setPetSpecies: (species: PetSpecies, primary: string, secondary: string) => void;
@@ -45,12 +47,15 @@ export const usePetStore = create<PetState>()(
       accessories: [],
       inventory: [],
       careLog: [],
+      museumPets: [],
 
       loadPet: (pet) => set({ pet }),
 
       loadAccessories: (accessories) => set({ accessories }),
 
       loadInventory: (inventory) => set({ inventory }),
+
+      loadMuseumPets: (museumPets) => set({ museumPets }),
 
       loadCareLog: (careLog) => set({ careLog }),
 

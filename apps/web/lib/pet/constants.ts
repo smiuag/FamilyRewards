@@ -27,6 +27,9 @@ export function getStageForCarePoints(carePoints: number): PetStage {
 
 export const CARE_POINTS_PER_TASK = 1;
 
+// Care points needed to retire a pet to the museum
+export const MUSEUM_CARE_THRESHOLD = 1000;
+
 // ── Species config ─────────────────────────────────────────
 
 export interface SpeciesConfig {

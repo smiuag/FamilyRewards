@@ -856,7 +856,16 @@
     "noAccessories": "Aún no tienes accesorios",
     "viewAll": "Ver todo",
     "shopLockedTitle": "La tienda aún no está disponible",
-    "shopLockedDesc": "Tu mascota todavía es un huevo. Completa tareas en familia para darle calor y que eclosione. Cuando nazca podrás comprarle accesorios, cambiar sus colores y personalizar su aspecto."
+    "shopLockedDesc": "Tu mascota todavía es un huevo. Completa tareas en familia para darle calor y que eclosione. Cuando nazca podrás comprarle accesorios, cambiar sus colores y personalizar su aspecto.",
+    "museumTitle": "Museo de mascotas",
+    "museumRetiredOn": "Retirada el {date}",
+    "readyForMuseum": "Lista para el museo",
+    "retireDescription": "Tu mascota ha alcanzado su máximo potencial",
+    "retirePet": "Jubilar al museo",
+    "retireConfirm": "Jubilar",
+    "retireConfirmDesc": "Tu mascota pasará al museo familiar",
+    "retireConfirmBody": "La mascota se conservará tal como está con todos sus accesorios. El inventario de accesorios se vaciará y podréis adoptar una nueva mascota empezando desde cero.",
+    "petRetired": "Tu mascota ha sido jubilada al museo"
   },
   "polls": {
     "title": "Votaciones",

@@ -146,6 +146,8 @@ export interface FamilyPet {
   secondaryColor: string;
   eyeStyle: string;
   activeAccessories: Record<AccessorySlot, string | null>;
+  isActive: boolean;
+  retiredAt: string | null;
   hatchedAt: string | null;
   createdAt: string;
 }

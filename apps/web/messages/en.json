@@ -856,7 +856,16 @@
     "noAccessories": "No accessories yet",
     "viewAll": "View all",
     "shopLockedTitle": "Shop not available yet",
-    "shopLockedDesc": "Your pet is still an egg. Complete tasks as a family to warm it up and help it hatch. Once it's born you'll be able to buy accessories, change its colors, and customize its look."
+    "shopLockedDesc": "Your pet is still an egg. Complete tasks as a family to warm it up and help it hatch. Once it's born you'll be able to buy accessories, change its colors, and customize its look.",
+    "museumTitle": "Pet Museum",
+    "museumRetiredOn": "Retired on {date}",
+    "readyForMuseum": "Ready for the museum",
+    "retireDescription": "Your pet has reached its full potential",
+    "retirePet": "Retire to museum",
+    "retireConfirm": "Retire",
+    "retireConfirmDesc": "Your pet will join the family museum",
+    "retireConfirmBody": "The pet will be preserved as-is with all its accessories. The accessory inventory will be cleared and you can adopt a new pet starting from scratch.",
+    "petRetired": "Your pet has been retired to the museum"
   },
   "polls": {
     "title": "Polls",
