@@ -54,7 +54,7 @@
 
 ### Tablón / Social
 - [ ] Botones sin handler: pin/delete mensajes del board
-- [ ] Reacciones emoji en mensajes del tablón
+- [x] Reacciones emoji en mensajes del tablón
 
 ### Admin
 - [ ] Admin/Stats — enriquecer con datos de reports (ya hay datos, falta UI)

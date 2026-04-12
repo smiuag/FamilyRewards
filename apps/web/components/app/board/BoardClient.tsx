@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { fetchBoardMessages, postBoardMessage } from "@/lib/api/board";
+import {
+  fetchBoardMessages,
+  postBoardMessage,
+  fetchReactions,
+  toggleReaction,
+} from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
-import type { BoardMessage } from "@/lib/api/board";
+import type { BoardMessage, Reaction } from "@/lib/api/board";
 import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +25,7 @@ import {
   Star,
   TrendingUp,
   TrendingDown,
+  SmilePlus,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,6 +52,7 @@ export default function BoardClient() {
   const { currentUser, users } = useAppStore();
   const [messages, setMessages] = useState<BoardMessage[]>([]);
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -58,6 +65,11 @@ export default function BoardClient() {
       ]);
       setMessages(msgs);
       setTransactions(txs);
+      // Fetch reactions for all messages
+      if (msgs.length > 0) {
+        const rxns = await fetchReactions(msgs.map((m) => m.id));
+        setReactions(rxns);
+      }
     } catch (err) {
       console.error("Error loading board data:", err);
     }
@@ -102,6 +114,37 @@ export default function BoardClient() {
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!currentUser) return;
+    // Optimistic update
+    const existing = reactions.find(
+      (r) => r.messageId === messageId && r.profileId === currentUser.id && r.emoji === emoji
+    );
+    if (existing) {
+      setReactions((prev) => prev.filter((r) => r.id !== existing.id));
+    } else {
+      const optimistic: Reaction = {
+        id: `temp-${Date.now()}`,
+        messageId,
+        profileId: currentUser.id,
+        emoji,
+        createdAt: new Date().toISOString(),
+      };
+      setReactions((prev) => [...prev, optimistic]);
+    }
+    try {
+      await toggleReaction({ messageId, profileId: currentUser.id, emoji });
+      // Refetch reactions for consistency
+      const rxns = await fetchReactions(messages.map((m) => m.id));
+      setReactions(rxns);
+    } catch (err) {
+      console.error("Error toggling reaction:", err);
+      // Revert on error
+      const rxns = await fetchReactions(messages.map((m) => m.id));
+      setReactions(rxns);
+    }
+  };
+
   const pinnedMessages = messages.filter((m) => m.pinned);
 
   return (
@@ -143,7 +186,14 @@ export default function BoardClient() {
             <Pin className="w-3 h-3" /> {t("pinned")}
           </div>
           {pinnedMessages.map((msg) => (
-            <BoardMessageCard key={msg.id} msg={msg} users={users} />
+            <BoardMessageCard
+              key={msg.id}
+              msg={msg}
+              users={users}
+              reactions={reactions.filter((r) => r.messageId === msg.id)}
+              currentProfileId={currentUser.id}
+              onToggleReaction={handleToggleReaction}
+            />
           ))}
         </div>
       )}
@@ -173,6 +223,9 @@ export default function BoardClient() {
                 key={item.id}
                 msg={item.data as BoardMessage}
                 users={users}
+                reactions={reactions.filter((r) => r.messageId === item.id)}
+                currentProfileId={currentUser.id}
+                onToggleReaction={handleToggleReaction}
               />
             ) : (
               <TransactionCard
@@ -188,18 +241,51 @@ export default function BoardClient() {
   );
 }
 
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "👏", "🔥"];
+
 function BoardMessageCard({
   msg,
   users,
+  reactions,
+  currentProfileId,
+  onToggleReaction,
 }: {
   msg: BoardMessage;
   users: ReturnType<typeof useAppStore.getState>["users"];
+  reactions: Reaction[];
+  currentProfileId: string;
+  onToggleReaction: (messageId: string, emoji: string) => void;
 }) {
   const t = useTranslations("board");
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const author = users.find((u) => u.id === msg.profileId);
   const isSystem = !msg.profileId;
   const typeConfig = MSG_TYPE_CONFIG[msg.type] ?? MSG_TYPE_CONFIG.message;
   const TypeIcon = typeConfig.icon;
+
+  // Group reactions by emoji: { "👍": { count, profileIds } }
+  const grouped = reactions.reduce<Record<string, { count: number; profileIds: string[] }>>(
+    (acc, r) => {
+      if (!acc[r.emoji]) acc[r.emoji] = { count: 0, profileIds: [] };
+      acc[r.emoji].count++;
+      acc[r.emoji].profileIds.push(r.profileId);
+      return acc;
+    },
+    {}
+  );
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
 
   return (
     <Card
@@ -241,6 +327,65 @@ function BoardMessageCard({
                 <span>{t("pinned")}</span>
               </div>
             )}
+
+            {/* Reactions row */}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {Object.entries(grouped).map(([emoji, { count, profileIds }]) => {
+                const isMine = profileIds.includes(currentProfileId);
+                const reactors = profileIds
+                  .map((pid) => users.find((u) => u.id === pid)?.name)
+                  .filter(Boolean);
+                return (
+                  <button
+                    key={emoji}
+                    onClick={() => onToggleReaction(msg.id, emoji)}
+                    title={reactors.join(", ")}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors",
+                      "border hover:bg-muted/80",
+                      isMine
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                    )}
+                  >
+                    <span>{emoji}</span>
+                    <span className="font-medium">{count}</span>
+                  </button>
+                );
+              })}
+
+              {/* Add reaction button */}
+              <div className="relative" ref={pickerRef}>
+                <button
+                  onClick={() => setShowPicker((v) => !v)}
+                  aria-label={t("addReaction")}
+                  className={cn(
+                    "inline-flex items-center justify-center w-7 h-7 rounded-full transition-colors",
+                    "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                    showPicker && "bg-muted text-foreground"
+                  )}
+                >
+                  <SmilePlus className="w-3.5 h-3.5" />
+                </button>
+                {showPicker && (
+                  <div className="absolute bottom-full left-0 mb-1 z-10 bg-popover border border-border rounded-xl shadow-lg p-1.5 flex gap-1">
+                    {QUICK_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          onToggleReaction(msg.id, emoji);
+                          setShowPicker(false);
+                        }}
+                        className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-base transition-colors"
+                        aria-label={emoji}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

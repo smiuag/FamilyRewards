@@ -69,6 +69,82 @@ export async function postBoardMessage(params: {
   return toMessage(data as BoardMessageRow);
 }
 
+// ── Reactions ───────────────────────────────────────────────
+
+export interface ReactionRow {
+  id: string;
+  message_id: string;
+  profile_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface Reaction {
+  id: string;
+  messageId: string;
+  profileId: string;
+  emoji: string;
+  createdAt: string;
+}
+
+function toReaction(row: ReactionRow): Reaction {
+  return {
+    id: row.id,
+    messageId: row.message_id,
+    profileId: row.profile_id,
+    emoji: row.emoji,
+    createdAt: row.created_at,
+  };
+}
+
+/** Fetch all reactions for a list of message IDs */
+export async function fetchReactions(messageIds: string[]): Promise<Reaction[]> {
+  if (messageIds.length === 0) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("board_reactions")
+    .select("*")
+    .in("message_id", messageIds);
+  if (error) throw error;
+  return (data ?? []).map((r) => toReaction(r as ReactionRow));
+}
+
+/** Toggle a reaction: add if not present, remove if already exists. Returns updated reactions for that message. */
+export async function toggleReaction(params: {
+  messageId: string;
+  profileId: string;
+  emoji: string;
+}): Promise<{ added: boolean }> {
+  const supabase = createClient();
+  // Check if reaction already exists
+  const { data: existing } = await supabase
+    .from("board_reactions")
+    .select("id")
+    .eq("message_id", params.messageId)
+    .eq("profile_id", params.profileId)
+    .eq("emoji", params.emoji)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("board_reactions")
+      .delete()
+      .eq("id", existing.id);
+    if (error) throw error;
+    return { added: false };
+  } else {
+    const { error } = await supabase
+      .from("board_reactions")
+      .insert({
+        message_id: params.messageId,
+        profile_id: params.profileId,
+        emoji: params.emoji,
+      });
+    if (error) throw error;
+    return { added: true };
+  }
+}
+
 export async function postSystemBoardMessage(params: {
   familyId: string;
   content: string;

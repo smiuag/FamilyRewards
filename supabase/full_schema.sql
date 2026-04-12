@@ -158,6 +158,16 @@ create table if not exists board_messages (
   created_at  timestamptz not null default now()
 );
 
+-- ── BOARD REACTIONS ─────────────────────────────────────────
+create table if not exists board_reactions (
+  id          uuid primary key default gen_random_uuid(),
+  message_id  uuid not null references board_messages(id) on delete cascade,
+  profile_id  uuid not null references profiles(id) on delete cascade,
+  emoji       text not null,
+  created_at  timestamptz not null default now(),
+  unique (message_id, profile_id, emoji)
+);
+
 -- ── TASK TEMPLATES ──────────────────────────────────────────
 create table if not exists task_templates (
   id          uuid primary key default gen_random_uuid(),
@@ -196,6 +206,7 @@ create index if not exists points_transactions_profile_created on points_transac
 create index if not exists family_invitations_token on family_invitations (token);
 create index if not exists family_invitations_family_id on family_invitations (family_id);
 create index if not exists board_messages_family_created on board_messages (family_id, created_at desc);
+create index if not exists board_reactions_message_id on board_reactions (message_id);
 create index if not exists task_templates_family_id on task_templates (family_id);
 create index if not exists task_template_items_template_id on task_template_items (template_id);
 
@@ -249,6 +260,7 @@ alter table rewards             enable row level security;
 alter table reward_claims       enable row level security;
 alter table points_transactions enable row level security;
 alter table board_messages      enable row level security;
+alter table board_reactions     enable row level security;
 alter table task_templates      enable row level security;
 alter table task_template_items enable row level security;
 
@@ -265,7 +277,7 @@ begin
         'families','profiles','family_invitations','tasks',
         'task_assignments','task_instances','rewards',
         'reward_claims','points_transactions','board_messages',
-        'task_templates','task_template_items'
+        'board_reactions','task_templates','task_template_items'
       )
   ) loop
     execute format('drop policy if exists %I on %I', r.policyname, r.tablename);
@@ -431,6 +443,30 @@ create policy "admins can update board messages"
 create policy "admins can delete board messages"
   on board_messages for delete
   using (family_id = get_my_family_id() and is_family_admin());
+
+-- ── board_reactions ─────────────────────────────────────────
+create policy "family members can read reactions"
+  on board_reactions for select
+  using (
+    message_id in (
+      select id from board_messages where family_id = get_my_family_id()
+    )
+  );
+
+create policy "family members can add reactions"
+  on board_reactions for insert
+  with check (
+    profile_id in (select id from profiles where auth_user_id = auth.uid())
+    and message_id in (
+      select id from board_messages where family_id = get_my_family_id()
+    )
+  );
+
+create policy "members can remove own reactions"
+  on board_reactions for delete
+  using (
+    profile_id in (select id from profiles where auth_user_id = auth.uid())
+  );
 
 -- ── task_templates ──────────────────────────────────────────
 create policy "family members can read templates"

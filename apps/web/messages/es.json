@@ -552,7 +552,8 @@
     "typeReward": "Recompensa",
     "typeAnnouncement": "Anuncio",
     "typePoints": "Puntos",
-    "pointsAmount": "{sign}{amount} pts"
+    "pointsAmount": "{sign}{amount} pts",
+    "addReaction": "Añadir reacción"
   },
   "roles": {
     "admin": "Administrador",
