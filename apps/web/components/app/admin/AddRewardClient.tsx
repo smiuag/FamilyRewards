@@ -299,12 +299,12 @@ export default function AddRewardClient() {
                 {customForm.emoji}
               </button>
               {emojiPickerFor === "main" && (
-                <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2 w-64">
-                  <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2.5 w-72">
+                  <div className="grid grid-cols-6 gap-1.5 max-h-52 overflow-y-auto pr-1">
                     {REWARD_EMOJIS.map((em) => (
                       <button key={em} onClick={() => { setCustomForm({ ...customForm, emoji: em }); setEmojiPickerFor(null); }}
-                        className={cn("w-7 h-7 rounded-lg text-base flex items-center justify-center transition-all hover:bg-muted",
-                          customForm.emoji === em && "bg-primary/20 ring-1 ring-primary")}>
+                        className={cn("w-9 h-9 rounded-lg text-xl flex items-center justify-center transition-all hover:bg-muted",
+                          customForm.emoji === em && "bg-primary/20 ring-2 ring-primary")}>
                         {em}
                       </button>
                     ))}
@@ -367,8 +367,8 @@ export default function AddRewardClient() {
                     {prize.emoji}
                   </button>
                   {emojiPickerFor === i && (
-                    <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2 w-64">
-                      <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                    <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg p-2.5 w-72">
+                      <div className="grid grid-cols-6 gap-1.5 max-h-52 overflow-y-auto pr-1">
                         {REWARD_EMOJIS.map((em) => (
                           <button key={em} onClick={() => {
                             const updated = [...mysteryPrizes];
@@ -376,8 +376,8 @@ export default function AddRewardClient() {
                             setMysteryPrizes(updated);
                             setEmojiPickerFor(null);
                           }}
-                            className={cn("w-7 h-7 rounded-lg text-base flex items-center justify-center transition-all hover:bg-muted",
-                              prize.emoji === em && "bg-primary/20 ring-1 ring-primary")}>
+                            className={cn("w-9 h-9 rounded-lg text-xl flex items-center justify-center transition-all hover:bg-muted",
+                              prize.emoji === em && "bg-primary/20 ring-2 ring-primary")}>
                             {em}
                           </button>
                         ))}
