@@ -211,6 +211,7 @@ export default function DashboardClient() {
       hasEarlyCompletion: false, maxRewardCost: 0,
       boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
       maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
+      minigamesPlayed: 0, perfectMinigames: 0, bestTimeEasy: null, bestTimeHard: null,
     };
   }, [currentUser, taskInstances, claims, transactions]);
 

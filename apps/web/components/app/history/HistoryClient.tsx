@@ -22,6 +22,7 @@ const TYPE_CONFIG = {
   reward:     { label: "Recompensa",  color: "bg-orange-100 text-orange-700" },
   adjustment: { label: "Ajuste",      color: "bg-blue-100 text-blue-700" },
   streak:     { label: "Racha",       color: "bg-red-100 text-red-700" },
+  minigame:   { label: "Minijuego",   color: "bg-purple-100 text-purple-700" },
 };
 
 function groupByDate(txs: PointsTransaction[]): [string, PointsTransaction[]][] {

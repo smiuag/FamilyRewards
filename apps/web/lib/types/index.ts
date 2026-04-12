@@ -218,7 +218,7 @@ export interface PollVote {
 
 // ── Transaction types ──────────────────────────────────────
 
-export type TransactionType = "task" | "reward" | "adjustment" | "streak";
+export type TransactionType = "task" | "reward" | "adjustment" | "streak" | "minigame";
 
 export interface PointsTransaction {
   id: string;
@@ -229,4 +229,28 @@ export interface PointsTransaction {
   emoji: string;
   createdAt: string; // ISO datetime
   balanceAfter: number;
+}
+
+// ── Minigame types ────────────────────────────────────────
+
+export type MinigameDifficulty = "easy" | "medium" | "hard";
+
+export interface MinigameResult {
+  id: string;
+  profileId: string;
+  familyId: string;
+  difficulty: MinigameDifficulty;
+  pairsFound: number;
+  totalPairs: number;
+  moves: number;
+  timeSeconds: number;
+  pointsEarned: number;
+  perfect: boolean;
+  playedAt: string;
+}
+
+export interface MinigameConfig {
+  enabled: boolean;
+  maxDaily: number | null;
+  pointsBase: number;
 }

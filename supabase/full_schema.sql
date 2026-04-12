@@ -19,7 +19,11 @@ alter table families
   add column if not exists onboarding_completed boolean not null default false,
   add column if not exists setup_visited_members boolean not null default false,
   add column if not exists setup_visited_tasks boolean not null default false,
-  add column if not exists setup_visited_rewards boolean not null default false;
+  add column if not exists setup_visited_rewards boolean not null default false,
+  add column if not exists pets_enabled boolean not null default false,
+  add column if not exists minigame_enabled boolean not null default false,
+  add column if not exists minigame_max_daily integer,
+  add column if not exists minigame_points_base integer not null default 10;
 
 -- ── PROFILES ────────────────────────────────────────────────
 create table if not exists profiles (
@@ -143,7 +147,7 @@ create table if not exists points_transactions (
   id            uuid primary key default gen_random_uuid(),
   profile_id    uuid not null references profiles(id) on delete cascade,
   amount        integer not null,
-  type          text not null check (type in ('task', 'reward', 'adjustment', 'streak')),
+  type          text not null check (type in ('task', 'reward', 'adjustment', 'streak', 'minigame')),
   description   text not null,
   emoji         text not null default '⭐',
   created_at    timestamptz not null default now(),
@@ -694,7 +698,7 @@ insert into pet_accessories (name, name_en, slot, emoji, points_cost, svg_key) v
   ('Capa',               'Cape',           'body',       '🦸', 250, 'cape'),
   ('Bufanda',            'Scarf',          'body',       '🧣', 120, 'scarf'),
   ('Collar de estrellas', 'Star Necklace', 'body',       '⭐', 180, 'star-necklace'),
-  ('Moño',               'Bowtie',         'body',       '🎩', 100, 'bowtie'),
+  ('Pajarita',           'Bowtie',         'body',       '🤵', 100, 'bowtie'),
   ('Armadura',           'Armor',          'body',       '🛡️', 400, 'armor'),
   ('Arcoíris',           'Rainbow',        'background', '🌈', 200, 'rainbow'),
   ('Estrellas',          'Stars',          'background', '✨', 150, 'stars-bg'),
@@ -789,6 +793,39 @@ begin
   return new;
 end;
 $$;
+
+-- ── MINIGAME RESULTS ───────────────────────────────────────
+create table if not exists minigame_results (
+  id            uuid primary key default gen_random_uuid(),
+  profile_id    uuid not null references profiles(id) on delete cascade,
+  family_id     uuid not null references families(id) on delete cascade,
+  difficulty    text not null check (difficulty in ('easy','medium','hard')),
+  pairs_found   integer not null,
+  total_pairs   integer not null,
+  moves         integer not null,
+  time_seconds  integer not null,
+  points_earned integer not null default 0,
+  perfect       boolean not null default false,
+  played_at     timestamptz not null default now()
+);
+
+create index if not exists idx_minigame_profile_played
+  on minigame_results (profile_id, played_at desc);
+create index if not exists idx_minigame_family_played
+  on minigame_results (family_id, played_at desc);
+
+alter table minigame_results enable row level security;
+
+create policy "family members can read minigame results"
+  on minigame_results for select
+  using (family_id = get_my_family_id());
+
+create policy "members can insert own minigame results"
+  on minigame_results for insert
+  with check (
+    profile_id = get_my_profile_id()
+    and family_id = get_my_family_id()
+  );
 
 -- Recrear trigger (idempotente)
 drop trigger if exists on_auth_user_created on auth.users;

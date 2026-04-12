@@ -1,4 +1,4 @@
-export type AchievementCategory = "streak" | "tasks" | "rewards" | "social" | "special";
+export type AchievementCategory = "streak" | "tasks" | "rewards" | "social" | "special" | "minigame";
 
 export interface Achievement {
   id: string;
@@ -28,6 +28,11 @@ export interface UserStats {
   reactionsReceived: number;
   maxDistinctEmojisOnOneMessage: number;
   hasClaimedTask: boolean; // claimed an unassigned task
+  // Minigame
+  minigamesPlayed: number;
+  perfectMinigames: number;
+  bestTimeEasy: number | null;
+  bestTimeHard: number | null;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -302,6 +307,68 @@ export const ACHIEVEMENTS: Achievement[] = [
     points: 50,
     rarity: "common",
   },
+
+  // ── Minijuego ────────────────────────────────────────────���──
+  {
+    id: "minigame_first",
+    title: "Primera partida",
+    description: "Juega tu primera partida de Pet Match",
+    emoji: "🧩",
+    category: "minigame",
+    condition: (s) => s.minigamesPlayed >= 1,
+    points: 30,
+    rarity: "common",
+  },
+  {
+    id: "minigame_10",
+    title: "Aficionado",
+    description: "Juega 10 partidas de Pet Match",
+    emoji: "🎮",
+    category: "minigame",
+    condition: (s) => s.minigamesPlayed >= 10,
+    points: 100,
+    rarity: "common",
+  },
+  {
+    id: "minigame_50",
+    title: "Experto en parejas",
+    description: "Juega 50 partidas de Pet Match",
+    emoji: "🏅",
+    category: "minigame",
+    condition: (s) => s.minigamesPlayed >= 50,
+    points: 300,
+    rarity: "rare",
+  },
+  {
+    id: "minigame_perfect",
+    title: "Memoria perfecta",
+    description: "Completa una partida sin ningún error",
+    emoji: "🧠",
+    category: "minigame",
+    condition: (s) => s.perfectMinigames >= 1,
+    points: 200,
+    rarity: "rare",
+  },
+  {
+    id: "minigame_speed_easy",
+    title: "Velocista",
+    description: "Completa el modo fácil en menos de 30 segundos",
+    emoji: "⚡",
+    category: "minigame",
+    condition: (s) => s.bestTimeEasy !== null && s.bestTimeEasy < 30,
+    points: 400,
+    rarity: "epic",
+  },
+  {
+    id: "minigame_speed_hard",
+    title: "Mente brillante",
+    description: "Completa el modo difícil en menos de 2 minutos",
+    emoji: "💎",
+    category: "minigame",
+    condition: (s) => s.bestTimeHard !== null && s.bestTimeHard < 120,
+    points: 1000,
+    rarity: "legendary",
+  },
 ];
 
 export const RARITY_CONFIG = {
@@ -312,10 +379,11 @@ export const RARITY_CONFIG = {
 };
 
 export const CATEGORY_CONFIG: Record<AchievementCategory, { label: string; emoji: string }> = {
-  streak:  { label: "Racha",       emoji: "🔥" },
-  tasks:   { label: "Tareas",      emoji: "✅" },
-  rewards: { label: "Recompensas", emoji: "🎁" },
-  social:  { label: "Social",      emoji: "👨‍👩‍👧" },
-  special: { label: "Especiales",  emoji: "⭐" },
+  streak:   { label: "Racha",       emoji: "🔥" },
+  tasks:    { label: "Tareas",      emoji: "✅" },
+  rewards:  { label: "Recompensas", emoji: "🎁" },
+  social:   { label: "Social",      emoji: "👨‍👩‍👧" },
+  special:  { label: "Especiales",  emoji: "⭐" },
+  minigame: { label: "Minijuego",   emoji: "🧩" },
 };
 

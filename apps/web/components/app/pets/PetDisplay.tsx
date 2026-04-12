@@ -116,7 +116,7 @@ export function PetDisplay({
             />
 
             {/* Eyes */}
-            <PetEyes eyeStyle={pet.eyeStyle} stage={pet.stage} />
+            <PetEyes eyeStyle={pet.eyeStyle} stage={pet.stage} species={pet.species} />
 
             {/* Head accessory */}
             {hasHead && headAccessory && pet.species && (

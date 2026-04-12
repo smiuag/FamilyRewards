@@ -10,20 +10,31 @@ interface AccessoryLayerProps {
 }
 
 // Anchor positions per species/stage for head slot
+/*
+ * Anchor positions per species/stage, derived from actual SVG geometry.
+ *
+ * Water/Plant/Electric/Shadow bodies use:
+ *   transform="translate(0 ty) scale(s)"  +  transformOrigin="100px 100px"
+ *
+ * Final Y of a raw SVG coord is: 100 + s * (rawY - 100 + ty)
+ *
+ * HEAD_Y ≈ top of head (where crown base sits)
+ * BODY_Y ≈ bottom of head / neck (where bowtie/scarf sits)
+ */
 const HEAD_Y: Record<string, Record<Exclude<PetStage, "egg">, number>> = {
-  fire:     { baby: 68, juvenile: 52, adult: 42 },
-  water:    { baby: 58, juvenile: 50, adult: 42 },
-  plant:    { baby: 58, juvenile: 52, adult: 42 },
-  electric: { baby: 58, juvenile: 52, adult: 42 },
-  shadow:   { baby: 58, juvenile: 50, adult: 42 },
+  fire:     { baby: 72,  juvenile: 58,  adult: 46 },
+  water:    { baby: 91,  juvenile: 72,  adult: 52 },
+  plant:    { baby: 97,  juvenile: 80,  adult: 61 },
+  electric: { baby: 96,  juvenile: 78,  adult: 59 },
+  shadow:   { baby: 93,  juvenile: 75,  adult: 55 },
 };
 
 const BODY_Y: Record<string, Record<Exclude<PetStage, "egg">, number>> = {
-  fire:     { baby: 120, juvenile: 108, adult: 100 },
-  water:    { baby: 115, juvenile: 105, adult: 98 },
-  plant:    { baby: 118, juvenile: 108, adult: 100 },
-  electric: { baby: 118, juvenile: 108, adult: 100 },
-  shadow:   { baby: 118, juvenile: 105, adult: 98 },
+  fire:     { baby: 118, juvenile: 106, adult: 98 },
+  water:    { baby: 123, juvenile: 116, adult: 104 },
+  plant:    { baby: 127, juvenile: 120, adult: 109 },
+  electric: { baby: 124, juvenile: 117, adult: 105 },
+  shadow:   { baby: 124, juvenile: 117, adult: 105 },
 };
 
 export function AccessoryLayer({ slot, svgKey, species, stage }: AccessoryLayerProps) {
@@ -63,7 +74,7 @@ function AccessorySvg({ svgKey, slot }: { svgKey: string; slot: AccessorySlot })
       );
     case "sunglasses":
       return (
-        <g transform="translate(-18 -6)">
+        <g transform="translate(-18 26)">
           <rect x="0" y="0" width="14" height="10" rx="3" fill="#1a1a1a" />
           <rect x="22" y="0" width="14" height="10" rx="3" fill="#1a1a1a" />
           <line x1="14" y1="5" x2="22" y2="5" stroke="#1a1a1a" strokeWidth="2" />

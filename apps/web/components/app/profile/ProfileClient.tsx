@@ -83,6 +83,7 @@ export default function ProfileClient() {
     }, 0),
     boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
     maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
+    minigamesPlayed: 0, perfectMinigames: 0, bestTimeEasy: null, bestTimeHard: null,
   };
   const unlockedCount = ACHIEVEMENTS.filter((a) => a.condition(simpleStats)).length;
   const currentLevel = getLevelForAchievementCount(unlockedCount);

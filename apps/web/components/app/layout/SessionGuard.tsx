@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
-import { fetchFamilySettings, fetchFamilyProfiles } from "@/lib/api/members";
+import { fetchFamilySettings, fetchFamilyProfiles, fetchFamilyFeatureFlags } from "@/lib/api/members";
 import { fetchFamilyTasks } from "@/lib/api/tasks";
 import { fetchFamilyRewards } from "@/lib/api/rewards";
 
@@ -78,6 +78,12 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
         useAppStore.setState({
           onboardingCompleted: familySettings.onboardingCompleted,
           setupVisited: familySettings.setupVisited,
+        });
+
+        // Load feature flags (non-blocking — missing columns won't break the app)
+        fetchFamilyFeatureFlags(myProfile.familyId).then((flags) => {
+          if (flags.petsEnabled) store.unlockFeature("pets");
+          if (flags.minigameEnabled) store.unlockFeature("minigame");
         });
 
         const [tasks, rewards] = await Promise.all([

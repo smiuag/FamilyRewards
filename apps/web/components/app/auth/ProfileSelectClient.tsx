@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
-import { fetchFamilySettings } from "@/lib/api/members";
+import { fetchFamilySettings, fetchFamilyFeatureFlags } from "@/lib/api/members";
 import { fetchFamilyTasks } from "@/lib/api/tasks";
 import { fetchFamilyRewards } from "@/lib/api/rewards";
 import { acceptInvitationAction } from "@/lib/actions/accept-invitation";
@@ -148,6 +148,10 @@ export default function ProfileSelectClient() {
     useAppStore.setState({
       onboardingCompleted: familySettings.onboardingCompleted,
       setupVisited: familySettings.setupVisited,
+    });
+    fetchFamilyFeatureFlags(profile.family_id).then((flags) => {
+      if (flags.petsEnabled) useAppStore.getState().unlockFeature("pets");
+      if (flags.minigameEnabled) useAppStore.getState().unlockFeature("minigame");
     });
     const [familyTasks, familyRewards] = await Promise.all([
       fetchFamilyTasks().catch(() => []),

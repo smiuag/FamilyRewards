@@ -23,6 +23,7 @@ import {
   X,
   PawPrint,
   Vote,
+  Gamepad2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,6 +65,9 @@ export default function Sidebar() {
     { href: `/${locale}/polls`, icon: Vote, label: t("polls") },
     ...(featuresUnlocked.includes("pets") ? [
       { href: `/${locale}/pets`, icon: PawPrint, label: t("pets") },
+    ] : []),
+    ...(featuresUnlocked.includes("minigame") ? [
+      { href: `/${locale}/minigame`, icon: Gamepad2, label: t("minigame") },
     ] : []),
   ];
 

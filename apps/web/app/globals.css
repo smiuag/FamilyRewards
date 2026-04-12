@@ -231,3 +231,37 @@ textarea:focus-visible,
 .animate-hatch-crack { animation: hatch-crack 1s ease-in forwards; }
 .animate-hatch-reveal { animation: hatch-reveal 0.8s ease-out 0.8s both; }
 .animate-sparkle { animation: sparkle-burst 1s ease-out forwards; }
+
+/* ── Minigame card animations ────────────────────────────── */
+.card-inner {
+  position: relative;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+.card-inner.card-flipped { transform: rotateY(180deg); }
+.card-face {
+  backface-visibility: hidden;
+  position: absolute;
+  inset: 0;
+}
+.card-front { transform: rotateY(180deg); }
+
+@keyframes match-glow {
+  0%, 100% { box-shadow: 0 0 0 transparent; }
+  50% { box-shadow: 0 0 14px 4px rgba(251, 191, 36, 0.5); }
+}
+.card-matched { animation: match-glow 0.8s ease-in-out 2; }
+
+@keyframes card-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.card-wrong { animation: card-shake 0.4s ease-in-out; }
+
+@keyframes combo-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.combo-indicator { animation: combo-pop 0.3s ease-out; }

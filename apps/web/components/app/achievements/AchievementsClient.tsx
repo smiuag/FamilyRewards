@@ -8,6 +8,7 @@ import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import { fetchBoardStats } from "@/lib/api/board";
+import { fetchPlayerResults } from "@/lib/api/minigame";
 import {
   ACHIEVEMENTS,
   RARITY_CONFIG,
@@ -30,6 +31,7 @@ export default function AchievementsClient() {
   const { currentUser, taskInstances, claims, transactions, rewards } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
   const [boardStats, setBoardStats] = useState({ messagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0, maxDistinctEmojisOnOneMessage: 0 });
+  const [mgStats, setMgStats] = useState({ minigamesPlayed: 0, perfectMinigames: 0, bestTimeEasy: null as number | null, bestTimeHard: null as number | null });
 
   useEffect(() => {
     if (!currentUser) return;
@@ -39,13 +41,24 @@ export default function AchievementsClient() {
         t = await fetchFamilyTasks();
         useAppStore.setState({ tasks: t });
       }
-      const [instances, claimsData, txs, bStats] = await Promise.all([
+      const [instances, claimsData, txs, bStats, mgResults] = await Promise.all([
         backfillInstances(t, currentUser.id, new Date()),
         fetchFamilyClaims().catch(() => []),
         fetchFamilyTransactions().catch(() => []),
         fetchBoardStats(currentUser.id).catch(() => ({ messagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0, maxDistinctEmojisOnOneMessage: 0 })),
+        fetchPlayerResults(currentUser.id, 500).catch(() => []),
       ]);
       setBoardStats(bStats);
+
+      // Compute minigame stats
+      const easyTimes = mgResults.filter((r) => r.difficulty === "easy").map((r) => r.timeSeconds);
+      const hardTimes = mgResults.filter((r) => r.difficulty === "hard").map((r) => r.timeSeconds);
+      setMgStats({
+        minigamesPlayed: mgResults.length,
+        perfectMinigames: mgResults.filter((r) => r.perfect).length,
+        bestTimeEasy: easyTimes.length > 0 ? Math.min(...easyTimes) : null,
+        bestTimeHard: hardTimes.length > 0 ? Math.min(...hardTimes) : null,
+      });
       useAppStore.setState((prev) => ({
         taskInstances: [
           ...prev.taskInstances.filter((ti) => ti.userId !== currentUser.id),
@@ -65,6 +78,7 @@ export default function AchievementsClient() {
       hasEarlyCompletion: false, maxRewardCost: 0,
       boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
       maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
+      minigamesPlayed: 0, perfectMinigames: 0, bestTimeEasy: null, bestTimeHard: null,
     };
 
     const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
@@ -153,8 +167,12 @@ export default function AchievementsClient() {
       reactionsReceived: boardStats.reactionsReceived,
       maxDistinctEmojisOnOneMessage: boardStats.maxDistinctEmojisOnOneMessage,
       hasClaimedTask,
+      minigamesPlayed: mgStats.minigamesPlayed,
+      perfectMinigames: mgStats.perfectMinigames,
+      bestTimeEasy: mgStats.bestTimeEasy,
+      bestTimeHard: mgStats.bestTimeHard,
     };
-  }, [currentUser, taskInstances, claims, transactions, rewards, boardStats]);
+  }, [currentUser, taskInstances, claims, transactions, rewards, boardStats, mgStats]);
 
   if (!currentUser) return null;
 

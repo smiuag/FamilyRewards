@@ -171,6 +171,39 @@ export async function fetchFamilySettings(familyId: string): Promise<FamilySetti
   };
 }
 
+/** Feature flags ��� separate query so missing columns don't break core settings */
+export interface FamilyFeatureFlags {
+  petsEnabled: boolean;
+  minigameEnabled: boolean;
+}
+
+export async function fetchFamilyFeatureFlags(familyId: string): Promise<FamilyFeatureFlags> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("families")
+      .select("pets_enabled, minigame_enabled")
+      .eq("id", familyId)
+      .single();
+    if (error) throw error;
+    return {
+      petsEnabled: data?.pets_enabled ?? false,
+      minigameEnabled: data?.minigame_enabled ?? false,
+    };
+  } catch {
+    return { petsEnabled: false, minigameEnabled: false };
+  }
+}
+
+export async function updatePetsEnabled(familyId: string, enabled: boolean): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("families")
+    .update({ pets_enabled: enabled })
+    .eq("id", familyId);
+  if (error) throw error;
+}
+
 export async function updateFamilyOnboarding(
   familyId: string,
   completed: boolean

@@ -9,10 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MapPin, Save, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Save, Trash2, Gamepad2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { fetchMinigameConfig, updateMinigameConfig } from "@/lib/api/minigame";
+import { updatePetsEnabled } from "@/lib/api/members";
+import { useMinigameStore } from "@/lib/store/useMinigameStore";
 
 // Spanish province lookup by postal code prefix (first 2 digits)
 const ES_PROVINCES: Record<string, { name: string; region: string }> = {
@@ -101,6 +105,78 @@ export default function SettingsClient() {
   const [unsubName, setUnsubName] = useState("");
   const [unsubSaving, setUnsubSaving] = useState(false);
 
+  // Pets admin config
+  const [petsEnabled, setPetsEnabled] = useState(
+    useAppStore.getState().featuresUnlocked.includes("pets"),
+  );
+  const [petsSaving, setPetsSaving] = useState(false);
+
+  const handleTogglePets = async (enabled: boolean) => {
+    if (!currentUser?.familyId) return;
+    setPetsSaving(true);
+    try {
+      await updatePetsEnabled(currentUser.familyId, enabled);
+      setPetsEnabled(enabled);
+      if (enabled) {
+        useAppStore.getState().unlockFeature("pets");
+      } else {
+        useAppStore.setState((s) => ({
+          featuresUnlocked: s.featuresUnlocked.filter((f) => f !== "pets"),
+        }));
+      }
+      toast.success(t("saveLocation"));
+    } catch {
+      toast.error("Error");
+    } finally {
+      setPetsSaving(false);
+    }
+  };
+
+  // Minigame admin config
+  const ts2 = useTranslations("minigame.adminSettings");
+  const { loadConfig: loadMinigameConfig } = useMinigameStore();
+  const [mgEnabled, setMgEnabled] = useState(false);
+  const [mgMaxDaily, setMgMaxDaily] = useState("");
+  const [mgPointsBase, setMgPointsBase] = useState("10");
+  const [mgLoaded, setMgLoaded] = useState(false);
+  const [mgSaving, setMgSaving] = useState(false);
+
+  // Load minigame config on mount (admin only)
+  useState(() => {
+    if (currentUser?.role === "admin" && currentUser?.familyId) {
+      fetchMinigameConfig(currentUser.familyId)
+        .then((cfg) => {
+          setMgEnabled(cfg.enabled);
+          setMgMaxDaily(cfg.maxDaily != null ? String(cfg.maxDaily) : "");
+          setMgPointsBase(String(cfg.pointsBase));
+          setMgLoaded(true);
+        })
+        .catch(() => setMgLoaded(true));
+    }
+  });
+
+  const handleSaveMinigame = async () => {
+    if (!currentUser?.familyId) return;
+    setMgSaving(true);
+    try {
+      const config = {
+        enabled: mgEnabled,
+        maxDaily: mgMaxDaily.trim() === "" ? null : parseInt(mgMaxDaily, 10),
+        pointsBase: parseInt(mgPointsBase, 10) || 10,
+      };
+      await updateMinigameConfig(currentUser.familyId, config);
+      loadMinigameConfig(config);
+      if (config.enabled) {
+        useAppStore.getState().unlockFeature("minigame");
+      }
+      toast.success(ts2("saved"));
+    } catch {
+      toast.error("Error");
+    } finally {
+      setMgSaving(false);
+    }
+  };
+
   const detected = detectLocation(postalInput);
 
   const handleSave = () => {
@@ -182,6 +258,87 @@ export default function SettingsClient() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Pets config (admin only) */}
+      {currentUser?.role === "admin" && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="text-lg">🐾</span>
+              {t("petsTitle")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{t("petsEnabled")}</p>
+                <p className="text-xs text-muted-foreground">{t("petsEnabledDesc")}</p>
+              </div>
+              <Switch
+                checked={petsEnabled}
+                onCheckedChange={handleTogglePets}
+                disabled={petsSaving}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Minigame config (admin only) */}
+      {currentUser?.role === "admin" && mgLoaded && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4 text-primary" />
+              {ts2("title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{ts2("enabled")}</p>
+                <p className="text-xs text-muted-foreground">{ts2("enabledDesc")}</p>
+              </div>
+              <Switch checked={mgEnabled} onCheckedChange={setMgEnabled} />
+            </div>
+
+            {mgEnabled && (
+              <>
+                {/* Max daily games */}
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">{ts2("maxDaily")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={mgMaxDaily}
+                    onChange={(e) => setMgMaxDaily(e.target.value)}
+                    placeholder={ts2("maxDailyDesc")}
+                    className="max-w-xs"
+                  />
+                </div>
+
+                {/* Points per game */}
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">{ts2("pointsPerGame")}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={mgPointsBase}
+                    onChange={(e) => setMgPointsBase(e.target.value)}
+                    className="max-w-xs"
+                  />
+                </div>
+              </>
+            )}
+
+            <Button onClick={handleSaveMinigame} disabled={mgSaving}>
+              <Save className="w-4 h-4 mr-1.5" />
+              {mgSaving ? "..." : t("saveLocation")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Danger zone */}
       <Card className="shadow-sm border-red-200 dark:border-red-900">

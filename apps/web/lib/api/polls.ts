@@ -266,7 +266,15 @@ export function getVoteCounts(
 export function applySystemAction(action: string): void {
   if (action === "enable_pets") {
     import("@/lib/store/useAppStore").then(({ useAppStore }) => {
-      useAppStore.getState().unlockFeature("pets");
+      const store = useAppStore.getState();
+      store.unlockFeature("pets");
+      // Persist to DB
+      const familyId = store.currentUser?.familyId;
+      if (familyId) {
+        import("@/lib/api/members").then(({ updatePetsEnabled }) => {
+          updatePetsEnabled(familyId, true).catch(() => {});
+        });
+      }
     });
   }
 }
