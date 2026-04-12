@@ -12,7 +12,6 @@ import {
   Calendar,
   Gift,
   History,
-  ChevronDown,
   Users,
   BarChart3,
   ClipboardList,
@@ -25,8 +24,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Section = "me" | "admin";
-
 interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -36,7 +33,6 @@ interface NavItem {
 
 export default function Sidebar() {
   const t = useTranslations("nav");
-  const tc = useTranslations("common");
   const ts = useTranslations("sidebar");
   const pathname = usePathname();
   const router = useRouter();
@@ -47,17 +43,6 @@ export default function Sidebar() {
     featuresUnlocked,
     familyName, setFamilyName,
   } = useAppStore();
-
-  const isAdminRoute = pathname.startsWith(`/${locale}/admin`);
-
-  const activeSection: Section = isAdminRoute ? "admin" : "me";
-
-  const [openSection, setOpenSection] = useState<Section>(activeSection);
-
-  // Sincronizar sección abierta cuando cambia la ruta
-  useEffect(() => {
-    setOpenSection(activeSection);
-  }, [activeSection]);
 
   // Edición inline del nombre de familia
   const [editingName, setEditingName] = useState(false);
@@ -77,8 +62,6 @@ export default function Sidebar() {
     { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
-  // Alertas dinámicas: mostrar ! cuando falta configuración esencial
-  // Solo mostrar alertas cuando ya se han cargado los datos (hay al menos usuarios)
   const dataLoaded = users.length > 0;
   const needsMembers = dataLoaded && users.length < 2;
   const needsTasks = dataLoaded && tasks.length === 0;
@@ -177,24 +160,28 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Sections */}
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1" aria-label="Menú principal">
 
-        {/* -- YO -- */}
-        <SectionHeader
-          label={ts("myProfile")}
-          emoji={currentUser?.avatar}
-          open={openSection === "me"}
-          active={activeSection === "me"}
-          onClick={() => {
-            setOpenSection("me");
-            if (openSection !== "me") router.push(`/${locale}/dashboard`);
-          }}
-          badge={currentUser ? `${currentUser.pointsBalance.toLocaleString()} pts` : undefined}
-        />
-        {openSection === "me" && (
-          <div className="space-y-0.5 pb-1">
-            {meItems.map((item) => (
+        {/* Section label */}
+        <SectionLabel emoji={currentUser?.avatar} label={ts("myProfile")} badge={`${currentUser?.pointsBalance.toLocaleString()} pts`} />
+
+        {meItems.map((item) => (
+          <NavBtn
+            key={item.href}
+            item={item}
+            active={isActive(item.href)}
+            onClick={() => router.push(item.href)}
+          />
+        ))}
+
+        {/* Admin section */}
+        {currentUser?.role === "admin" && (
+          <>
+            <div className="border-t border-sidebar-border mx-1 my-3" />
+            <SectionLabel emoji="⚙️" label={t("admin")} />
+
+            {adminItems.map((item) => (
               <NavBtn
                 key={item.href}
                 item={item}
@@ -202,87 +189,24 @@ export default function Sidebar() {
                 onClick={() => router.push(item.href)}
               />
             ))}
-          </div>
-        )}
-
-        {/* -- ADMINISTRACION -- */}
-        {currentUser?.role === "admin" && (
-          <>
-            <div className="border-t border-sidebar-border mx-1 my-2" />
-            <SectionHeader
-              label={t("admin")}
-              emoji="⚙️"
-              open={openSection === "admin"}
-              active={activeSection === "admin"}
-              onClick={() => {
-                setOpenSection("admin");
-                if (openSection !== "admin") router.push(`/${locale}/admin/members`);
-              }}
-            />
-            {openSection === "admin" && (
-              <div className="space-y-0.5 pb-1">
-                {adminItems.map((item) => (
-                  <NavBtn
-                    key={item.href}
-                    item={item}
-                    active={isActive(item.href)}
-                    onClick={() => router.push(item.href)}
-                  />
-                ))}
-              </div>
-            )}
           </>
         )}
       </nav>
-
     </div>
   );
 }
 
-function SectionHeader({
-  label,
-  emoji,
-  open,
-  active,
-  onClick,
-  badge,
-}: {
-  label: string;
-  emoji?: string;
-  open: boolean;
-  active: boolean;
-  onClick: () => void;
-  badge?: string;
-}) {
+function SectionLabel({ emoji, label, badge }: { emoji?: string; label: string; badge?: string }) {
   return (
-    <button
-      onClick={onClick}
-      aria-expanded={open}
-      aria-label={`${label}${badge ? `, ${badge}` : ""}`}
-      className={cn(
-        "flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
-        active
-          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-          : open
-          ? "text-sidebar-foreground bg-sidebar-accent"
-          : "text-sidebar-foreground/60 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
-      )}
-    >
+    <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/50">
       {emoji && <span className="text-sm" aria-hidden="true">{emoji}</span>}
-      <span className="flex-1 text-left">{label}</span>
+      <span className="flex-1">{label}</span>
       {badge && (
-        <span className={cn(
-          "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-          active ? "bg-white/20 text-white" : "bg-sidebar-border"
-        )} aria-hidden="true">
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sidebar-border" aria-hidden="true">
           {badge}
         </span>
       )}
-      <ChevronDown
-        className={cn("w-3.5 h-3.5 transition-transform duration-200", open && "rotate-180")}
-        aria-hidden="true"
-      />
-    </button>
+    </div>
   );
 }
 
@@ -302,7 +226,7 @@ function NavBtn({
       aria-current={active ? "page" : undefined}
       aria-label={item.alert ? `${item.label} (requiere atención)` : item.label}
       className={cn(
-        "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+        "flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all",
         active
           ? "bg-primary/15 text-primary font-semibold"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
