@@ -94,6 +94,13 @@
 - [ ] Bubblewrap para generar APK de pruebas (TWA) — requiere Java 11+ y Android SDK
 - [ ] Alternativa futura: Capacitor para iOS + Android desde el mismo codebase
 
+### Contraste de colores
+- [ ] Revisar paleta naranja primary (#F97316) — no pasa WCAG AA (2.8:1 con blanco). Decidir: oscurecer naranja, texto oscuro, o nueva paleta
+
+### Performance
+- [ ] Optimizar bundle JS: lazy loading de páginas admin, dynamic imports, tree-shaking
+- [ ] Reducir unused JavaScript (~429 KiB estimado por Lighthouse)
+
 ### Calidad
 - [ ] Tests unitarios para lógica de puntos y transiciones de estado
 - [ ] Tests e2e para flujo crítico (login → completar tarea → canjear recompensa)
