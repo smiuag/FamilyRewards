@@ -22,6 +22,12 @@ export interface UserStats {
   daysActive: number;
   hasEarlyCompletion: boolean; // completed a task before 8am
   maxRewardCost: number; // highest cost reward claimed
+  // Board & social
+  boardMessagesPosted: number;
+  reactionsGiven: number;
+  reactionsReceived: number;
+  maxDistinctEmojisOnOneMessage: number;
+  hasClaimedTask: boolean; // claimed an unassigned task
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -223,6 +229,78 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: (s) => s.daysActive >= 30,
     points: 200,
     rarity: "rare",
+  },
+
+  // ── Tablón / Social ──────────────────────────────────────────
+  {
+    id: "first_post",
+    title: "Primera publicación",
+    description: "Escribe tu primer mensaje en el tablón",
+    emoji: "📝",
+    category: "social",
+    condition: (s) => s.boardMessagesPosted >= 1,
+    points: 20,
+    rarity: "common",
+  },
+  {
+    id: "communicator",
+    title: "Comunicador",
+    description: "Publica 20 mensajes en el tablón",
+    emoji: "💬",
+    category: "social",
+    condition: (s) => s.boardMessagesPosted >= 20,
+    points: 150,
+    rarity: "rare",
+  },
+  {
+    id: "first_reaction",
+    title: "Primera reacción",
+    description: "Reacciona a un mensaje por primera vez",
+    emoji: "😊",
+    category: "social",
+    condition: (s) => s.reactionsGiven >= 1,
+    points: 20,
+    rarity: "common",
+  },
+  {
+    id: "expressive",
+    title: "Expresivo",
+    description: "Da 50 reacciones a mensajes del tablón",
+    emoji: "🎭",
+    category: "social",
+    condition: (s) => s.reactionsGiven >= 50,
+    points: 200,
+    rarity: "rare",
+  },
+  {
+    id: "popular",
+    title: "Popular",
+    description: "Recibe 20 reacciones en tus mensajes",
+    emoji: "⭐",
+    category: "social",
+    condition: (s) => s.reactionsReceived >= 20,
+    points: 200,
+    rarity: "rare",
+  },
+  {
+    id: "rainbow",
+    title: "Arcoíris",
+    description: "Recibe los 6 emojis diferentes en un mismo mensaje",
+    emoji: "🌈",
+    category: "social",
+    condition: (s) => s.maxDistinctEmojisOnOneMessage >= 6,
+    points: 500,
+    rarity: "epic",
+  },
+  {
+    id: "claimed_task",
+    title: "Voluntario",
+    description: "Reclama una tarea sin asignar",
+    emoji: "🤝",
+    category: "tasks",
+    condition: (s) => s.hasClaimedTask,
+    points: 50,
+    rarity: "common",
   },
 ];
 

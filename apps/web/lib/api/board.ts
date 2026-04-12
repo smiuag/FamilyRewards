@@ -165,6 +165,60 @@ export async function deleteBoardMessage(messageId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Fetch board stats for achievements */
+export async function fetchBoardStats(profileId: string): Promise<{
+  messagesPosted: number;
+  reactionsGiven: number;
+  reactionsReceived: number;
+  maxDistinctEmojisOnOneMessage: number;
+}> {
+  const supabase = createClient();
+
+  // Messages posted by this user
+  const { count: messagesPosted } = await supabase
+    .from("board_messages")
+    .select("*", { count: "exact", head: true })
+    .eq("profile_id", profileId);
+
+  // Reactions given by this user
+  const { count: reactionsGiven } = await supabase
+    .from("board_reactions")
+    .select("*", { count: "exact", head: true })
+    .eq("profile_id", profileId);
+
+  // Reactions received: reactions on messages authored by this user
+  const { data: myMsgIds } = await supabase
+    .from("board_messages")
+    .select("id")
+    .eq("profile_id", profileId);
+  let reactionsReceived = 0;
+  let maxDistinctEmojisOnOneMessage = 0;
+  if (myMsgIds && myMsgIds.length > 0) {
+    const ids = myMsgIds.map((m) => m.id);
+    const { data: rxns } = await supabase
+      .from("board_reactions")
+      .select("message_id, emoji")
+      .in("message_id", ids);
+    reactionsReceived = rxns?.length ?? 0;
+    // Count distinct emojis per message
+    const emojisByMsg: Record<string, Set<string>> = {};
+    for (const r of rxns ?? []) {
+      if (!emojisByMsg[r.message_id]) emojisByMsg[r.message_id] = new Set();
+      emojisByMsg[r.message_id].add(r.emoji);
+    }
+    for (const s of Object.values(emojisByMsg)) {
+      maxDistinctEmojisOnOneMessage = Math.max(maxDistinctEmojisOnOneMessage, s.size);
+    }
+  }
+
+  return {
+    messagesPosted: messagesPosted ?? 0,
+    reactionsGiven: reactionsGiven ?? 0,
+    reactionsReceived,
+    maxDistinctEmojisOnOneMessage,
+  };
+}
+
 export async function postSystemBoardMessage(params: {
   familyId: string;
   content: string;

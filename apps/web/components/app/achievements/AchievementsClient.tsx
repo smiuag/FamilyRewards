@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
+import { fetchBoardStats } from "@/lib/api/board";
 import {
   ACHIEVEMENTS,
   RARITY_CONFIG,
@@ -24,6 +25,7 @@ export default function AchievementsClient() {
   const t = useTranslations("achievements");
   const { currentUser, taskInstances, claims, transactions, rewards } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
+  const [boardStats, setBoardStats] = useState({ messagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0, maxDistinctEmojisOnOneMessage: 0 });
 
   useEffect(() => {
     if (!currentUser) return;
@@ -33,11 +35,13 @@ export default function AchievementsClient() {
         t = await fetchFamilyTasks();
         useAppStore.setState({ tasks: t });
       }
-      const [instances, claimsData, txs] = await Promise.all([
+      const [instances, claimsData, txs, bStats] = await Promise.all([
         backfillInstances(t, currentUser.id, new Date()),
         fetchFamilyClaims().catch(() => []),
         fetchFamilyTransactions().catch(() => []),
+        fetchBoardStats(currentUser.id).catch(() => ({ messagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0, maxDistinctEmojisOnOneMessage: 0 })),
       ]);
+      setBoardStats(bStats);
       useAppStore.setState((prev) => ({
         taskInstances: [
           ...prev.taskInstances.filter((ti) => ti.userId !== currentUser.id),
@@ -55,6 +59,8 @@ export default function AchievementsClient() {
       totalPoints: 0, rewardsClaimed: 0, perfectWeeks: 0,
       totalPointsEarned: 0, daysActive: 0,
       hasEarlyCompletion: false, maxRewardCost: 0,
+      boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
+      maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
     };
 
     const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
@@ -119,6 +125,13 @@ export default function AchievementsClient() {
 
     const daysActive = completedDays.size;
 
+    // Claimed task: user completed a task that has no assignments
+    const tasks = useAppStore.getState().tasks;
+    const hasClaimedTask = completed.some((ti) => {
+      const task = tasks.find((t) => t.id === ti.taskId);
+      return task && task.assignedTo.length === 0;
+    });
+
     return {
       totalTasksCompleted: completed.length,
       currentStreak,
@@ -130,8 +143,13 @@ export default function AchievementsClient() {
       daysActive,
       hasEarlyCompletion,
       maxRewardCost,
+      boardMessagesPosted: boardStats.messagesPosted,
+      reactionsGiven: boardStats.reactionsGiven,
+      reactionsReceived: boardStats.reactionsReceived,
+      maxDistinctEmojisOnOneMessage: boardStats.maxDistinctEmojisOnOneMessage,
+      hasClaimedTask,
     };
-  }, [currentUser, taskInstances, claims, transactions, rewards]);
+  }, [currentUser, taskInstances, claims, transactions, rewards, boardStats]);
 
   if (!currentUser) return null;
 

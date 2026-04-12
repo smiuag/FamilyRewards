@@ -206,6 +206,8 @@ export default function DashboardClient() {
       totalPoints: currentUser.pointsBalance, rewardsClaimed, perfectWeeks: 0,
       totalPointsEarned, daysActive: completedDays.size,
       hasEarlyCompletion: false, maxRewardCost: 0,
+      boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
+      maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
     };
   }, [currentUser, taskInstances, claims, transactions]);
 
