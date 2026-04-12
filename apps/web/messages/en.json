@@ -261,7 +261,14 @@
     "toastAdminRedeemedDesc": "As an administrator, the redemption has been applied directly.",
     "toastRequestSent": "Request sent",
     "toastRequestSentDesc": "An administrator will review your request soon.",
-    "toastRedeemError": "Error processing the redemption. Please try again."
+    "toastRedeemError": "Error processing the redemption. Please try again.",
+    "mysteryBox": "Mystery box",
+    "mysteryBoxDesc": "Discover what's inside!",
+    "mysteryConfirmBody": "You're opening a mystery box for {points} pts. The prize is revealed instantly!",
+    "mysteryOpen": "Open box!",
+    "mysteryRevealed": "You got:",
+    "mysteryRevealToast": "🎁 {emoji} {name}!",
+    "mysteryRevealToastDesc": "From the mystery box \"{box}\""
   },
   "members": {
     "title": "Family",
@@ -519,7 +526,18 @@
       "toastUpdateError": "Error saving. Please try again.",
       "ariaDelete": "Delete {title}",
       "ariaEdit": "Edit {title}",
-      "pendingClaimsAriaLabel": "Pending redemption requests"
+      "pendingClaimsAriaLabel": "Pending redemption requests",
+      "mysteryToggle": "Mystery box",
+      "mysteryToggleHint": "Members receive a random prize when redeeming",
+      "mysteryPrizes": "Possible prizes",
+      "addPrize": "Add prize",
+      "prizeName": "Prize name",
+      "prizeEmoji": "Emoji",
+      "prizeWeight": "Weight",
+      "prizeWeightHint": "Higher weight = more likely",
+      "removePrize": "Remove",
+      "mysteryMinPrizes": "Add at least 2 prizes",
+      "mysteryBadge": "Mystery"
     },
     "stats": {
       "title": "Family Statistics",

@@ -20,9 +20,11 @@ import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/compon
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from "@/components/ui/select";
-import { Search, Plus, Check, Star, Filter, ArrowLeft } from "lucide-react";
+import { Search, Plus, Check, Star, Filter, ArrowLeft, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import type { MysteryPrize } from "@/lib/types";
 
 import { TIER_CONFIG, MAX_REWARD_POINTS as MAX_POINTS } from "@/lib/config/constants";
 
@@ -34,6 +36,7 @@ export default function AddRewardClient() {
   const locale = (params?.locale as string) ?? "es";
 
   const { currentUser } = useAppStore();
+  const ta = useTranslations("admin.rewards");
 
   const [tab, setTab] = useState<Tab>("catalog");
 
@@ -48,6 +51,11 @@ export default function AddRewardClient() {
 
   // custom state
   const [customForm, setCustomForm] = useState({ emoji: "🎁", title: "", description: "", points: "100" });
+  const [isMystery, setIsMystery] = useState(false);
+  const [mysteryPrizes, setMysteryPrizes] = useState<MysteryPrize[]>([
+    { name: "", emoji: "🎬", weight: 3 },
+    { name: "", emoji: "🍰", weight: 3 },
+  ]);
 
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +74,7 @@ export default function AddRewardClient() {
 
   const categories = Object.entries(REWARD_CATEGORIES) as [RewardCategory, typeof REWARD_CATEGORIES[RewardCategory]][];
 
-  const saveReward = async (data: { title: string; description?: string; emoji: string; pointsCost: number }) => {
+  const saveReward = async (data: { title: string; description?: string; emoji: string; pointsCost: number; mysteryPrizes?: MysteryPrize[] | null }) => {
     if (!currentUser?.familyId) throw new Error("No family");
     const newReward = await createReward(currentUser.familyId, { ...data, status: "available" });
     useAppStore.setState((prev) => ({ rewards: [...prev.rewards, newReward] }));
@@ -89,13 +97,18 @@ export default function AddRewardClient() {
     }
   };
 
+  const validMysteryPrizes = mysteryPrizes.filter((p) => p.name.trim());
+  const canSaveMystery = !isMystery || validMysteryPrizes.length >= 2;
+
   const handleSaveCustom = async () => {
     if (!customForm.title.trim()) return;
+    if (isMystery && validMysteryPrizes.length < 2) return;
     setSaving(true);
     try {
       await saveReward({
         title: customForm.title, description: customForm.description,
         emoji: customForm.emoji, pointsCost: parseInt(customForm.points) || 100,
+        mysteryPrizes: isMystery ? validMysteryPrizes : null,
       });
       toast.success(`"${customForm.title}" creada`);
       router.push(`/${locale}/admin/rewards`);
@@ -285,6 +298,90 @@ export default function AddRewardClient() {
               onChange={(e) => setCustomForm({ ...customForm, description: e.target.value })}
               className="mt-1.5" />
           </div>
+
+          {/* Mystery box toggle */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+            <button
+              onClick={() => { setIsMystery(!isMystery); if (!isMystery) setCustomForm({ ...customForm, emoji: "📦" }); }}
+              className={cn(
+                "w-10 h-6 rounded-full transition-colors flex-shrink-0 relative",
+                isMystery ? "bg-purple-500" : "bg-muted"
+              )}
+            >
+              <div className={cn(
+                "w-4 h-4 bg-white rounded-full absolute top-1 transition-all",
+                isMystery ? "left-5" : "left-1"
+              )} />
+            </button>
+            <div>
+              <p className="text-sm font-semibold flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-purple-500" />
+                {ta("mysteryToggle")}
+              </p>
+              <p className="text-xs text-muted-foreground">{ta("mysteryToggleHint")}</p>
+            </div>
+          </div>
+
+          {/* Mystery prizes editor */}
+          {isMystery && (
+            <div className="space-y-3 p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
+              <p className="text-sm font-semibold">{ta("mysteryPrizes")}</p>
+              {mysteryPrizes.map((prize, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={prize.emoji}
+                    onChange={(e) => {
+                      const updated = [...mysteryPrizes];
+                      updated[i] = { ...prize, emoji: e.target.value };
+                      setMysteryPrizes(updated);
+                    }}
+                    className="w-12 text-center text-lg"
+                    maxLength={2}
+                    aria-label={ta("prizeEmoji")}
+                  />
+                  <Input
+                    value={prize.name}
+                    onChange={(e) => {
+                      const updated = [...mysteryPrizes];
+                      updated[i] = { ...prize, name: e.target.value };
+                      setMysteryPrizes(updated);
+                    }}
+                    placeholder={ta("prizeName")}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={prize.weight}
+                    onChange={(e) => {
+                      const updated = [...mysteryPrizes];
+                      updated[i] = { ...prize, weight: parseInt(e.target.value) || 1 };
+                      setMysteryPrizes(updated);
+                    }}
+                    className="w-16 text-center"
+                    min={1}
+                    title={ta("prizeWeightHint")}
+                    aria-label={ta("prizeWeight")}
+                  />
+                  {mysteryPrizes.length > 2 && (
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-600"
+                      onClick={() => setMysteryPrizes(mysteryPrizes.filter((_, j) => j !== i))}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <div className="flex items-center justify-between">
+                <Button size="sm" variant="outline" onClick={() => setMysteryPrizes([...mysteryPrizes, { name: "", emoji: "🎁", weight: 3 }])}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> {ta("addPrize")}
+                </Button>
+                <p className="text-xs text-muted-foreground">{ta("prizeWeightHint")}</p>
+              </div>
+              {validMysteryPrizes.length < 2 && (
+                <p className="text-xs text-amber-600 font-medium">{ta("mysteryMinPrizes")}</p>
+              )}
+            </div>
+          )}
+
           <div>
             <Label htmlFor="reward-points">Puntos</Label>
             <div className="flex items-center gap-2 mt-1.5">
@@ -298,7 +395,7 @@ export default function AddRewardClient() {
             <Button variant="outline" onClick={() => router.push(`/${locale}/admin/rewards`)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveCustom} disabled={saving || !customForm.title.trim()}>
+            <Button onClick={handleSaveCustom} disabled={saving || !customForm.title.trim() || !canSaveMystery}>
               <Plus className="w-4 h-4 mr-1.5" />
               {saving ? "Creando..." : "Crear recompensa"}
             </Button>

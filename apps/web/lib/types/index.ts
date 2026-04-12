@@ -61,6 +61,17 @@ export interface TaskInstance {
   pointsAwarded: number;
 }
 
+export interface MysteryPrize {
+  name: string;
+  emoji: string;
+  weight: number; // higher = more likely
+}
+
+export interface RevealedPrize {
+  name: string;
+  emoji: string;
+}
+
 export interface Reward {
   id: string;
   familyId: string;
@@ -69,6 +80,7 @@ export interface Reward {
   pointsCost: number;
   emoji: string;
   status: RewardStatus;
+  mysteryPrizes?: MysteryPrize[] | null; // non-null = mystery box
 }
 
 export interface RewardClaim {
@@ -78,6 +90,7 @@ export interface RewardClaim {
   requestedAt: string;
   status: ClaimStatus;
   resolvedAt?: string;
+  revealedPrize?: RevealedPrize | null; // set when mystery box is claimed
 }
 
 export interface TaskTemplate {

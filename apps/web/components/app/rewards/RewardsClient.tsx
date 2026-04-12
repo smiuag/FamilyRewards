@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAnnounce } from "@/components/AriaLiveAnnouncer";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { fetchFamilyRewards, fetchFamilyClaims, createClaim, approveClaim } from "@/lib/api/rewards";
-import type { RewardClaim } from "@/lib/types";
+import { fetchFamilyRewards, fetchFamilyClaims, createClaim, approveClaim, pickMysteryPrize } from "@/lib/api/rewards";
+import type { RewardClaim, RevealedPrize } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
-import { Star, Gift, Clock, CheckCircle2, XCircle, Heart, Archive, ChevronDown } from "lucide-react";
+import { Star, Gift, Clock, CheckCircle2, XCircle, Heart, Archive, ChevronDown, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Reward } from "@/lib/types";
@@ -21,6 +22,8 @@ export default function RewardsClient() {
   const [confirmReward, setConfirmReward] = useState<Reward | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
+  const [revealedPrize, setRevealedPrize] = useState<{ prize: RevealedPrize; boxTitle: string } | null>(null);
+  const [revealAnimating, setRevealAnimating] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -39,26 +42,39 @@ export default function RewardsClient() {
   const handleRedeem = async () => {
     if (!confirmReward) return;
     const isAdmin = currentUser.role === "admin";
+    const isMystery = confirmReward.mysteryPrizes && confirmReward.mysteryPrizes.length >= 2;
     setRedeeming(true);
     try {
-      const status = isAdmin ? "approved" : "pending";
-      const claim = await createClaim(confirmReward.id, currentUser.id, status);
-      addClaim(claim);
-      // If admin auto-approves: also sync points deduction to Supabase
-      if (isAdmin) {
+      // Mystery boxes always auto-approve with a random prize
+      if (isMystery) {
+        const prize = pickMysteryPrize(confirmReward.mysteryPrizes!);
+        const claim = await createClaim(confirmReward.id, currentUser.id, "approved", prize);
+        addClaim(claim);
         await approveClaim(claim.id, currentUser.id, confirmReward.pointsCost, currentUser.pointsBalance, confirmReward.title, confirmReward.emoji);
-      }
-      setConfirmReward(null);
-      if (isAdmin) {
-        toast.success(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }), {
-          description: t("toastAdminRedeemedDesc"),
-        });
-        announce(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }));
+        setConfirmReward(null);
+        // Show reveal animation
+        setRevealAnimating(true);
+        setRevealedPrize({ prize, boxTitle: confirmReward.title });
+        setTimeout(() => setRevealAnimating(false), 100);
       } else {
-        toast.success(t("toastRequestSent"), {
-          description: t("toastRequestSentDesc"),
-        });
-        announce(t("toastRequestSent"));
+        const status = isAdmin ? "approved" : "pending";
+        const claim = await createClaim(confirmReward.id, currentUser.id, status);
+        addClaim(claim);
+        if (isAdmin) {
+          await approveClaim(claim.id, currentUser.id, confirmReward.pointsCost, currentUser.pointsBalance, confirmReward.title, confirmReward.emoji);
+        }
+        setConfirmReward(null);
+        if (isAdmin) {
+          toast.success(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }), {
+            description: t("toastAdminRedeemedDesc"),
+          });
+          announce(t("toastAdminRedeemed", { emoji: confirmReward.emoji, title: confirmReward.title }));
+        } else {
+          toast.success(t("toastRequestSent"), {
+            description: t("toastRequestSentDesc"),
+          });
+          announce(t("toastRequestSent"));
+        }
       }
     } catch {
       toast.error(t("toastRedeemError"));
@@ -76,6 +92,7 @@ export default function RewardsClient() {
     const isResolved = (isApproved || isRejected) && !!claim;
     const isArchived = isResolved && archivedClaimIds.includes(claim!.id);
     const isTarget = targetRewardIds.includes(reward.id);
+    const isMystery = reward.mysteryPrizes && reward.mysteryPrizes.length >= 2;
 
     if (isArchived) return null;
 
@@ -86,9 +103,11 @@ export default function RewardsClient() {
           !canAfford && "opacity-75",
           isApproved
             ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
-            : isTarget
-              ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
-              : "border-border bg-card"
+            : isMystery
+              ? "border-purple-200 bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:border-purple-800 dark:from-purple-950/30 dark:to-indigo-950/30"
+              : isTarget
+                ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30"
+                : "border-border bg-card"
         )}
       >
         <CardContent className="pt-5">
@@ -107,14 +126,36 @@ export default function RewardsClient() {
           </button>
 
           {/* Emoji */}
-          <div className="text-5xl mb-3">{reward.emoji}</div>
+          <div className="text-5xl mb-3 relative">
+            {reward.emoji}
+            {isMystery && (
+              <span className="absolute -top-1 -right-1 text-lg animate-pulse">✨</span>
+            )}
+          </div>
 
           {/* Title & description */}
-          <h3 className="font-bold text-foreground mb-1 pr-7">{reward.title}</h3>
+          <div className="flex items-center gap-1.5 mb-1 pr-7">
+            <h3 className="font-bold text-foreground">{reward.title}</h3>
+            {isMystery && (
+              <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-0 text-[10px]">
+                <Package className="w-3 h-3 mr-0.5" />{t("mysteryBox")}
+              </Badge>
+            )}
+          </div>
+          {isMystery && !reward.description && (
+            <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">{t("mysteryBoxDesc")}</p>
+          )}
           {reward.description && (
             <p className="text-xs text-muted-foreground mb-3">
               {reward.description}
             </p>
+          )}
+          {/* Show revealed prize for approved mystery claims */}
+          {isApproved && claim?.revealedPrize && (
+            <div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-medium">
+              <span>{claim.revealedPrize.emoji}</span>
+              <span>{claim.revealedPrize.name}</span>
+            </div>
           )}
 
           {/* Cost */}
@@ -160,12 +201,15 @@ export default function RewardsClient() {
           ) : (
             <Button
               size="sm"
-              className="w-full"
+              className={cn("w-full", isMystery && "bg-purple-500 hover:bg-purple-600")}
               disabled={!canAfford || reward.status === "disabled"}
               onClick={() => setConfirmReward(reward)}
             >
-              <Gift className="w-3.5 h-3.5 mr-1.5" />
-              {canAfford ? t("redeem") : t("notEnoughPoints")}
+              {isMystery ? (
+                <><Package className="w-3.5 h-3.5 mr-1.5" />{canAfford ? t("mysteryOpen") : t("notEnoughPoints")}</>
+              ) : (
+                <><Gift className="w-3.5 h-3.5 mr-1.5" />{canAfford ? t("redeem") : t("notEnoughPoints")}</>
+              )}
             </Button>
           )}
 
@@ -244,30 +288,72 @@ export default function RewardsClient() {
 
       {/* Confirm modal */}
       <AppModal open={!!confirmReward} onOpenChange={() => setConfirmReward(null)}>
+        {(() => {
+          const isMystery = confirmReward?.mysteryPrizes && confirmReward.mysteryPrizes.length >= 2;
+          return (
+            <>
+              <AppModalHeader
+                emoji={confirmReward?.emoji}
+                title={isMystery ? t("mysteryBox") : t("confirmTitle")}
+                description={confirmReward?.title}
+                color={isMystery ? "bg-gradient-to-br from-purple-500 to-indigo-600" : "bg-gradient-to-br from-amber-400 to-orange-500"}
+                onClose={() => setConfirmReward(null)}
+              />
+              <AppModalBody>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {isMystery
+                    ? t("mysteryConfirmBody", { points: confirmReward?.pointsCost.toLocaleString() ?? "" })
+                    : t("confirmBody", { points: confirmReward?.pointsCost.toLocaleString() ?? "" })}
+                </p>
+                <div className="flex items-center justify-between bg-muted rounded-xl p-3">
+                  <span className="text-sm text-muted-foreground">{t("currentBalance")}</span>
+                  <span className="font-bold text-foreground flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                    {currentUser?.pointsBalance.toLocaleString()} pts
+                  </span>
+                </div>
+              </AppModalBody>
+              <AppModalFooter>
+                <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={redeeming}>{t("cancelButton")}</Button>
+                <Button onClick={handleRedeem} disabled={redeeming}
+                  className={cn(isMystery && "bg-purple-500 hover:bg-purple-600")}>
+                  {isMystery ? <Package className="w-4 h-4 mr-1.5" /> : <Gift className="w-4 h-4 mr-1.5" />}
+                  {redeeming ? t("processing") : isMystery ? t("mysteryOpen") : t("confirmRequest")}
+                </Button>
+              </AppModalFooter>
+            </>
+          );
+        })()}
+      </AppModal>
+
+      {/* Mystery reveal modal */}
+      <AppModal open={!!revealedPrize} onOpenChange={() => setRevealedPrize(null)}>
         <AppModalHeader
-          emoji={confirmReward?.emoji}
-          title={t("confirmTitle")}
-          description={confirmReward?.title}
-          color="bg-gradient-to-br from-amber-400 to-orange-500"
-          onClose={() => setConfirmReward(null)}
+          emoji="🎁"
+          title={revealedPrize?.boxTitle ?? ""}
+          color="bg-gradient-to-br from-purple-500 to-indigo-600"
+          onClose={() => setRevealedPrize(null)}
         />
         <AppModalBody>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t("confirmBody", { points: confirmReward?.pointsCost.toLocaleString() ?? "" })}
-          </p>
-          <div className="flex items-center justify-between bg-muted rounded-xl p-3">
-            <span className="text-sm text-muted-foreground">{t("currentBalance")}</span>
-            <span className="font-bold text-foreground flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-              {currentUser?.pointsBalance.toLocaleString()} pts
-            </span>
+          <div className={cn(
+            "text-center py-4 transition-all duration-500",
+            revealAnimating ? "scale-50 opacity-0" : "scale-100 opacity-100"
+          )}>
+            <div className="text-7xl mb-4 animate-bounce">{revealedPrize?.prize.emoji}</div>
+            <p className="text-sm text-muted-foreground mb-1">{t("mysteryRevealed")}</p>
+            <p className="text-xl font-extrabold text-foreground">{revealedPrize?.prize.name}</p>
           </div>
         </AppModalBody>
         <AppModalFooter>
-          <Button variant="outline" onClick={() => setConfirmReward(null)} disabled={redeeming}>{t("cancelButton")}</Button>
-          <Button onClick={handleRedeem} disabled={redeeming}>
-            <Gift className="w-4 h-4 mr-1.5" />
-            {redeeming ? t("processing") : t("confirmRequest")}
+          <Button onClick={() => {
+            if (revealedPrize) {
+              toast.success(t("mysteryRevealToast", { emoji: revealedPrize.prize.emoji, name: revealedPrize.prize.name }), {
+                description: t("mysteryRevealToastDesc", { box: revealedPrize.boxTitle }),
+              });
+            }
+            setRevealedPrize(null);
+          }}>
+            🎉 OK
           </Button>
         </AppModalFooter>
       </AppModal>

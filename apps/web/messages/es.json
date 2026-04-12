@@ -261,7 +261,14 @@
     "toastAdminRedeemedDesc": "Como administrador, el canje se ha aplicado directamente.",
     "toastRequestSent": "Solicitud enviada",
     "toastRequestSentDesc": "Un administrador revisará tu solicitud pronto.",
-    "toastRedeemError": "Error al procesar el canje. Inténtalo de nuevo."
+    "toastRedeemError": "Error al procesar el canje. Inténtalo de nuevo.",
+    "mysteryBox": "Caja misteriosa",
+    "mysteryBoxDesc": "¡Descubre qué hay dentro!",
+    "mysteryConfirmBody": "Vas a abrir una caja misteriosa por {points} pts. ¡El premio se revela al instante!",
+    "mysteryOpen": "¡Abrir caja!",
+    "mysteryRevealed": "¡Has conseguido:",
+    "mysteryRevealToast": "🎁 ¡{emoji} {name}!",
+    "mysteryRevealToastDesc": "De la caja misteriosa \"{box}\""
   },
   "members": {
     "title": "Familia",
@@ -519,7 +526,18 @@
       "toastUpdateError": "Error al guardar. Inténtalo de nuevo.",
       "ariaDelete": "Eliminar {title}",
       "ariaEdit": "Editar {title}",
-      "pendingClaimsAriaLabel": "Solicitudes de canje pendientes"
+      "pendingClaimsAriaLabel": "Solicitudes de canje pendientes",
+      "mysteryToggle": "Caja misteriosa",
+      "mysteryToggleHint": "Los miembros reciben un premio aleatorio al canjear",
+      "mysteryPrizes": "Premios posibles",
+      "addPrize": "Añadir premio",
+      "prizeName": "Nombre del premio",
+      "prizeEmoji": "Emoji",
+      "prizeWeight": "Peso",
+      "prizeWeightHint": "Mayor peso = más probabilidad",
+      "removePrize": "Quitar",
+      "mysteryMinPrizes": "Añade al menos 2 premios",
+      "mysteryBadge": "Misteriosa"
     },
     "stats": {
       "title": "Estadísticas Familiares",

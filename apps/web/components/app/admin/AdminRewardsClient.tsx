@@ -22,7 +22,7 @@ import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/compon
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Star, CheckCircle2, XCircle, Clock, Pencil, Trash2 } from "lucide-react";
+import { Plus, Star, CheckCircle2, XCircle, Clock, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -248,7 +248,14 @@ export default function AdminRewardsClient() {
                       <div className="flex items-center gap-3">
                         <div className="text-3xl">{reward.emoji}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{reward.title}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-semibold text-sm truncate">{reward.title}</p>
+                            {reward.mysteryPrizes && reward.mysteryPrizes.length > 0 && (
+                              <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-0 text-[10px] flex-shrink-0">
+                                <Package className="w-3 h-3 mr-0.5" />{t("mysteryBadge")}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 text-primary fill-primary" />
                             <span className="text-xs font-bold text-primary">{reward.pointsCost.toLocaleString()} {tc("pts")}</span>

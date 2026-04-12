@@ -118,6 +118,7 @@ create table if not exists rewards (
   points_cost integer not null default 0,
   emoji       text not null default '🎁',
   status      text not null default 'available' check (status in ('available', 'disabled')),
+  mystery_prizes jsonb,        -- array of {name, emoji, weight}; null = standard reward
   created_at  timestamptz not null default now()
 );
 
@@ -130,6 +131,7 @@ create table if not exists reward_claims (
   status      text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   resolved_at timestamptz,
   resolved_by uuid references profiles(id) on delete set null,
+  revealed_prize jsonb,         -- {name, emoji} of randomly selected prize; null = standard claim
   constraint no_self_approval check (resolved_by is null or resolved_by != profile_id)
 );
 

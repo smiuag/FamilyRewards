@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { recordTransaction } from "@/lib/api/transactions";
-import type { Reward, RewardClaim, ClaimStatus } from "@/lib/types";
+import type { Reward, RewardClaim, ClaimStatus, MysteryPrize, RevealedPrize } from "@/lib/types";
 
 // ── Mappers ──────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ interface SupabaseReward {
   emoji: string;
   points_cost: number;
   status: "available" | "disabled";
+  mystery_prizes: MysteryPrize[] | null;
   created_at: string;
 }
 
@@ -22,6 +23,7 @@ interface SupabaseClaim {
   requested_at: string;
   status: ClaimStatus;
   resolved_at: string | null;
+  revealed_prize: RevealedPrize | null;
 }
 
 function toReward(r: SupabaseReward): Reward {
@@ -33,6 +35,7 @@ function toReward(r: SupabaseReward): Reward {
     emoji: r.emoji,
     pointsCost: r.points_cost,
     status: r.status,
+    mysteryPrizes: r.mystery_prizes ?? undefined,
   };
 }
 
@@ -44,7 +47,22 @@ function toClaim(c: SupabaseClaim): RewardClaim {
     requestedAt: c.requested_at,
     status: c.status,
     resolvedAt: c.resolved_at ?? undefined,
+    revealedPrize: c.revealed_prize ?? undefined,
   };
+}
+
+// ── Mystery box helpers ─────────────────────────────────────
+
+export function pickMysteryPrize(prizes: MysteryPrize[]): RevealedPrize {
+  const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const prize of prizes) {
+    roll -= prize.weight;
+    if (roll <= 0) return { name: prize.name, emoji: prize.emoji };
+  }
+  // Fallback to last prize
+  const last = prizes[prizes.length - 1];
+  return { name: last.name, emoji: last.emoji };
 }
 
 // ── Rewards CRUD ──────────────────────────────────────────────
@@ -61,7 +79,7 @@ export async function fetchFamilyRewards(): Promise<Reward[]> {
 
 export async function createReward(
   familyId: string,
-  data: { title: string; description?: string; emoji: string; pointsCost: number; status: "available" | "disabled" }
+  data: { title: string; description?: string; emoji: string; pointsCost: number; status: "available" | "disabled"; mysteryPrizes?: MysteryPrize[] | null }
 ): Promise<Reward> {
   const supabase = createClient();
   const { data: reward, error } = await supabase
@@ -73,6 +91,7 @@ export async function createReward(
       emoji: data.emoji,
       points_cost: data.pointsCost,
       status: data.status,
+      mystery_prizes: data.mysteryPrizes ?? null,
     })
     .select()
     .single();
@@ -82,7 +101,7 @@ export async function createReward(
 
 export async function updateReward(
   id: string,
-  data: { title?: string; description?: string; emoji?: string; pointsCost?: number; status?: "available" | "disabled" }
+  data: { title?: string; description?: string; emoji?: string; pointsCost?: number; status?: "available" | "disabled"; mysteryPrizes?: MysteryPrize[] | null }
 ): Promise<void> {
   const supabase = createClient();
   const patch: Record<string, unknown> = {};
@@ -91,6 +110,7 @@ export async function updateReward(
   if (data.emoji !== undefined) patch.emoji = data.emoji;
   if (data.pointsCost !== undefined) patch.points_cost = data.pointsCost;
   if (data.status !== undefined) patch.status = data.status;
+  if (data.mysteryPrizes !== undefined) patch.mystery_prizes = data.mysteryPrizes;
   if (Object.keys(patch).length === 0) return;
   const { error } = await supabase.from("rewards").update(patch).eq("id", id);
   if (error) throw error;
@@ -118,12 +138,22 @@ export async function fetchFamilyClaims(): Promise<RewardClaim[]> {
 export async function createClaim(
   rewardId: string,
   profileId: string,
-  status: ClaimStatus
+  status: ClaimStatus,
+  revealedPrize?: RevealedPrize | null
 ): Promise<RewardClaim> {
   const supabase = createClient();
+  const insert: Record<string, unknown> = {
+    reward_id: rewardId,
+    profile_id: profileId,
+    status,
+  };
+  if (revealedPrize) {
+    insert.revealed_prize = revealedPrize;
+    insert.resolved_at = new Date().toISOString();
+  }
   const { data: claim, error } = await supabase
     .from("reward_claims")
-    .insert({ reward_id: rewardId, profile_id: profileId, status })
+    .insert(insert)
     .select()
     .single();
   if (error) throw error;

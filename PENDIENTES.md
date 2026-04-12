@@ -112,7 +112,7 @@
 | Idea | Descripción | Complejidad |
 |------|-------------|-------------|
 | Tarea sorpresa del día | Tarea aleatoria bonus cada mañana, configurable por admin | Media |
-| Caja misteriosa | Recompensa con contenido oculto, revelado con animación al canjear | Media |
+| ~~Caja misteriosa~~ | ✅ Implementada — admin crea reward mystery con premios, reveal animado al canjear | ~~Media~~ |
 | Jefe de semana | Rotación semanal, el "jefe" propone tarea bonus o recompensa extra | Baja |
 | Multiplicador de cumpleaños | Puntos x2 automático el día del cumpleaños | Baja |
 | Niveles de miembro | Títulos por puntos acumulados históricos (Aprendiz → Leyenda) | Media |
