@@ -15,7 +15,6 @@ import {
 import { createInviteAction } from "@/lib/actions/invite";
 import { deleteAuthUserAction } from "@/lib/actions/delete-auth-user";
 import { deleteFamilyAction } from "@/lib/actions/delete-family";
-import { postBoardMessage } from "@/lib/api/board";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -157,17 +156,6 @@ export default function AdminMembersClient() {
       adjustPoints(selectedUser.id, amount, adjustReason || "Ajuste manual");
       // Sync balance exacto desde Supabase
       updateMember(selectedUser.id, { pointsBalance: newBalance });
-      // Publicar en el tablón
-      if (currentUser?.familyId && currentUser?.id) {
-        const reason = adjustReason || "Ajuste manual";
-        postBoardMessage({
-          familyId: currentUser.familyId,
-          profileId: currentUser.id,
-          content: `Puntos ${amount > 0 ? "añadidos" : "restados"} a ${selectedUser.name}: ${amount > 0 ? "+" : ""}${amount} pts — ${reason}`,
-          type: "points",
-          emoji: amount > 0 ? "⭐" : "➖",
-        }).catch(() => {});
-      }
       toast.success(`${amount > 0 ? "+" : ""}${amount} pts a ${selectedUser.name}`, {
         description: adjustReason || "Ajuste manual",
       });

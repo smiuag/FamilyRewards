@@ -46,8 +46,11 @@ export default function ProfileSelectClient() {
 
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
   const [familyName, setFamilyName] = useState("");
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +159,9 @@ export default function ProfileSelectClient() {
     await supabase.auth.signOut();
     router.push(`/${locale}/login`);
   };
+
+  // Avoid hydration mismatch: render nothing on SSR, show spinner only on client
+  if (!mounted) return null;
 
   if (loading) {
     return (
