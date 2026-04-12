@@ -8,6 +8,7 @@ import { routing } from "@/i18n/routing";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { AriaLiveAnnouncer } from "@/components/AriaLiveAnnouncer";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -43,7 +44,9 @@ export default async function LocaleLayout({
       <body className="h-full antialiased">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
-            {children}
+            <AriaLiveAnnouncer>
+              {children}
+            </AriaLiveAnnouncer>
             <Toaster richColors position="top-right" />
             <ServiceWorkerRegistration />
           </ThemeProvider>

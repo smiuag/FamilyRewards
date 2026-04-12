@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { useAnnounce } from "@/components/AriaLiveAnnouncer";
 import { fetchBoardMessages } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import { fetchFamilyTasks, backfillInstances, syncInstanceState, claimTask } from "@/lib/api/tasks";
@@ -26,6 +27,7 @@ import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
   const { currentUser, users, tasks, rewards, taskInstances, claims, transactions, updateTaskInstance, targetRewardIds } = useAppStore();
+  const announce = useAnnounce();
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) ?? "es";
@@ -346,6 +348,7 @@ export default function DashboardClient() {
                       className="h-7 text-xs"
                       onClick={async () => {
                         updateTaskInstance(instance.id, "completed");
+                        announce(t("taskCompleted", { title: task?.title ?? "" }));
                         try {
                           await syncInstanceState(instance.id, "completed", task!, currentUser!.id, "pending");
                         } catch {

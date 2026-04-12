@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
+import { useAnnounce } from "@/components/AriaLiveAnnouncer";
 import { backfillInstances, syncInstanceState, fetchFamilyTasks, claimTask, releaseClaimedTask, shareTaskPoints } from "@/lib/api/tasks";
 import { toast } from "sonner";
 import type { Task, TaskState, TaskInstance } from "@/lib/types";
@@ -66,6 +67,7 @@ function getTasksForDay(tasks: Task[], day: Date, userId: string, instances: Tas
 
 export default function TasksClient() {
   const t = useTranslations("tasks");
+  const announce = useAnnounce();
   const {
     currentUser, users, tasks, taskInstances, updateTaskInstance, loadTasks, loadTaskInstances,
     streakAlert, clearStreakAlert, unlockFeature, adjustPoints,
@@ -142,6 +144,13 @@ export default function TasksClient() {
   const handleStateChange = async (task: Task, instance: TaskInstance, newState: TaskState) => {
     const resolved: TaskState = instance.state === newState ? "pending" : newState;
     updateTaskInstance(instance.id, resolved);
+    const stateLabels: Record<TaskState, string> = {
+      completed: t("stateCompleted"),
+      pending: t("statePending"),
+      failed: t("stateNotCompleted"),
+      cancelled: t("cancelled"),
+    };
+    announce(`${task.title}: ${stateLabels[resolved]}`);
     try {
       await syncInstanceState(instance.id, resolved, task, instance.userId, instance.state);
     } catch {

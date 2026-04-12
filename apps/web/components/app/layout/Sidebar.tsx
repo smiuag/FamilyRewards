@@ -7,6 +7,7 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { usePinStore } from "@/lib/store/usePinStore";
 import { updateFamilyName } from "@/lib/api/members";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Home,
   CheckSquare,
@@ -347,10 +348,10 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* PIN modal */}
-      {pinTarget && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Introducir PIN">
-          <div className="bg-card text-card-foreground rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
+      {/* PIN modal — Base UI Dialog with focus trap */}
+      <Dialog open={!!pinTarget} onOpenChange={(open) => { if (!open) setPinTarget(null); }}>
+        <DialogContent showCloseButton={false} className="max-w-xs p-6">
+          <div className="space-y-4">
             <div className="text-center">
               <span className="text-4xl" aria-hidden="true">{users.find((u) => u.id === pinTarget)?.avatar}</span>
               <p className="font-bold mt-2">{users.find((u) => u.id === pinTarget)?.name}</p>
@@ -371,7 +372,6 @@ export default function Sidebar() {
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && pinValue.length === 4) handlePinSubmit();
-                if (e.key === "Escape") setPinTarget(null);
               }}
               className={cn(
                 "w-full text-center text-2xl tracking-[0.5em] font-bold border-2 rounded-xl py-3 outline-none transition-colors bg-background text-foreground",
@@ -381,7 +381,7 @@ export default function Sidebar() {
               autoFocus
             />
             {pinError && (
-              <p className="text-xs text-red-500 text-center">{ts("wrongPin")}</p>
+              <p className="text-xs text-red-500 text-center" role="alert">{ts("wrongPin")}</p>
             )}
             <div className="flex gap-2">
               <button
@@ -399,8 +399,8 @@ export default function Sidebar() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

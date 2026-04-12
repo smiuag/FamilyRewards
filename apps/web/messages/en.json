@@ -107,6 +107,7 @@
     "pointsProgress": "{current} of {needed} pts",
     "streakDays": "{days} day streak",
     "quickComplete": "Complete",
+    "taskCompleted": "Task {title} completed",
     "quickOmit": "Skip",
     "activeChallenges": "Active challenges",
     "viewAll": "View all →",
