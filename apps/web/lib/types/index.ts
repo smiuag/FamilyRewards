@@ -124,6 +124,96 @@ export interface PointsHistoryEntry {
   date: string;
 }
 
+// ── Pet types ──────────────────────────────────────────────
+
+export type PetSpecies = "fire" | "water" | "plant" | "electric" | "shadow";
+export type PetStage = "egg" | "baby" | "juvenile" | "adult";
+export type PetMood = "happy" | "neutral" | "sad";
+export type AccessorySlot = "head" | "body" | "background";
+
+export interface FamilyPet {
+  id: string;
+  familyId: string;
+  name: string;
+  species: PetSpecies | null;
+  stage: PetStage;
+  carePoints: number;
+  primaryColor: string;
+  secondaryColor: string;
+  eyeStyle: string;
+  activeAccessories: Record<AccessorySlot, string | null>;
+  hatchedAt: string | null;
+  createdAt: string;
+}
+
+export interface PetAccessory {
+  id: string;
+  name: string;
+  nameEn: string;
+  description?: string;
+  descriptionEn?: string;
+  slot: AccessorySlot;
+  emoji: string;
+  pointsCost: number;
+  svgKey: string;
+}
+
+export interface PetInventoryItem {
+  id: string;
+  familyId: string;
+  accessoryId: string;
+  purchasedBy: string;
+  purchasedAt: string;
+}
+
+export interface PetCareLogEntry {
+  id: string;
+  familyId: string;
+  profileId: string;
+  amount: number;
+  source: string;
+  createdAt: string;
+}
+
+// ── Poll types ─────────────────────────────────────────────
+
+export type PollType = "standard" | "system";
+export type PollVisibility = "public" | "private";
+export type PollStatus = "active" | "closed" | "cancelled";
+
+export interface PollOption {
+  key: string;
+  label: string;
+  labelEn: string;
+}
+
+export interface FamilyPoll {
+  id: string;
+  familyId: string;
+  title: string;
+  description?: string;
+  type: PollType;
+  systemAction?: string;
+  visibility: PollVisibility;
+  options: PollOption[];
+  createdBy: string;
+  status: PollStatus;
+  result?: string;
+  expiresAt: string;
+  closedAt?: string;
+  createdAt: string;
+}
+
+export interface PollVote {
+  id: string;
+  pollId: string;
+  profileId: string;
+  optionKey: string;
+  votedAt: string;
+}
+
+// ── Transaction types ──────────────────────────────────────
+
 export type TransactionType = "task" | "reward" | "adjustment" | "streak";
 
 export interface PointsTransaction {

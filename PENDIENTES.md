@@ -117,6 +117,7 @@
 | Multiplicador de cumpleaños | Puntos x2 automático el día del cumpleaños | Baja |
 | Niveles de miembro | Títulos por puntos acumulados históricos (Aprendiz → Leyenda) | Media |
 | Temporadas | Ciclos de 1-3 meses con ranking final y recompensa especial | Alta |
+| Mascota virtual familiar | Mascota compartida que se cuida con tareas de todos, personalizable con puntos | Media-Alta |
 
 ## Ideas — Social y familia
 
@@ -130,7 +131,7 @@
 
 | Idea | Descripción | Complejidad |
 |------|-------------|-------------|
-| Verificación con foto | Tareas que requieren foto antes de marcarse como completadas | Media |
+| Verificación con foto (local) | Foto guardada solo en dispositivo (IndexedDB), sin coste servidor | Media |
 | Exportar informe | PDF/CSV mensual con resumen por miembro | Media |
 | Recordatorios push | Notificaciones PWA a hora configurable si hay tareas pendientes | Media |
 | Metas personales | Cada miembro define meta con objetivo de puntos y barra de progreso | Baja |
@@ -145,3 +146,4 @@
 | `TODO.md` | Decisiones de auth/BD tomadas durante la migración a Supabase (histórico) |
 | `IDEAS.md` | Ideas originales detalladas (sustituido por la sección Ideas de este fichero) |
 | `supabase/full_schema.sql` | Schema idempotente actualizado — ejecutar para tener toda la BD al día |
+| `IdeasDelMercado.md` | Análisis de competencia (abril 2026), ideas con demanda real, apps de referencia |

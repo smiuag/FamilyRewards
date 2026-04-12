@@ -21,6 +21,8 @@ import {
   Pencil,
   Check,
   X,
+  PawPrint,
+  Vote,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +61,10 @@ export default function Sidebar() {
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
     { href: `/${locale}/history`, icon: History, label: t("history") },
+    { href: `/${locale}/polls`, icon: Vote, label: t("polls") },
+    ...(featuresUnlocked.includes("pets") ? [
+      { href: `/${locale}/pets`, icon: PawPrint, label: t("pets") },
+    ] : []),
   ];
 
   const dataLoaded = users.length > 0 && catalogsLoaded;

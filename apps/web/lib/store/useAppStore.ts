@@ -151,6 +151,10 @@ export const useAppStore = create<AppState>()(
       },
 
       updateTaskInstance: (instanceId, newState) => {
+        // Capture old state BEFORE set() for care points delta
+        const prevInstance = get().taskInstances.find((ti) => ti.id === instanceId);
+        const oldState = prevInstance?.state;
+
         set((prev) => {
           const oldInstance = prev.taskInstances.find((ti) => ti.id === instanceId);
           if (!oldInstance) return {};
@@ -232,6 +236,20 @@ export const useAppStore = create<AppState>()(
 
           return { taskInstances: instances, users, currentUser, streakAlert, transactions: newTransactions };
         });
+
+        // Pet care points: +1 when becoming completed, -1 when leaving completed
+        const wasCompleted = oldState === "completed";
+        const isNowCompleted = newState === "completed";
+        if (wasCompleted !== isNowCompleted) {
+          const state = get();
+          const familyId = state.currentUser?.familyId;
+          const inst = state.taskInstances.find((ti) => ti.id === instanceId);
+          if (familyId && inst) {
+            import("@/lib/pet/care").then(({ notifyPetCarePoints }) => {
+              notifyPetCarePoints(inst.userId, familyId, isNowCompleted ? 1 : -1);
+            });
+          }
+        }
       },
 
       checkAndAwardStreakBonus: (userId) => {

@@ -373,7 +373,9 @@ export async function backfillInstances(
   if (toInsert.length > 0) {
     await supabase.from("task_instances").insert(toInsert);
     // Apply balance deltas for new completed/failed instances
+    let completedCount = 0;
     for (const row of toInsert) {
+      if (row.state === "completed") completedCount++;
       if (row.points_awarded !== 0) {
         const task = tasks.find((t) => t.id === row.task_id);
         const balance = await fetchBalance(supabase, profileId);
@@ -383,6 +385,15 @@ export async function backfillInstances(
           isCompleted ? `Tarea completada: ${task?.title ?? ""}` : `Tarea no realizada: ${task?.title ?? ""}`,
           isCompleted ? "✅" : "❌",
         );
+      }
+    }
+    // Pet care points for auto-completed instances
+    if (completedCount > 0) {
+      const familyId = tasks[0]?.familyId;
+      if (familyId) {
+        import("@/lib/pet/care").then(({ notifyPetCarePoints }) => {
+          notifyPetCarePoints(profileId, familyId, completedCount);
+        });
       }
     }
   }
@@ -473,6 +484,11 @@ export async function claimTask(
   // Award points
   const balance = await fetchBalance(supabase, profileId);
   await applyBalanceDelta(supabase, profileId, balance, pointsAwarded, `Tarea reclamada: ${task.title}`, "🙋");
+
+  // Pet care points (claimed task is auto-completed)
+  import("@/lib/pet/care").then(({ notifyPetCarePoints }) => {
+    notifyPetCarePoints(profileId, task.familyId, 1);
+  });
 
   return toInstance(instance as SupabaseInstance);
 }

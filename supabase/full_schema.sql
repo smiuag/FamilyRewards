@@ -198,6 +198,84 @@ create table if not exists task_template_items (
   penalty_points    integer
 );
 
+-- ── FAMILY PETS ─────────────────────────────────────────────
+create table if not exists family_pets (
+  id                 uuid primary key default gen_random_uuid(),
+  family_id          uuid not null unique references families(id) on delete cascade,
+  name               text not null default 'Mascota',
+  species            text check (species in ('fire','water','plant','electric','shadow')),
+  stage              text not null default 'egg' check (stage in ('egg','baby','juvenile','adult')),
+  care_points        integer not null default 0,
+  primary_color      text not null default '#F97316',
+  secondary_color    text not null default '#FBBF24',
+  eye_style          text not null default 'happy',
+  active_accessories jsonb not null default '{"head":null,"body":null,"background":null}'::jsonb,
+  hatched_at         timestamptz,
+  created_at         timestamptz not null default now()
+);
+
+-- ── PET ACCESSORIES (catálogo global) ───────────────────────
+create table if not exists pet_accessories (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null,
+  name_en        text not null,
+  description    text,
+  description_en text,
+  slot           text not null check (slot in ('head','body','background')),
+  emoji          text not null default '🎀',
+  points_cost    integer not null default 100,
+  svg_key        text not null unique,
+  created_at     timestamptz not null default now()
+);
+
+-- ── PET INVENTORY (accesorios comprados por familia) ────────
+create table if not exists pet_inventory (
+  id           uuid primary key default gen_random_uuid(),
+  family_id    uuid not null references families(id) on delete cascade,
+  accessory_id uuid not null references pet_accessories(id) on delete cascade,
+  purchased_by uuid not null references profiles(id) on delete set null,
+  purchased_at timestamptz not null default now(),
+  unique (family_id, accessory_id)
+);
+
+-- ── PET CARE LOG ────────────────────────────────────────────
+create table if not exists pet_care_log (
+  id         uuid primary key default gen_random_uuid(),
+  family_id  uuid not null references families(id) on delete cascade,
+  profile_id uuid not null references profiles(id) on delete cascade,
+  amount     integer not null,
+  source     text not null default 'task',
+  created_at timestamptz not null default now()
+);
+
+-- ── FAMILY POLLS ────────────────────────────────────────────
+create table if not exists family_polls (
+  id            uuid primary key default gen_random_uuid(),
+  family_id     uuid not null references families(id) on delete cascade,
+  title         text not null,
+  description   text,
+  type          text not null default 'standard' check (type in ('standard', 'system')),
+  system_action text,
+  visibility    text not null default 'public' check (visibility in ('public', 'private')),
+  options       jsonb not null default '[]'::jsonb,
+  created_by    uuid not null references profiles(id) on delete cascade,
+  status        text not null default 'active' check (status in ('active', 'closed', 'cancelled')),
+  result        text,
+  expires_at    timestamptz not null,
+  closed_at     timestamptz,
+  created_at    timestamptz not null default now()
+);
+
+-- ── FAMILY POLL VOTES ───────────────────────────────────────
+create table if not exists family_poll_votes (
+  id         uuid primary key default gen_random_uuid(),
+  poll_id    uuid not null references family_polls(id) on delete cascade,
+  profile_id uuid not null references profiles(id) on delete cascade,
+  option_key text not null,
+  voted_at   timestamptz not null default now(),
+  unique (poll_id, profile_id)
+);
+
 -- ────────────────────────────────────────────────────────────
 -- ÍNDICES
 -- ────────────────────────────────────────────────────────────
@@ -218,6 +296,13 @@ create index if not exists board_messages_family_created on board_messages (fami
 create index if not exists board_reactions_message_id on board_reactions (message_id);
 create index if not exists task_templates_family_id on task_templates (family_id);
 create index if not exists task_template_items_template_id on task_template_items (template_id);
+create index if not exists family_pets_family_id on family_pets (family_id);
+create index if not exists pet_inventory_family_id on pet_inventory (family_id);
+create index if not exists pet_care_log_family_created on pet_care_log (family_id, created_at desc);
+create index if not exists pet_care_log_profile_id on pet_care_log (profile_id);
+create index if not exists family_polls_family_id on family_polls (family_id);
+create index if not exists family_polls_status on family_polls (family_id, status);
+create index if not exists family_poll_votes_poll_id on family_poll_votes (poll_id);
 
 -- ────────────────────────────────────────────────────────────
 -- HELPER FUNCTIONS
@@ -272,6 +357,12 @@ alter table board_messages      enable row level security;
 alter table board_reactions     enable row level security;
 alter table task_templates      enable row level security;
 alter table task_template_items enable row level security;
+alter table family_pets         enable row level security;
+alter table pet_accessories     enable row level security;
+alter table pet_inventory       enable row level security;
+alter table pet_care_log        enable row level security;
+alter table family_polls        enable row level security;
+alter table family_poll_votes   enable row level security;
 
 -- Drop all policies first (idempotente)
 do $$
@@ -286,7 +377,9 @@ begin
         'families','profiles','family_invitations','tasks',
         'task_assignments','task_instances','rewards',
         'reward_claims','points_transactions','board_messages',
-        'board_reactions','task_templates','task_template_items'
+        'board_reactions','task_templates','task_template_items',
+        'family_pets','pet_accessories','pet_inventory','pet_care_log',
+        'family_polls','family_poll_votes'
       )
   ) loop
     execute format('drop policy if exists %I on %I', r.policyname, r.tablename);
@@ -513,6 +606,102 @@ create policy "admins can manage template items"
         and is_family_admin()
     )
   );
+
+-- ── family_pets ─────────────────────────────────────────────
+create policy "family members can read their pet"
+  on family_pets for select
+  using (family_id = get_my_family_id());
+
+create policy "family members can insert pet"
+  on family_pets for insert
+  with check (family_id = get_my_family_id());
+
+create policy "family members can update their pet"
+  on family_pets for update
+  using (family_id = get_my_family_id());
+
+-- ── pet_accessories (catálogo global) ───────────────────────
+create policy "authenticated can read accessories"
+  on pet_accessories for select
+  using (auth.uid() is not null);
+
+-- ── pet_inventory ───────────────────────────────────────────
+create policy "family members can read inventory"
+  on pet_inventory for select
+  using (family_id = get_my_family_id());
+
+create policy "family members can purchase accessories"
+  on pet_inventory for insert
+  with check (family_id = get_my_family_id());
+
+-- ── pet_care_log ────────────────────────────────────────────
+create policy "family members can read care log"
+  on pet_care_log for select
+  using (family_id = get_my_family_id());
+
+create policy "family members can insert care log"
+  on pet_care_log for insert
+  with check (family_id = get_my_family_id());
+
+-- ── family_polls ────────────────────────────────────────────
+create policy "family members can read polls"
+  on family_polls for select
+  using (family_id = get_my_family_id());
+
+create policy "family members can create polls"
+  on family_polls for insert
+  with check (family_id = get_my_family_id());
+
+create policy "admins can update polls"
+  on family_polls for update
+  using (family_id = get_my_family_id() and is_family_admin());
+
+-- ── family_poll_votes ───────────────────────────────────────
+create policy "family members can read votes"
+  on family_poll_votes for select
+  using (
+    poll_id in (select id from family_polls where family_id = get_my_family_id())
+  );
+
+create policy "family members can cast votes"
+  on family_poll_votes for insert
+  with check (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+    and poll_id in (select id from family_polls where family_id = get_my_family_id() and status = 'active')
+  );
+
+create policy "family members can update votes"
+  on family_poll_votes for update
+  using (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+  );
+
+create policy "family members can delete votes"
+  on family_poll_votes for delete
+  using (
+    profile_id in (select id from profiles where family_id = get_my_family_id())
+  );
+
+-- ────────────────────────────────────────────────────────────
+-- SEED: Accesorios de mascota (catálogo global)
+-- ────────────────────────────────────────────────────────────
+insert into pet_accessories (name, name_en, slot, emoji, points_cost, svg_key) values
+  ('Corona',             'Crown',          'head',       '👑', 200, 'crown'),
+  ('Gorro de fiesta',    'Party Hat',      'head',       '🎉', 100, 'party-hat'),
+  ('Gafas de sol',       'Sunglasses',     'head',       '😎', 150, 'sunglasses'),
+  ('Lazo',               'Bow',            'head',       '🎀',  80, 'bow'),
+  ('Gorro de mago',      'Wizard Hat',     'head',       '🧙', 300, 'wizard-hat'),
+  ('Capa',               'Cape',           'body',       '🦸', 250, 'cape'),
+  ('Bufanda',            'Scarf',          'body',       '🧣', 120, 'scarf'),
+  ('Collar de estrellas', 'Star Necklace', 'body',       '⭐', 180, 'star-necklace'),
+  ('Moño',               'Bowtie',         'body',       '🎩', 100, 'bowtie'),
+  ('Armadura',           'Armor',          'body',       '🛡️', 400, 'armor'),
+  ('Arcoíris',           'Rainbow',        'background', '🌈', 200, 'rainbow'),
+  ('Estrellas',          'Stars',          'background', '✨', 150, 'stars-bg'),
+  ('Corazones',          'Hearts',         'background', '💕', 150, 'hearts-bg'),
+  ('Llamas',             'Flames',         'background', '🔥', 250, 'flames-bg'),
+  ('Burbujas',           'Bubbles',        'background', '🫧', 180, 'bubbles-bg')
+on conflict (svg_key) do nothing;
 
 -- ────────────────────────────────────────────────────────────
 -- TRIGGER: crear perfil al registrarse un nuevo usuario

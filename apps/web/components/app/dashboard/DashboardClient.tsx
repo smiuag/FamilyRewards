@@ -23,6 +23,8 @@ import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
 import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
+import { PetDashboardCard } from "@/components/app/pets/PetDashboardCard";
+import { PollBanner } from "@/components/app/polls/PollBanner";
 
 export default function DashboardClient() {
   const t = useTranslations("dashboard");
@@ -292,6 +294,9 @@ export default function DashboardClient() {
         </div>
       )}
 
+      {/* Active poll banner */}
+      <PollBanner />
+
       {/* Active challenges */}
       {activeChallenges.length > 0 && (
         <Card className="shadow-sm">
@@ -539,6 +544,9 @@ export default function DashboardClient() {
           </Card>
         </div>
       </div>
+
+      {/* Pet card */}
+      <PetDashboardCard />
 
       {/* Bottom row: achievements + board preview */}
       <div className="grid lg:grid-cols-2 gap-6">

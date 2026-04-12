@@ -145,6 +145,9 @@ export default function TopBar() {
 
         {/* Right: actions */}
         <div className="flex items-center gap-1">
+            {/* Beta badge */}
+            <span className="inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-300/50 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-700/50 mr-1">BETA</span>
+
             {/* User settings (profile) */}
             <button
               onClick={() => router.push(`/${locale}/profile`)}
