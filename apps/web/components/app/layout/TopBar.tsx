@@ -94,7 +94,7 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 h-[76px] bg-muted/50 border-b border-border flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-5 bg-muted/50 border-b border-border flex-shrink-0">
         {/* Left: points (mobile only) */}
         <div className="flex items-center gap-1.5 text-sm text-primary font-semibold lg:invisible">
           <Star className="w-3.5 h-3.5 fill-primary" aria-hidden="true" />

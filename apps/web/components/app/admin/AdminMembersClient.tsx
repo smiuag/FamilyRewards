@@ -403,11 +403,6 @@ export default function AdminMembersClient() {
                           title="Modo vacaciones">
                           <Palmtree className="w-3.5 h-3.5" />
                         </Button>
-                        {user.id !== currentUser?.id && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => openDelete(user)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -570,26 +565,6 @@ export default function AdminMembersClient() {
           {inviteStep === "link" && (
             <Button variant="outline" onClick={closeDialog}>Cerrar</Button>
           )}
-        </AppModalFooter>
-      </AppModal>
-
-      {/* Delete member confirmation modal */}
-      <AppModal open={mode === "delete"} onOpenChange={closeDialog}>
-        <AppModalHeader emoji="⚠️"
-          title={`Eliminar a ${selectedUser?.name ?? ""}`}
-          description="Esta accion no se puede deshacer"
-          color="bg-gradient-to-br from-red-500 to-red-600"
-          onClose={closeDialog} />
-        <AppModalBody>
-          <p className="text-sm text-muted-foreground">
-            Se eliminara a <strong>{selectedUser?.name}</strong> de la familia, junto con todo su historial de tareas y puntos.
-          </p>
-        </AppModalBody>
-        <AppModalFooter>
-          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={saving}>
-            {saving ? "Eliminando..." : "Eliminar"}
-          </Button>
         </AppModalFooter>
       </AppModal>
 
