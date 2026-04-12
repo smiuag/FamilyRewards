@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { usePinStore } from "@/lib/store/usePinStore";
-import { setVacationMode } from "@/lib/api/members";
+import { deleteFamilyAction } from "@/lib/actions/delete-family";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MapPin, Save, Lock, Trash2, Palmtree } from "lucide-react";
+import { MapPin, Save, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -89,21 +89,17 @@ function detectLocation(postalCode: string) {
 
 export default function SettingsClient() {
   const t = useTranslations("settings");
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
+  const { currentUser, familyName } = useAppStore();
   const { postalCode, city, setLocation, setPostalCode } = useSettingsStore();
-  const { currentUser } = useAppStore();
-  const { hasPin, setPin, removePin } = usePinStore();
 
   const [postalInput, setPostalInput] = useState(postalCode);
   const [cityInput, setCityInput] = useState(city);
-
-  // PIN state
-  const currentHasPin = currentUser ? hasPin(currentUser.id) : false;
-  const [pinInput, setPinInput] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
-  const [vacationDate, setVacationDate] = useState(currentUser?.vacationUntil ?? "");
-  const [vacationSaving, setVacationSaving] = useState(false);
-  const todayStr = new Date().toISOString().split("T")[0];
-  const isOnVacation = currentUser?.vacationUntil && currentUser.vacationUntil >= todayStr;
+  const [showUnsub, setShowUnsub] = useState(false);
+  const [unsubName, setUnsubName] = useState("");
+  const [unsubSaving, setUnsubSaving] = useState(false);
 
   const detected = detectLocation(postalInput);
 
@@ -187,171 +183,76 @@ export default function SettingsClient() {
         </CardContent>
       </Card>
 
-      {/* Vacation card */}
-      <Card className="shadow-sm">
+      {/* Danger zone */}
+      <Card className="shadow-sm border-red-200 dark:border-red-900">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Palmtree className="w-4 h-4 text-teal-600" />
-            {t("vacationTitle")}
+          <CardTitle className="text-base flex items-center gap-2 text-red-600">
+            <Trash2 className="w-4 h-4" />
+            {t("dangerZone")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {t("vacationDescription")}
-          </p>
-
-          {isOnVacation && (
-            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-sm text-teal-800">
-              <p className="font-semibold">{t("vacationActive")}</p>
-              <p>{t("vacationUntilDate", { date: currentUser!.vacationUntil! })}</p>
-            </div>
-          )}
-
-          <div className="max-w-xs">
-            <Label htmlFor="settings-vacation" className="text-sm font-semibold mb-1.5 block">
-              {t("vacationDateLabel")}
-            </Label>
-            <Input
-              id="settings-vacation"
-              type="date"
-              value={vacationDate}
-              onChange={(e) => setVacationDate(e.target.value)}
-              min={todayStr}
-            />
-          </div>
-
-          <div className="flex gap-2">
+          <p className="text-sm text-muted-foreground">{t("dangerDescription")}</p>
+          {!showUnsub ? (
             <Button
-              disabled={vacationSaving || !vacationDate}
-              onClick={async () => {
-                if (!currentUser) return;
-                setVacationSaving(true);
-                try {
-                  await setVacationMode(currentUser.id, vacationDate);
-                  useAppStore.setState((prev) => ({
-                    currentUser: prev.currentUser ? { ...prev.currentUser, vacationUntil: vacationDate } : prev.currentUser,
-                    users: prev.users.map((u) => u.id === currentUser.id ? { ...u, vacationUntil: vacationDate } : u),
-                  }));
-                  toast.success(t("vacationActivated", { date: vacationDate }));
-                } catch {
-                  toast.error(t("vacationError"));
-                } finally {
-                  setVacationSaving(false);
-                }
-              }}
+              variant="outline"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={() => { setUnsubName(""); setShowUnsub(true); }}
             >
-              <Palmtree className="w-4 h-4 mr-1.5" />
-              {vacationSaving ? t("vacationSaving") : t("vacationActivate")}
+              {t("deleteFamily")}
             </Button>
-            {isOnVacation && (
-              <Button
-                variant="outline"
-                disabled={vacationSaving}
-                onClick={async () => {
-                  if (!currentUser) return;
-                  setVacationSaving(true);
-                  try {
-                    await setVacationMode(currentUser.id, null);
-                    useAppStore.setState((prev) => ({
-                      currentUser: prev.currentUser ? { ...prev.currentUser, vacationUntil: null } : prev.currentUser,
-                      users: prev.users.map((u) => u.id === currentUser.id ? { ...u, vacationUntil: null } : u),
-                    }));
-                    setVacationDate("");
-                    toast.success(t("vacationDeactivated"));
-                  } catch {
-                    toast.error(t("vacationError"));
-                  } finally {
-                    setVacationSaving(false);
-                  }
-                }}
-              >
-                {t("vacationDeactivate")}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* PIN card */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="w-4 h-4 text-primary" />
-            {t("pinTitle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {t("pinDescription")}
-          </p>
-
-          {currentHasPin ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1.5 rounded-lg">
-                {t("pinActive")}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (currentUser) {
-                    removePin(currentUser.id);
-                    toast.success(t("pinDeleted"));
-                  }
-                }}
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                {t("deletePin")}
-              </Button>
-            </div>
           ) : (
-            <div className="space-y-3 max-w-xs">
-              <div>
-                <Label htmlFor="settings-pin" className="text-sm font-semibold mb-1.5 block">{t("newPin")}</Label>
-                <Input
-                  id="settings-pin"
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="new-password"
-                  maxLength={4}
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder={t("newPinPlaceholder")}
-                  className="text-center text-lg tracking-[0.3em] font-bold"
-                />
+            <div className="space-y-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+              <div className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                <p className="font-semibold">{t("deleteWarningTitle")}</p>
+                <ul className="list-disc list-inside text-xs space-y-0.5">
+                  <li>{t("deleteWarning1")}</li>
+                  <li>{t("deleteWarning2")}</li>
+                  <li>{t("deleteWarning3")}</li>
+                  <li>{t("deleteWarning4")}</li>
+                </ul>
               </div>
               <div>
-                <Label htmlFor="settings-pin-confirm" className="text-sm font-semibold mb-1.5 block">{t("confirmPin")}</Label>
+                <Label className="text-sm">{t("deleteConfirmLabel", { name: familyName })}</Label>
                 <Input
-                  id="settings-pin-confirm"
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="new-password"
-                  maxLength={4}
-                  value={pinConfirm}
-                  onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder={t("confirmPinPlaceholder")}
-                  className="text-center text-lg tracking-[0.3em] font-bold"
+                  value={unsubName}
+                  onChange={(e) => setUnsubName(e.target.value)}
+                  placeholder={familyName}
+                  className="mt-1.5"
+                  autoFocus
                 />
               </div>
-              <Button
-                disabled={pinInput.length < 4 || pinInput !== pinConfirm}
-                onClick={() => {
-                  if (currentUser && pinInput.length === 4 && pinInput === pinConfirm) {
-                    setPin(currentUser.id, pinInput);
-                    setPinInput("");
-                    setPinConfirm("");
-                    toast.success(t("pinSet"));
-                  }
-                }}
-              >
-                <Lock className="w-4 h-4 mr-1.5" />
-                {t("activatePin")}
-              </Button>
-              {pinInput.length === 4 && pinConfirm.length === 4 && pinInput !== pinConfirm && (
-                <p className="text-xs text-red-500">{t("pinMismatch")}</p>
-              )}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowUnsub(false)}>
+                  {t("cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={unsubSaving || unsubName.trim().toLowerCase() !== (familyName || "").trim().toLowerCase()}
+                  onClick={async () => {
+                    if (!currentUser?.familyId) return;
+                    setUnsubSaving(true);
+                    try {
+                      await deleteFamilyAction({
+                        familyId: currentUser.familyId,
+                        confirmName: unsubName,
+                      });
+                      const supabase = (await import("@/lib/supabase/client")).createClient();
+                      await supabase.auth.signOut();
+                      useAppStore.getState().logout();
+                      router.push(`/${locale}/login`);
+                      toast.success(t("deleteFamilySuccess"));
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : t("deleteFamilyError"));
+                    } finally {
+                      setUnsubSaving(false);
+                    }
+                  }}
+                >
+                  {unsubSaving ? t("deleteFamilyDeleting") : t("deleteFamilyConfirm")}
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

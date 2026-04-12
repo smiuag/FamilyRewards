@@ -223,9 +223,12 @@
     "legendCompleted": "Completed",
     "legendPending": "Pending",
     "legendHoliday": "Holiday",
+    "legendBirthday": "Birthday",
     "holidaysThisMonth": "Holidays this month",
     "holidayNational": "National holiday",
-    "holidayRegional": "Regional holiday"
+    "holidayRegional": "Regional holiday",
+    "birthdaysThisMonth": "Birthdays this month",
+    "birthdayBanner": "{name}'s birthday"
   },
   "rewards": {
     "title": "Rewards",
@@ -324,7 +327,24 @@
     "confirmPin": "Confirm PIN",
     "activatePin": "Activate PIN",
     "pinSet": "PIN configured",
-    "pinMismatch": "PINs don't match"
+    "pinMismatch": "PINs don't match",
+    "birthDate": "Date of birth",
+    "birthDateDescription": "Your birthday will be shown on the family calendar.",
+    "birthDateSaved": "Date of birth saved",
+    "vacationTitle": "Vacation mode",
+    "vacationDescription": "Pause your recurring tasks without breaking your streak. No instances will be created and no penalties applied.",
+    "vacationActive": "Vacation active",
+    "vacationUntilDate": "Until {date}",
+    "vacationDateLabel": "Vacation until",
+    "vacationActivate": "Activate vacation",
+    "vacationDeactivate": "Deactivate vacation",
+    "vacationSaving": "Saving...",
+    "vacationActivated": "Vacation activated until {date}",
+    "vacationDeactivated": "Vacation deactivated",
+    "vacationError": "Error changing vacation mode",
+    "level": "Level",
+    "achievementsForNext": "achievements for next",
+    "maxLevel": "Max level reached"
   },
   "onboarding": {
     "welcome": "Welcome to FamilyRewards!",
@@ -371,7 +391,10 @@
     "perfectWeeks": "Perfect weeks",
     "days": "days",
     "allCategory": "All",
-    "unlocked": "Unlocked"
+    "unlocked": "Unlocked",
+    "level": "Level",
+    "achievementsForNext": "achievements for next",
+    "maxLevel": "Max level reached"
   },
   "admin": {
     "members": {
@@ -652,29 +675,20 @@
     "saveLocation": "Save location",
     "locationSaved": "Location saved",
     "locationSavedDesc": "{location} — local holidays will be shown on the calendar",
-    "pinTitle": "Access PIN",
-    "pinDescription": "Set up a 4-digit PIN to protect your profile on this device. It will be required when switching users.",
-    "pinActive": "PIN enabled",
-    "deletePin": "Delete PIN",
-    "pinDeleted": "PIN deleted",
-    "newPin": "New PIN",
-    "newPinPlaceholder": "4 digits",
-    "confirmPin": "Confirm PIN",
-    "confirmPinPlaceholder": "Repeat the PIN",
-    "activatePin": "Enable PIN",
-    "pinSet": "PIN configured",
-    "pinMismatch": "PINs do not match",
-    "vacationTitle": "Vacation mode",
-    "vacationDescription": "Pause your recurring tasks without breaking your streak. No instances will be created and no penalties applied.",
-    "vacationActive": "Vacation active",
-    "vacationUntilDate": "Until {date}",
-    "vacationDateLabel": "Vacation until",
-    "vacationActivate": "Activate vacation",
-    "vacationDeactivate": "Deactivate vacation",
-    "vacationSaving": "Saving...",
-    "vacationActivated": "Vacation activated until {date}",
-    "vacationDeactivated": "Vacation deactivated",
-    "vacationError": "Error changing vacation mode"
+    "dangerZone": "Danger zone",
+    "dangerDescription": "Irreversible actions that affect the entire family.",
+    "deleteFamily": "Delete family",
+    "deleteWarningTitle": "This will permanently delete:",
+    "deleteWarning1": "All members and their profiles",
+    "deleteWarning2": "All tasks and history",
+    "deleteWarning3": "All rewards and claims",
+    "deleteWarning4": "Associated user accounts",
+    "deleteConfirmLabel": "Type {name} to confirm",
+    "cancel": "Cancel",
+    "deleteFamilyConfirm": "Delete family",
+    "deleteFamilyDeleting": "Deleting...",
+    "deleteFamilySuccess": "Family deleted successfully",
+    "deleteFamilyError": "Error deleting family"
   },
   "help": {
     "title": "Help",
@@ -776,5 +790,10 @@
         "a1": "These are predefined packages of tasks and rewards adapted to times of the year: Back to school, Summer, Christmas, Exams, and New Year. Activate them from Admin → Seasonal templates."
       }
     }
+  },
+  "birthday": {
+    "title": "Happy Birthday, {name}!",
+    "message": "The whole family wishes you an amazing day. Keep it up!",
+    "button": "Thank you!"
   }
 }

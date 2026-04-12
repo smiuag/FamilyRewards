@@ -20,6 +20,7 @@ export interface User {
   createdAt: string;
   authUserId?: string | null;
   vacationUntil?: string | null; // "YYYY-MM-DD"
+  birthDate?: string | null; // "YYYY-MM-DD"
 }
 
 export interface Family {

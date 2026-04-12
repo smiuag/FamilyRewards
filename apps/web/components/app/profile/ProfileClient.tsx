@@ -21,7 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Star, Sun, Moon, Globe, Lock, Trash2, Palette } from "lucide-react";
+import { updateProfile, setVacationMode } from "@/lib/api/members";
+import { getLevelForAchievementCount, getNextLevel, LEVELS } from "@/lib/levels";
+import { ACHIEVEMENTS, type UserStats } from "@/lib/achievements";
+import { Progress } from "@/components/ui/progress";
+import { Star, Sun, Moon, Globe, Lock, Trash2, Palette, Cake, Palmtree } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -30,7 +34,7 @@ import { toast } from "sonner";
 export default function ProfileClient() {
   const t = useTranslations("profile");
   const tRoles = useTranslations("roles");
-  const { currentUser, transactions, loadTransactions } = useAppStore();
+  const { currentUser, users, transactions, taskInstances, claims, rewards, loadTransactions, updateMember } = useAppStore();
   const { hasPin, setPin, removePin } = usePinStore();
   const { theme, setTheme } = useThemeStore();
   const intlRouter = useIntlRouter();
@@ -39,6 +43,8 @@ export default function ProfileClient() {
   const locale = params?.locale as string ?? "es";
   const [pinInput, setPinInput] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
+  const [vacationDate, setVacationDate] = useState(currentUser?.vacationUntil ?? "");
+  const [vacationSaving, setVacationSaving] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -55,6 +61,45 @@ export default function ProfileClient() {
   if (!currentUser) return null;
 
   const currentHasPin = hasPin(currentUser.id);
+
+  // Achievement count for level
+  const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
+  const completed = myInstances.filter((ti) => ti.state === "completed");
+  const completedDays = new Set(completed.map((ti) => ti.date));
+  const sortedDays = Array.from(completedDays).sort();
+  let bestStreak = 0, runStreak = 0;
+  let prevDate: Date | null = null;
+  for (const ds of sortedDays) {
+    const d = new Date(ds);
+    if (prevDate) {
+      const diff = (d.getTime() - prevDate.getTime()) / 86400000;
+      runStreak = diff === 1 ? runStreak + 1 : 1;
+    } else { runStreak = 1; }
+    bestStreak = Math.max(bestStreak, runStreak);
+    prevDate = d;
+  }
+  const approvedClaims = claims.filter((c) => c.userId === currentUser.id && c.status === "approved");
+  const simpleStats: UserStats = {
+    totalTasksCompleted: completed.length,
+    currentStreak: 0, bestStreak,
+    totalPoints: currentUser.pointsBalance,
+    rewardsClaimed: approvedClaims.length,
+    perfectWeeks: 0,
+    totalPointsEarned: completed.reduce((s, ti) => s + ti.pointsAwarded, 0),
+    daysActive: completedDays.size,
+    hasEarlyCompletion: false,
+    maxRewardCost: approvedClaims.reduce((max, c) => {
+      const r = rewards.find((rw) => rw.id === c.rewardId);
+      return r ? Math.max(max, r.pointsCost) : max;
+    }, 0),
+    boardMessagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0,
+    maxDistinctEmojisOnOneMessage: 0, hasClaimedTask: false,
+  };
+  const unlockedCount = ACHIEVEMENTS.filter((a) => a.condition(simpleStats)).length;
+  const currentLevel = getLevelForAchievementCount(unlockedCount);
+  const nextLevel = getNextLevel(currentLevel);
+  const levelTitle = locale === "en" ? currentLevel.titleEn : currentLevel.titleEs;
+  const nextLevelTitle = nextLevel ? (locale === "en" ? nextLevel.titleEn : nextLevel.titleEs) : null;
 
   // Points history (last 50 for this user, newest first)
   const history = transactions
@@ -83,6 +128,32 @@ export default function ProfileClient() {
           </div>
         </div>
       </div>
+
+      {/* Level */}
+      <Card className="shadow-sm">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{currentLevel.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold">{t("level")} {currentLevel.level}</span>
+                <Badge variant="secondary" className="text-xs">{levelTitle}</Badge>
+              </div>
+              {nextLevel ? (
+                <div className="mt-1.5">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>{unlockedCount} / {nextLevel.minAchievements} {t("achievementsForNext")}</span>
+                    <span>{nextLevelTitle}</span>
+                  </div>
+                  <Progress value={(unlockedCount / nextLevel.minAchievements) * 100} className="h-2" />
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">{t("maxLevel")}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Preferences */}
       <h2 className="text-lg font-bold pt-2">{t("preferences")}</h2>
@@ -146,6 +217,114 @@ export default function ProfileClient() {
               </button>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Birthday */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Cake className="w-4 h-4 text-primary" />
+            {t("birthDate")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">{t("birthDateDescription")}</p>
+          <input
+            type="date"
+            value={currentUser.birthDate ?? ""}
+            onChange={async (e) => {
+              const val = e.target.value || null;
+              try {
+                await updateProfile(currentUser.id, { birth_date: val });
+                updateMember(currentUser.id, { birthDate: val });
+                toast.success(t("birthDateSaved"));
+              } catch {
+                toast.error("Error");
+              }
+            }}
+            className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Vacation mode */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palmtree className="w-4 h-4 text-teal-600" />
+            {t("vacationTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("vacationDescription")}</p>
+          {(() => {
+            const todayStr = new Date().toISOString().split("T")[0];
+            const isOnVacation = currentUser.vacationUntil && currentUser.vacationUntil >= todayStr;
+            return (
+              <>
+                {isOnVacation && (
+                  <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl p-3 text-sm text-teal-800 dark:text-teal-200">
+                    <p className="font-semibold">{t("vacationActive")}</p>
+                    <p>{t("vacationUntilDate", { date: currentUser.vacationUntil! })}</p>
+                  </div>
+                )}
+                <div className="max-w-xs">
+                  <Label htmlFor="profile-vacation" className="text-sm font-semibold mb-1.5 block">
+                    {t("vacationDateLabel")}
+                  </Label>
+                  <Input
+                    id="profile-vacation"
+                    type="date"
+                    value={vacationDate}
+                    onChange={(e) => setVacationDate(e.target.value)}
+                    min={todayStr}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    disabled={vacationSaving || !vacationDate}
+                    onClick={async () => {
+                      setVacationSaving(true);
+                      try {
+                        await setVacationMode(currentUser.id, vacationDate);
+                        updateMember(currentUser.id, { vacationUntil: vacationDate });
+                        toast.success(t("vacationActivated", { date: vacationDate }));
+                      } catch {
+                        toast.error(t("vacationError"));
+                      } finally {
+                        setVacationSaving(false);
+                      }
+                    }}
+                  >
+                    <Palmtree className="w-4 h-4 mr-1.5" />
+                    {vacationSaving ? t("vacationSaving") : t("vacationActivate")}
+                  </Button>
+                  {isOnVacation && (
+                    <Button
+                      variant="outline"
+                      disabled={vacationSaving}
+                      onClick={async () => {
+                        setVacationSaving(true);
+                        try {
+                          await setVacationMode(currentUser.id, null);
+                          updateMember(currentUser.id, { vacationUntil: null });
+                          setVacationDate("");
+                          toast.success(t("vacationDeactivated"));
+                        } catch {
+                          toast.error(t("vacationError"));
+                        } finally {
+                          setVacationSaving(false);
+                        }
+                      }}
+                    >
+                      {t("vacationDeactivate")}
+                    </Button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 

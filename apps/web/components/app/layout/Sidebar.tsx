@@ -17,10 +17,10 @@ import {
   ClipboardList,
   Zap,
   Flag,
+  Settings,
   Pencil,
   Check,
   X,
-  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,7 +59,6 @@ export default function Sidebar() {
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
     { href: `/${locale}/history`, icon: History, label: t("history") },
-    { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
   const dataLoaded = users.length > 0 && catalogsLoaded;
@@ -72,6 +71,7 @@ export default function Sidebar() {
     { href: `/${locale}/admin/tasks`, icon: ClipboardList, label: t("adminTasks"), alert: needsTasks },
     { href: `/${locale}/admin/rewards`, icon: Gift, label: t("adminRewards"), alert: needsRewards },
     { href: `/${locale}/admin/stats`, icon: BarChart3, label: t("adminStats") },
+    { href: `/${locale}/settings`, icon: Settings, label: t("settings") },
     ...(featuresUnlocked.includes("streaks") ? [
       { href: `/${locale}/admin/challenges`, icon: Flag, label: t("adminChallenges") },
       { href: `/${locale}/admin/multipliers`, icon: Zap, label: t("adminMultipliers") },
@@ -164,7 +164,7 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1" aria-label="Menú principal">
 
         {/* Section label */}
-        <SectionLabel emoji={currentUser?.avatar} label={ts("myProfile")} badge={`${currentUser?.pointsBalance.toLocaleString()} pts`} />
+        <SectionLabel label={ts("myProfile")} badge={`${currentUser?.pointsBalance.toLocaleString()} pts`} />
 
         {meItems.map((item) => (
           <NavBtn
@@ -179,7 +179,7 @@ export default function Sidebar() {
         {currentUser?.role === "admin" && (
           <>
             <div className="border-t border-sidebar-border mx-1 my-3" />
-            <SectionLabel emoji="⚙️" label={t("admin")} />
+            <SectionLabel label={t("admin")} />
 
             {adminItems.map((item) => (
               <NavBtn

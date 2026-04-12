@@ -90,7 +90,7 @@ export default function TopBar() {
   };
 
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
-  const canSwitch = otherUsers.length > 0;
+  const canSwitch = currentUser.role === "admin" && otherUsers.length > 0;
 
   return (
     <>
@@ -103,12 +103,12 @@ export default function TopBar() {
 
         {/* Right: actions */}
         <div className="flex items-center gap-1">
-          {/* Settings */}
+          {/* User settings (profile) */}
           <button
-            onClick={() => router.push(`/${locale}/settings`)}
+            onClick={() => router.push(`/${locale}/profile`)}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label={t("settings")}
-            title={t("settings")}
+            aria-label={t("profile")}
+            title={t("profile")}
           >
             <Settings className="w-[18px] h-[18px]" />
           </button>
@@ -143,22 +143,9 @@ export default function TopBar() {
 
             {userMenuOpen && (
               <div className="absolute right-0 top-full mt-1.5 z-50 bg-popover border border-border rounded-xl shadow-lg w-52 py-1 overflow-hidden">
-                {/* Profile link */}
-                <button
-                  onClick={() => { router.push(`/${locale}/profile`); setUserMenuOpen(false); }}
-                  className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left"
-                >
-                  <span className="text-xl">{currentUser.avatar}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold truncate">{currentUser.name}</p>
-                    <p className="text-xs text-muted-foreground">{t("profile")}</p>
-                  </div>
-                </button>
-
                 {/* Switch user */}
                 {canSwitch && (
                   <>
-                    <div className="border-t border-border my-1" />
                     <button
                       onClick={() => setSwitchOpen(!switchOpen)}
                       className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:bg-muted transition-colors text-left"

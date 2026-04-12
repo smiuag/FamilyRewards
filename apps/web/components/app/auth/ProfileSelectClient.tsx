@@ -22,6 +22,8 @@ interface SupabaseProfile {
   role: "admin" | "member";
   points_balance: number;
   created_at: string;
+  vacation_until: string | null;
+  birth_date: string | null;
 }
 
 function toUser(p: SupabaseProfile): User {
@@ -34,6 +36,8 @@ function toUser(p: SupabaseProfile): User {
     pointsBalance: p.points_balance,
     createdAt: p.created_at,
     authUserId: p.auth_user_id,
+    vacationUntil: p.vacation_until,
+    birthDate: p.birth_date,
   };
 }
 

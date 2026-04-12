@@ -36,6 +36,9 @@ create table if not exists profiles (
 alter table profiles
   add column if not exists vacation_until date;
 
+alter table profiles
+  add column if not exists birth_date date;
+
 -- ── FAMILY INVITATIONS ──────────────────────────────────────
 create table if not exists family_invitations (
   id          uuid primary key default gen_random_uuid(),

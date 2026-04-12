@@ -8,6 +8,7 @@ import TopBar from "./TopBar";
 import MobileNav from "./MobileNav";
 import SessionGuard from "./SessionGuard";
 import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
+import BirthdayModal from "./BirthdayModal";
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const { currentUser, onboardingCompleted } = useAppStore();
@@ -26,6 +27,8 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
           </a>
           {/* Onboarding wizard (first time only) */}
           {!onboardingCompleted && <OnboardingWizard />}
+          {/* Birthday greeting */}
+          <BirthdayModal />
 
           {/* Desktop Sidebar */}
           <aside className="hidden lg:flex lg:flex-shrink-0" aria-label="Navegación principal">

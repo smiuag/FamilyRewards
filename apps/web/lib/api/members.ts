@@ -11,6 +11,7 @@ export interface SupabaseProfile {
   points_balance: number;
   created_at: string;
   vacation_until: string | null;
+  birth_date: string | null;
 }
 
 export function toUser(p: SupabaseProfile): User {
@@ -24,6 +25,7 @@ export function toUser(p: SupabaseProfile): User {
     createdAt: p.created_at,
     authUserId: p.auth_user_id,
     vacationUntil: p.vacation_until,
+    birthDate: p.birth_date,
   };
 }
 
@@ -65,7 +67,7 @@ export async function addManagedProfile(
 
 export async function updateProfile(
   id: string,
-  data: Partial<{ name: string; avatar: string; role: "admin" | "member" }>
+  data: Partial<{ name: string; avatar: string; role: "admin" | "member"; birth_date: string | null }>
 ): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase

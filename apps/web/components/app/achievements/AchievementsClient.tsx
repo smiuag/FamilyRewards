@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
@@ -18,11 +19,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Star, Lock, Trophy } from "lucide-react";
+import { getLevelForAchievementCount, getNextLevel } from "@/lib/levels";
 import { cn } from "@/lib/utils";
 import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 
 export default function AchievementsClient() {
   const t = useTranslations("achievements");
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
   const { currentUser, taskInstances, claims, transactions, rewards } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
   const [boardStats, setBoardStats] = useState({ messagesPosted: 0, reactionsGiven: 0, reactionsReceived: 0, maxDistinctEmojisOnOneMessage: 0 });
@@ -157,6 +161,9 @@ export default function AchievementsClient() {
   const unlocked = ACHIEVEMENTS.filter((a) => a.condition(stats));
   const locked = ACHIEVEMENTS.filter((a) => !a.condition(stats));
   const totalPoints = unlocked.reduce((acc, a) => acc + a.points, 0);
+  const currentLevel = getLevelForAchievementCount(unlocked.length);
+  const nextLevel = getNextLevel(currentLevel);
+  const levelTitle = locale === "en" ? currentLevel.titleEn : currentLevel.titleEs;
 
   const categories = Object.entries(CATEGORY_CONFIG) as [AchievementCategory, typeof CATEGORY_CONFIG[AchievementCategory]][];
 
@@ -201,6 +208,29 @@ export default function AchievementsClient() {
             </span>
           </div>
           <Progress value={(unlocked.length / ACHIEVEMENTS.length) * 100} className="h-3" />
+        </CardContent>
+      </Card>
+
+      {/* Level card */}
+      <Card className="shadow-sm">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">{currentLevel.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold">{t("level")} {currentLevel.level} — {levelTitle}</p>
+              {nextLevel ? (
+                <div className="mt-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>{unlocked.length} / {nextLevel.minAchievements} {t("achievementsForNext")}</span>
+                    <span>{locale === "en" ? nextLevel.titleEn : nextLevel.titleEs}</span>
+                  </div>
+                  <Progress value={(unlocked.length / nextLevel.minAchievements) * 100} className="h-2" />
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">{t("maxLevel")}</p>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

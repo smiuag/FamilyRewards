@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 export default function CalendarClient() {
   const t = useTranslations("calendar");
-  const { currentUser, tasks, taskInstances } = useAppStore();
+  const { currentUser, users, tasks, taskInstances } = useAppStore();
   const { country, region, city } = useSettingsStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
@@ -67,11 +67,33 @@ export default function CalendarClient() {
     region
   );
 
+  // Birthday helpers
+  const getBirthdaysForDay = (day: Date) => {
+    const mm = String(day.getMonth() + 1).padStart(2, "0");
+    const dd = String(day.getDate()).padStart(2, "0");
+    return users.filter((u) => {
+      if (!u.birthDate) return false;
+      const [, m, d] = u.birthDate.split("-");
+      return m === mm && d === dd;
+    });
+  };
+
+  const birthdaysThisMonth = users.filter((u) => {
+    if (!u.birthDate) return false;
+    const [, m] = u.birthDate.split("-");
+    return parseInt(m, 10) === currentMonth.getMonth() + 1;
+  }).sort((a, b) => {
+    const da = parseInt(a.birthDate!.split("-")[2], 10);
+    const db = parseInt(b.birthDate!.split("-")[2], 10);
+    return da - db;
+  });
+
   const selectedDateStr = format(selectedDay, "yyyy-MM-dd");
   const selectedInstances = taskInstances.filter(
     (ti) => ti.userId === currentUser.id && ti.date === selectedDateStr
   );
   const selectedHoliday = getHolidayForDate(selectedDateStr, country, region);
+  const selectedBirthdays = getBirthdaysForDay(selectedDay);
 
   const getInstancesForDay = (day: Date) =>
     taskInstances.filter(
@@ -141,6 +163,8 @@ export default function CalendarClient() {
                   const dayKey = format(day, "yyyy-MM-dd");
                   const dayHolidays = holidays.get(dayKey) ?? [];
                   const hasHoliday = dayHolidays.length > 0;
+                  const dayBirthdays = getBirthdaysForDay(day);
+                  const hasBirthday = dayBirthdays.length > 0;
 
                   return (
                     <button
@@ -151,13 +175,18 @@ export default function CalendarClient() {
                         isSelected && "bg-primary text-primary-foreground shadow-sm",
                         !isSelected && isTodayDay && "border-2 border-primary text-primary font-bold",
                         !isSelected && hasHoliday && isCurrentMonth && "bg-red-50",
-                        !isSelected && !isTodayDay && !hasHoliday && isCurrentMonth && "hover:bg-muted text-foreground",
+                        !isSelected && !hasHoliday && hasBirthday && isCurrentMonth && "bg-pink-50",
+                        !isSelected && !isTodayDay && !hasHoliday && !hasBirthday && isCurrentMonth && "hover:bg-muted text-foreground",
                         !isCurrentMonth && "text-muted-foreground/40"
                       )}
                     >
                       {/* Holiday indicator */}
                       {hasHoliday && !isSelected && isCurrentMonth && (
                         <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-red-400" />
+                      )}
+                      {/* Birthday indicator */}
+                      {hasBirthday && !hasHoliday && !isSelected && isCurrentMonth && (
+                        <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-pink-400" />
                       )}
 
                       <span className="font-medium leading-none">{format(day, "d")}</span>
@@ -166,6 +195,13 @@ export default function CalendarClient() {
                       {hasHoliday && isCurrentMonth && (
                         <span className="text-[8px] leading-none mt-0.5">
                           {dayHolidays[0].emoji}
+                        </span>
+                      )}
+
+                      {/* Birthday emoji */}
+                      {hasBirthday && !hasHoliday && isCurrentMonth && (
+                        <span className="text-[8px] leading-none mt-0.5">
+                          {"\u{1F382}"}
                         </span>
                       )}
 
@@ -202,6 +238,10 @@ export default function CalendarClient() {
                   <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                   <span>{t("legendHoliday")}</span>
                 </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-pink-400" />
+                  <span>{t("legendBirthday")}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -216,6 +256,16 @@ export default function CalendarClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              {/* Birthday banner */}
+              {selectedBirthdays.length > 0 && selectedBirthdays.map((u) => (
+                <div key={u.id} className="flex items-center gap-2 p-3 rounded-xl bg-pink-50 border border-pink-200">
+                  <span className="text-xl">{"\u{1F382}"}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-pink-700">{t("birthdayBanner", { name: u.name })}</p>
+                  </div>
+                </div>
+              ))}
+
               {/* Holiday banner */}
               {selectedHoliday && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200">
@@ -288,6 +338,28 @@ export default function CalendarClient() {
                       </div>
                     ))
                   )}
+              </CardContent>
+            </Card>
+          )}
+          {/* Birthdays this month */}
+          {birthdaysThisMonth.length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {t("birthdaysThisMonth")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 pt-0">
+                {birthdaysThisMonth.map((u) => {
+                  const day = parseInt(u.birthDate!.split("-")[2], 10);
+                  return (
+                    <div key={u.id} className="flex items-center gap-2 text-xs">
+                      <span>{"\u{1F382}"}</span>
+                      <span className="text-muted-foreground">{day} {format(currentMonth, "MMM", { locale: es })}</span>
+                      <span className="font-medium text-foreground truncate">{u.name}</span>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           )}

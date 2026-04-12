@@ -223,9 +223,12 @@
     "legendCompleted": "Completada",
     "legendPending": "Pendiente",
     "legendHoliday": "Festivo",
+    "legendBirthday": "Cumpleaños",
     "holidaysThisMonth": "Festivos este mes",
     "holidayNational": "Festivo nacional",
-    "holidayRegional": "Festivo regional"
+    "holidayRegional": "Festivo regional",
+    "birthdaysThisMonth": "Cumpleaños este mes",
+    "birthdayBanner": "Cumpleaños de {name}"
   },
   "rewards": {
     "title": "Recompensas",
@@ -324,7 +327,24 @@
     "confirmPin": "Confirmar PIN",
     "activatePin": "Activar PIN",
     "pinSet": "PIN configurado",
-    "pinMismatch": "Los PIN no coinciden"
+    "pinMismatch": "Los PIN no coinciden",
+    "birthDate": "Fecha de nacimiento",
+    "birthDateDescription": "Tu cumpleaños se mostrará en el calendario familiar.",
+    "birthDateSaved": "Fecha de nacimiento guardada",
+    "vacationTitle": "Modo vacaciones",
+    "vacationDescription": "Pausa tus tareas recurrentes sin romper tu racha. No se crearán instancias ni se aplicarán penalizaciones.",
+    "vacationActive": "Vacaciones activas",
+    "vacationUntilDate": "Hasta el {date}",
+    "vacationDateLabel": "Vacaciones hasta",
+    "vacationActivate": "Activar vacaciones",
+    "vacationDeactivate": "Desactivar vacaciones",
+    "vacationSaving": "Guardando...",
+    "vacationActivated": "Vacaciones activadas hasta el {date}",
+    "vacationDeactivated": "Vacaciones desactivadas",
+    "vacationError": "Error al cambiar el modo vacaciones",
+    "level": "Nivel",
+    "achievementsForNext": "logros para siguiente",
+    "maxLevel": "Nivel máximo alcanzado"
   },
   "onboarding": {
     "welcome": "¡Bienvenido a FamilyRewards!",
@@ -371,7 +391,10 @@
     "perfectWeeks": "Sem. perfectas",
     "days": "días",
     "allCategory": "Todos",
-    "unlocked": "Desbloqueado"
+    "unlocked": "Desbloqueado",
+    "level": "Nivel",
+    "achievementsForNext": "logros para siguiente",
+    "maxLevel": "Nivel máximo alcanzado"
   },
   "admin": {
     "members": {
@@ -652,29 +675,20 @@
     "saveLocation": "Guardar localización",
     "locationSaved": "Localización guardada",
     "locationSavedDesc": "{location} — se mostrarán las fiestas locales en el calendario",
-    "pinTitle": "PIN de acceso",
-    "pinDescription": "Configura un PIN de 4 dígitos para proteger tu perfil en este dispositivo. Se pedirá al cambiar de usuario.",
-    "pinActive": "PIN activado",
-    "deletePin": "Eliminar PIN",
-    "pinDeleted": "PIN eliminado",
-    "newPin": "Nuevo PIN",
-    "newPinPlaceholder": "4 dígitos",
-    "confirmPin": "Confirmar PIN",
-    "confirmPinPlaceholder": "Repite el PIN",
-    "activatePin": "Activar PIN",
-    "pinSet": "PIN configurado",
-    "pinMismatch": "Los PINs no coinciden",
-    "vacationTitle": "Modo vacaciones",
-    "vacationDescription": "Pausa tus tareas recurrentes sin romper tu racha. No se crearán instancias ni se aplicarán penalizaciones.",
-    "vacationActive": "Vacaciones activas",
-    "vacationUntilDate": "Hasta el {date}",
-    "vacationDateLabel": "Vacaciones hasta",
-    "vacationActivate": "Activar vacaciones",
-    "vacationDeactivate": "Desactivar vacaciones",
-    "vacationSaving": "Guardando...",
-    "vacationActivated": "Vacaciones activadas hasta el {date}",
-    "vacationDeactivated": "Vacaciones desactivadas",
-    "vacationError": "Error al cambiar el modo vacaciones"
+    "dangerZone": "Zona de peligro",
+    "dangerDescription": "Acciones irreversibles que afectan a toda la familia.",
+    "deleteFamily": "Darse de baja",
+    "deleteWarningTitle": "Se eliminará permanentemente:",
+    "deleteWarning1": "Todos los miembros y sus perfiles",
+    "deleteWarning2": "Todas las tareas e historial",
+    "deleteWarning3": "Todas las recompensas y reclamaciones",
+    "deleteWarning4": "Las cuentas de usuario asociadas",
+    "deleteConfirmLabel": "Escribe {name} para confirmar",
+    "cancel": "Cancelar",
+    "deleteFamilyConfirm": "Eliminar familia",
+    "deleteFamilyDeleting": "Eliminando...",
+    "deleteFamilySuccess": "Familia eliminada correctamente",
+    "deleteFamilyError": "Error al dar de baja"
   },
   "help": {
     "title": "Ayuda",
@@ -776,5 +790,10 @@
         "a1": "Son paquetes predefinidos de tareas y recompensas adaptados a momentos del año: Vuelta al cole, Verano, Navidades, Exámenes y Año Nuevo. Actívalos desde Admin → Plantillas de temporada."
       }
     }
+  },
+  "birthday": {
+    "title": "¡Feliz cumpleaños, {name}!",
+    "message": "Toda la familia te desea un día increíble. ¡Sigue así!",
+    "button": "¡Gracias!"
   }
 }
