@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand, Heart, ChevronLeft, ChevronRight, Pin } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
@@ -34,6 +34,7 @@ export default function DashboardClient() {
 
   // Feed del tablón: mensajes + transacciones recientes
   const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; emoji?: string; userName?: string; amount?: number }>>([]);
+  const [pinnedItems, setPinnedItems] = useState<Array<{ id: string; content: string; userName: string; emoji?: string }>>([]);
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
   const [targetRewardIdx, setTargetRewardIdx] = useState(0);
 
@@ -59,7 +60,13 @@ export default function DashboardClient() {
           fetchFamilyTransactions(),
         ]);
         const allUsers = useAppStore.getState().users;
-        const boardItems = msgs.slice(0, 5).map((m: BoardMessage) => {
+        // Pinned messages for top of board section
+        const pinned = msgs.filter((m: BoardMessage) => m.pinned).map((m: BoardMessage) => {
+          const author = allUsers.find((u) => u.id === m.profileId);
+          return { id: m.id, content: m.content, userName: author?.name ?? t("systemUser"), emoji: author?.avatar };
+        });
+        setPinnedItems(pinned);
+        const boardItems = msgs.filter((m: BoardMessage) => !m.pinned).slice(0, 5).map((m: BoardMessage) => {
           const author = allUsers.find((u) => u.id === m.profileId);
           return {
             id: m.id,
@@ -542,7 +549,22 @@ export default function DashboardClient() {
             </div>
           </CardHeader>
           <CardContent>
-            {feedItems.length === 0 ? (
+            {/* Pinned messages */}
+            {pinnedItems.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {pinnedItems.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/20 px-2.5 py-2">
+                    <Pin className="w-3 h-3 text-primary flex-shrink-0 mt-1" />
+                    <p className="text-sm leading-snug">
+                      <span className="font-semibold">{item.userName}</span>
+                      {" "}
+                      <span className="text-muted-foreground">{item.content}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {feedItems.length === 0 && pinnedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
                 <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">{t("boardEmpty")}</p>
@@ -553,7 +575,7 @@ export default function DashboardClient() {
                   {t("beFirst")}
                 </button>
               </div>
-            ) : (
+            ) : feedItems.length > 0 ? (
               <div className="space-y-2.5">
                 {feedItems.map((item) => (
                   <div key={item.id} className="flex items-start gap-2.5">
@@ -578,7 +600,7 @@ export default function DashboardClient() {
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>

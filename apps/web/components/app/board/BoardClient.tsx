@@ -103,9 +103,9 @@ export default function BoardClient() {
     setSending(false);
   };
 
-  // Combinar mensajes + transacciones en un feed único, ordenado por fecha
+  // Combinar mensajes (sin anclados) + transacciones en un feed único, ordenado por fecha
   const feed: FeedItem[] = [
-    ...messages.map((m) => ({
+    ...messages.filter((m) => !m.pinned).map((m) => ({
       id: m.id,
       type: "board" as const,
       createdAt: m.createdAt,
