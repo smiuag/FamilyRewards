@@ -40,7 +40,7 @@ export default function Sidebar() {
   const locale = (params?.locale as string) ?? "es";
   const {
     currentUser, users, tasks, rewards,
-    featuresUnlocked,
+    catalogsLoaded, featuresUnlocked,
     familyName, setFamilyName,
   } = useAppStore();
 
@@ -62,7 +62,7 @@ export default function Sidebar() {
     { href: `/${locale}/profile`, icon: User, label: t("profile") },
   ];
 
-  const dataLoaded = users.length > 0;
+  const dataLoaded = users.length > 0 && catalogsLoaded;
   const needsMembers = dataLoaded && users.length < 2;
   const needsTasks = dataLoaded && tasks.length === 0;
   const needsRewards = dataLoaded && rewards.length === 0;

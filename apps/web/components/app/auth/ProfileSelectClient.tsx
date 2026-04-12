@@ -120,7 +120,7 @@ export default function ProfileSelectClient() {
           fetchFamilyTasks().catch(() => []),
           fetchFamilyRewards().catch(() => []),
         ]);
-        useAppStore.setState({ tasks: familyTasks, rewards: familyRewards });
+        useAppStore.setState({ tasks: familyTasks, rewards: familyRewards, catalogsLoaded: true });
         useMultipliersStore.getState().reset();
         router.replace(next);
         return;
@@ -149,7 +149,7 @@ export default function ProfileSelectClient() {
       fetchFamilyTasks().catch(() => []),
       fetchFamilyRewards().catch(() => []),
     ]);
-    useAppStore.setState({ tasks: familyTasks, rewards: familyRewards });
+    useAppStore.setState({ tasks: familyTasks, rewards: familyRewards, catalogsLoaded: true });
     useMultipliersStore.getState().reset();
     router.push(next);
   };

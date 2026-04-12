@@ -25,6 +25,7 @@ interface AppState {
   onboardingCompleted: boolean;
 
   // Setup guidance (! badges en sidebar)
+  catalogsLoaded: boolean;
   setupVisited: { members: boolean; catalogTasks: boolean; catalogRewards: boolean };
   markSetupVisited: (section: "members" | "catalogTasks" | "catalogRewards") => void;
 
@@ -84,6 +85,7 @@ export const useAppStore = create<AppState>()(
       claims: [],
       transactions: [],
       onboardingCompleted: false,
+      catalogsLoaded: false,
       setupVisited: { members: false, catalogTasks: false, catalogRewards: false },
       targetRewardIds: [],
       archivedClaimIds: [],
@@ -95,7 +97,7 @@ export const useAppStore = create<AppState>()(
         set({ currentUser: user });
       },
 
-      logout: () => set({ currentUser: null }),
+      logout: () => set({ currentUser: null, catalogsLoaded: false }),
 
       // Establece el perfil activo a partir de datos reales de Supabase
       setCurrentProfile: (profile) => set({ currentUser: profile }),
@@ -116,6 +118,7 @@ export const useAppStore = create<AppState>()(
         targetRewardIds: [],
         archivedClaimIds: [],
         featuresUnlocked: [],
+        catalogsLoaded: false,
         streakAlert: null,
       }),
 
@@ -129,7 +132,7 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      loadTasks: (tasks) => set({ tasks }),
+      loadTasks: (tasks) => set({ tasks, catalogsLoaded: true }),
       loadTaskInstances: (instances) => set({ taskInstances: instances }),
       loadRewards: (rewards) => set({ rewards }),
       loadClaims: (claims) => set({ claims }),

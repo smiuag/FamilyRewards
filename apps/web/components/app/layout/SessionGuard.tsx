@@ -36,6 +36,17 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           router.replace(`/${locale}/login`);
           return;
         }
+        // tasks/rewards are not persisted in localStorage — reload if needed
+        const state = useAppStore.getState();
+        if (!state.catalogsLoaded) {
+          const [tasks, rewards] = await Promise.all([
+            fetchFamilyTasks().catch(() => []),
+            fetchFamilyRewards().catch(() => []),
+          ]);
+          if (!cancelled) {
+            useAppStore.setState({ tasks, rewards, catalogsLoaded: true });
+          }
+        }
         if (!cancelled) setChecked(true);
         return;
       }
@@ -73,7 +84,7 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
           fetchFamilyTasks().catch(() => []),
           fetchFamilyRewards().catch(() => []),
         ]);
-        useAppStore.setState({ tasks, rewards });
+        useAppStore.setState({ tasks, rewards, catalogsLoaded: true });
         useMultipliersStore.getState().reset();
       } catch {
         router.replace(`/${locale}/login`);
