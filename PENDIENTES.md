@@ -50,7 +50,7 @@
 
 ### Tareas
 - [ ] Multiplicador activo debería verse también en la vista de Tareas junto a cada tarea afectada
-- [ ] Modo vacaciones: pausar tareas recurrentes N días sin romper rachas
+- [x] Modo vacaciones: pausar tareas recurrentes N días sin romper rachas (Settings + Admin, i18n)
 
 ### Tablón / Social
 - [x] Botones pin/delete mensajes del board (admin only, con confirmación)

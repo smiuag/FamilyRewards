@@ -281,12 +281,12 @@ export default function AdminMembersClient() {
       await setVacationMode(selectedUser.id, until);
       updateMember(selectedUser.id, { vacationUntil: until });
       toast.success(until
-        ? `Vacaciones activadas para ${selectedUser.name} hasta el ${until}`
-        : `Vacaciones desactivadas para ${selectedUser.name}`
+        ? t("vacationActivated", { name: selectedUser.name, date: until })
+        : t("vacationDeactivated", { name: selectedUser.name })
       );
       closeDialog();
     } catch {
-      toast.error("Error al cambiar el modo vacaciones");
+      toast.error(t("vacationError"));
     } finally {
       setSaving(false);
     }
@@ -390,7 +390,7 @@ export default function AdminMembersClient() {
                         </div>
                         <span className="font-semibold">{user.name}</span>
                         {user.vacationUntil && user.vacationUntil >= new Date().toISOString().split("T")[0] && (
-                          <Badge className="bg-teal-100 text-teal-700 border-0 text-[10px] ml-1">🏖️ Vacaciones</Badge>
+                          <Badge className="bg-teal-100 text-teal-700 border-0 text-[10px] ml-1">{t("vacationBadge")}</Badge>
                         )}
                       </button>
                     </TableCell>
@@ -626,22 +626,22 @@ export default function AdminMembersClient() {
       {/* Vacation mode modal */}
       <AppModal open={mode === "vacation"} onOpenChange={closeDialog}>
         <AppModalHeader emoji="🏖️"
-          title={`Vacaciones — ${selectedUser?.name ?? ""}`}
-          description="Pausa las tareas recurrentes sin romper rachas"
+          title={t("vacationTitle", { name: selectedUser?.name ?? "" })}
+          description={t("vacationDescription")}
           color="bg-gradient-to-br from-teal-500 to-cyan-600"
           onClose={closeDialog} />
         <AppModalBody>
           <p className="text-sm text-muted-foreground">
-            Durante las vacaciones no se crearán instancias de tareas recurrentes ni se aplicarán penalizaciones.
+            {t("vacationExplainer")}
           </p>
           {selectedUser?.vacationUntil && selectedUser.vacationUntil >= new Date().toISOString().split("T")[0] ? (
             <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-sm text-teal-800">
-              <p className="font-semibold">Vacaciones activas</p>
-              <p>Hasta el {selectedUser.vacationUntil}</p>
+              <p className="font-semibold">{t("vacationActive")}</p>
+              <p>{t("vacationUntil", { date: selectedUser.vacationUntil })}</p>
             </div>
           ) : null}
           <div>
-            <Label className="mb-1.5 block">Vacaciones hasta</Label>
+            <Label className="mb-1.5 block">{t("vacationDateLabel")}</Label>
             <Input
               type="date"
               value={vacationDate}
@@ -653,13 +653,13 @@ export default function AdminMembersClient() {
         <AppModalFooter>
           {selectedUser?.vacationUntil && (
             <Button variant="outline" onClick={() => handleVacation(null)} disabled={saving}>
-              Desactivar vacaciones
+              {t("vacationDeactivate")}
             </Button>
           )}
-          <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+          <Button variant="outline" onClick={closeDialog}>{t("cancel")}</Button>
           <Button onClick={() => handleVacation(vacationDate || null)} disabled={saving || !vacationDate}>
             <Palmtree className="w-4 h-4 mr-1.5" />
-            {saving ? "Guardando..." : "Activar vacaciones"}
+            {saving ? t("vacationSaving") : t("vacationActivate")}
           </Button>
         </AppModalFooter>
       </AppModal>

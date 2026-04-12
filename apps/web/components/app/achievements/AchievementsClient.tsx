@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Star, Lock, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { calculateCurrentStreak } from "@/lib/config/constants";
+import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 
 export default function AchievementsClient() {
   const t = useTranslations("achievements");
@@ -69,7 +69,8 @@ export default function AchievementsClient() {
 
     // Streak: count consecutive days (ending today) with at least one completed task
     const completedDays = new Set(completed.map((ti) => ti.date));
-    const currentStreak = calculateCurrentStreak(completedDays);
+    const vacationDays = buildVacationDays(currentUser.vacationUntil);
+    const currentStreak = calculateCurrentStreak(completedDays, vacationDays);
 
     // Best streak: find max consecutive days
     const sortedDays = Array.from(completedDays).sort();

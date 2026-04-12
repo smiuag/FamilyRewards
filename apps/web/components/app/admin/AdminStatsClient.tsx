@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Star, CheckCircle2, Gift, TrendingUp, Flame, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { calculateCurrentStreak, COMPLETION_RATE_GOOD, COMPLETION_RATE_OK, STREAK_HIGHLIGHT_THRESHOLD } from "@/lib/config/constants";
+import { calculateCurrentStreak, buildVacationDays, COMPLETION_RATE_GOOD, COMPLETION_RATE_OK, STREAK_HIGHLIGHT_THRESHOLD } from "@/lib/config/constants";
 
 export default function AdminStatsClient() {
   const t = useTranslations("admin.stats");
@@ -66,7 +66,8 @@ export default function AdminStatsClient() {
           .filter((ti) => ti.userId === user.id && ti.state === "completed")
           .map((ti) => ti.date)
       );
-      const streak = calculateCurrentStreak(completedDates);
+      const vacDays = buildVacationDays(user.vacationUntil);
+      const streak = calculateCurrentStreak(completedDates, vacDays);
       return { user, streak };
     }).sort((a, b) => b.streak - a.streak);
   }, [allMembers, taskInstances]);

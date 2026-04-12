@@ -20,7 +20,7 @@ import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
-import { calculateCurrentStreak } from "@/lib/config/constants";
+import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
 
@@ -199,7 +199,8 @@ export default function DashboardClient() {
     const completed = myInstances.filter((ti) => ti.state === "completed");
     const totalPointsEarned = completed.reduce((s, ti) => s + ti.pointsAwarded, 0);
     const completedDays = new Set(completed.map((ti) => ti.date));
-    const currentStreak = calculateCurrentStreak(completedDays);
+    const vacationDays = buildVacationDays(currentUser.vacationUntil);
+    const currentStreak = calculateCurrentStreak(completedDays, vacationDays);
     const rewardsClaimed = claims.filter((c) => c.userId === currentUser.id && c.status === "approved").length;
     return {
       totalTasksCompleted: completed.length, currentStreak, bestStreak: currentStreak,

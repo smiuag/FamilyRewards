@@ -377,7 +377,21 @@
       "adjustPoints": "Adjust points",
       "adjustPointsTitle": "Adjust {name}'s points",
       "pointsAmount": "Amount (+/-)",
-      "reason": "Reason"
+      "reason": "Reason",
+      "vacationBadge": "🏖️ Vacation",
+      "vacationTitle": "Vacation — {name}",
+      "vacationDescription": "Pause recurring tasks without breaking streaks",
+      "vacationExplainer": "During vacation, no recurring task instances will be created and no penalties will be applied.",
+      "vacationActive": "Vacation active",
+      "vacationUntil": "Until {date}",
+      "vacationDateLabel": "Vacation until",
+      "vacationDeactivate": "Deactivate vacation",
+      "vacationActivate": "Activate vacation",
+      "vacationSaving": "Saving...",
+      "vacationActivated": "Vacation activated for {name} until {date}",
+      "vacationDeactivated": "Vacation deactivated for {name}",
+      "vacationError": "Error changing vacation mode",
+      "cancel": "Cancel"
     },
     "tasks": {
       "title": "Task Management",
@@ -592,7 +606,18 @@
     "confirmPinPlaceholder": "Repeat the PIN",
     "activatePin": "Enable PIN",
     "pinSet": "PIN configured",
-    "pinMismatch": "PINs do not match"
+    "pinMismatch": "PINs do not match",
+    "vacationTitle": "Vacation mode",
+    "vacationDescription": "Pause your recurring tasks without breaking your streak. No instances will be created and no penalties applied.",
+    "vacationActive": "Vacation active",
+    "vacationUntilDate": "Until {date}",
+    "vacationDateLabel": "Vacation until",
+    "vacationActivate": "Activate vacation",
+    "vacationDeactivate": "Deactivate vacation",
+    "vacationSaving": "Saving...",
+    "vacationActivated": "Vacation activated until {date}",
+    "vacationDeactivated": "Vacation deactivated",
+    "vacationError": "Error changing vacation mode"
   },
   "help": {
     "title": "Help",

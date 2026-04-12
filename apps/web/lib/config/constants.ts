@@ -39,12 +39,38 @@ export const MAX_REWARD_POINTS = 20_000;
 export const MULTIPLIER_MIN = 1.5;
 export const MULTIPLIER_MAX = 10;
 
+// ── Vacation helpers ──────────────────────────────────────
+/**
+ * Build a set of date strings ("YYYY-MM-DD") that are vacation days.
+ * Looks back from today to find the contiguous vacation period ending at `vacationUntil`.
+ * Since we don't store vacation start, we assume vacation covers today through vacationUntil
+ * and any past days without completed tasks that are adjacent to the vacation.
+ */
+export function buildVacationDays(vacationUntil: string | null | undefined): Set<string> {
+  const skip = new Set<string>();
+  if (!vacationUntil) return skip;
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  // Only relevant if vacation is current or future
+  if (vacationUntil < todayStr) return skip;
+  // Add all days from today through vacationUntil
+  const end = new Date(vacationUntil + "T00:00:00");
+  for (let d = new Date(today); d <= end; d.setDate(d.getDate() + 1)) {
+    skip.add(d.toISOString().split("T")[0]);
+  }
+  return skip;
+}
+
 // ── Streak calculation ─────────────────────────────────────
 /**
  * Count consecutive days (ending today) that appear in `completedDays`.
- * If today has no entry, streak is 0.
+ * Days in `skipDays` (e.g. vacation) are ignored — they don't break or add to the streak.
+ * If today has no entry and is not a skip day, streak is 0.
  */
-export function calculateCurrentStreak(completedDays: Set<string>): number {
+export function calculateCurrentStreak(
+  completedDays: Set<string>,
+  skipDays?: Set<string>,
+): number {
   let streak = 0;
   const now = new Date();
   for (let i = 0; i < MAX_STREAK_LOOKBACK_DAYS; i++) {
@@ -53,6 +79,9 @@ export function calculateCurrentStreak(completedDays: Set<string>): number {
     const ds = d.toISOString().split("T")[0];
     if (completedDays.has(ds)) {
       streak++;
+    } else if (skipDays?.has(ds)) {
+      // Vacation day — skip without breaking streak
+      continue;
     } else if (i > 0) {
       break;
     }

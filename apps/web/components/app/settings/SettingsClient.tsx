@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { usePinStore } from "@/lib/store/usePinStore";
+import { setVacationMode } from "@/lib/api/members";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MapPin, Save, Lock, Trash2 } from "lucide-react";
+import { MapPin, Save, Lock, Trash2, Palmtree } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,10 @@ export default function SettingsClient() {
   const currentHasPin = currentUser ? hasPin(currentUser.id) : false;
   const [pinInput, setPinInput] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
+  const [vacationDate, setVacationDate] = useState(currentUser?.vacationUntil ?? "");
+  const [vacationSaving, setVacationSaving] = useState(false);
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isOnVacation = currentUser?.vacationUntil && currentUser.vacationUntil >= todayStr;
 
   const detected = detectLocation(postalInput);
 
@@ -179,6 +184,91 @@ export default function SettingsClient() {
             <Save className="w-4 h-4 mr-1.5" />
             {t("saveLocation")}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Vacation card */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palmtree className="w-4 h-4 text-teal-600" />
+            {t("vacationTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {t("vacationDescription")}
+          </p>
+
+          {isOnVacation && (
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-sm text-teal-800">
+              <p className="font-semibold">{t("vacationActive")}</p>
+              <p>{t("vacationUntilDate", { date: currentUser!.vacationUntil! })}</p>
+            </div>
+          )}
+
+          <div className="max-w-xs">
+            <Label htmlFor="settings-vacation" className="text-sm font-semibold mb-1.5 block">
+              {t("vacationDateLabel")}
+            </Label>
+            <Input
+              id="settings-vacation"
+              type="date"
+              value={vacationDate}
+              onChange={(e) => setVacationDate(e.target.value)}
+              min={todayStr}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              disabled={vacationSaving || !vacationDate}
+              onClick={async () => {
+                if (!currentUser) return;
+                setVacationSaving(true);
+                try {
+                  await setVacationMode(currentUser.id, vacationDate);
+                  useAppStore.setState((prev) => ({
+                    currentUser: prev.currentUser ? { ...prev.currentUser, vacationUntil: vacationDate } : prev.currentUser,
+                    users: prev.users.map((u) => u.id === currentUser.id ? { ...u, vacationUntil: vacationDate } : u),
+                  }));
+                  toast.success(t("vacationActivated", { date: vacationDate }));
+                } catch {
+                  toast.error(t("vacationError"));
+                } finally {
+                  setVacationSaving(false);
+                }
+              }}
+            >
+              <Palmtree className="w-4 h-4 mr-1.5" />
+              {vacationSaving ? t("vacationSaving") : t("vacationActivate")}
+            </Button>
+            {isOnVacation && (
+              <Button
+                variant="outline"
+                disabled={vacationSaving}
+                onClick={async () => {
+                  if (!currentUser) return;
+                  setVacationSaving(true);
+                  try {
+                    await setVacationMode(currentUser.id, null);
+                    useAppStore.setState((prev) => ({
+                      currentUser: prev.currentUser ? { ...prev.currentUser, vacationUntil: null } : prev.currentUser,
+                      users: prev.users.map((u) => u.id === currentUser.id ? { ...u, vacationUntil: null } : u),
+                    }));
+                    setVacationDate("");
+                    toast.success(t("vacationDeactivated"));
+                  } catch {
+                    toast.error(t("vacationError"));
+                  } finally {
+                    setVacationSaving(false);
+                  }
+                }}
+              >
+                {t("vacationDeactivate")}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 

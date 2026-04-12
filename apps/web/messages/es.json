@@ -377,7 +377,21 @@
       "adjustPoints": "Ajustar puntos",
       "adjustPointsTitle": "Ajustar puntos de {name}",
       "pointsAmount": "Cantidad (+/-)",
-      "reason": "Motivo"
+      "reason": "Motivo",
+      "vacationBadge": "🏖️ Vacaciones",
+      "vacationTitle": "Vacaciones — {name}",
+      "vacationDescription": "Pausa las tareas recurrentes sin romper rachas",
+      "vacationExplainer": "Durante las vacaciones no se crearán instancias de tareas recurrentes ni se aplicarán penalizaciones.",
+      "vacationActive": "Vacaciones activas",
+      "vacationUntil": "Hasta el {date}",
+      "vacationDateLabel": "Vacaciones hasta",
+      "vacationDeactivate": "Desactivar vacaciones",
+      "vacationActivate": "Activar vacaciones",
+      "vacationSaving": "Guardando...",
+      "vacationActivated": "Vacaciones activadas para {name} hasta el {date}",
+      "vacationDeactivated": "Vacaciones desactivadas para {name}",
+      "vacationError": "Error al cambiar el modo vacaciones",
+      "cancel": "Cancelar"
     },
     "tasks": {
       "title": "Gestión de Tareas",
@@ -592,7 +606,18 @@
     "confirmPinPlaceholder": "Repite el PIN",
     "activatePin": "Activar PIN",
     "pinSet": "PIN configurado",
-    "pinMismatch": "Los PINs no coinciden"
+    "pinMismatch": "Los PINs no coinciden",
+    "vacationTitle": "Modo vacaciones",
+    "vacationDescription": "Pausa tus tareas recurrentes sin romper tu racha. No se crearán instancias ni se aplicarán penalizaciones.",
+    "vacationActive": "Vacaciones activas",
+    "vacationUntilDate": "Hasta el {date}",
+    "vacationDateLabel": "Vacaciones hasta",
+    "vacationActivate": "Activar vacaciones",
+    "vacationDeactivate": "Desactivar vacaciones",
+    "vacationSaving": "Guardando...",
+    "vacationActivated": "Vacaciones activadas hasta el {date}",
+    "vacationDeactivated": "Vacaciones desactivadas",
+    "vacationError": "Error al cambiar el modo vacaciones"
   },
   "help": {
     "title": "Ayuda",
