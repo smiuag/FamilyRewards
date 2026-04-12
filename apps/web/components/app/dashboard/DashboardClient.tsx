@@ -579,6 +579,9 @@ export default function DashboardClient() {
               <div className="space-y-2.5">
                 {feedItems.map((item) => (
                   <div key={item.id} className="flex items-start gap-2.5">
+                    {item.emoji && (
+                      <span className="text-base flex-shrink-0 mt-0.5">{item.emoji}</span>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm leading-snug">
                         <span className="font-semibold">{item.userName}</span>
