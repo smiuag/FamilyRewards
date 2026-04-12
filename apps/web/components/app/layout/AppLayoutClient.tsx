@@ -3,8 +3,8 @@
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 import { useTranslations } from "next-intl";
-import { Star } from "lucide-react";
 import Sidebar from "./Sidebar";
+import TopBar from "./TopBar";
 import MobileNav from "./MobileNav";
 import SessionGuard from "./SessionGuard";
 import OnboardingWizard from "@/components/app/onboarding/OnboardingWizard";
@@ -34,17 +34,8 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
           {/* Main content */}
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-            {/* Top bar (mobile) */}
-            <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-border" aria-label="Información del usuario">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl" aria-hidden="true">{currentUser.avatar}</span>
-                <span className="font-bold text-foreground">{currentUser.name}</span>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-primary font-semibold">
-                <Star className="w-3.5 h-3.5 fill-primary" aria-hidden="true" />
-                <span aria-label={`${currentUser.pointsBalance} puntos`}>{currentUser.pointsBalance.toLocaleString()} pts</span>
-              </div>
-            </header>
+            {/* Top bar (all screen sizes) */}
+            <TopBar />
 
             {/* Page content */}
             <main className="flex-1 overflow-y-auto pb-20 lg:pb-0" id="main-content">
