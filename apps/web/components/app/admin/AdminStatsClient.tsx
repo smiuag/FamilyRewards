@@ -16,6 +16,7 @@ import {
   Wallet, ArrowUpRight, ArrowDownRight, BarChart3, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import { calculateCurrentStreak, buildVacationDays, COMPLETION_RATE_GOOD, COMPLETION_RATE_OK, STREAK_HIGHLIGHT_THRESHOLD } from "@/lib/config/constants";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -339,14 +340,14 @@ export default function AdminStatsClient() {
                 <ArrowUpRight className="w-4 h-4 text-green-500" />
                 <span>{t("earned")}</span>
               </div>
-              <span className="text-sm font-bold text-green-600">+{economy.earned.toLocaleString()}</span>
+              <PointsLink className="text-sm font-bold text-green-600 hover:underline">+{economy.earned.toLocaleString()}</PointsLink>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <ArrowDownRight className="w-4 h-4 text-red-400" />
                 <span>{t("spent")}</span>
               </div>
-              <span className="text-sm font-bold text-red-500">-{economy.spent.toLocaleString()}</span>
+              <PointsLink className="text-sm font-bold text-red-500 hover:underline">-{economy.spent.toLocaleString()}</PointsLink>
             </div>
             {economy.adjustments !== 0 && (
               <div className="flex items-center justify-between">
@@ -354,9 +355,9 @@ export default function AdminStatsClient() {
                   <Star className="w-4 h-4 text-amber-500" />
                   <span>{t("adjustments")}</span>
                 </div>
-                <span className={cn("text-sm font-bold", economy.adjustments >= 0 ? "text-amber-600" : "text-red-500")}>
+                <PointsLink className={cn("text-sm font-bold hover:underline", economy.adjustments >= 0 ? "text-amber-600" : "text-red-500")}>
                   {economy.adjustments >= 0 ? "+" : ""}{economy.adjustments.toLocaleString()}
-                </span>
+                </PointsLink>
               </div>
             )}
             {economy.streakBonus > 0 && (
@@ -365,14 +366,14 @@ export default function AdminStatsClient() {
                   <Flame className="w-4 h-4 text-orange-500" />
                   <span>{t("streakBonus")}</span>
                 </div>
-                <span className="text-sm font-bold text-orange-600">+{economy.streakBonus.toLocaleString()}</span>
+                <PointsLink className="text-sm font-bold text-orange-600 hover:underline">+{economy.streakBonus.toLocaleString()}</PointsLink>
               </div>
             )}
             <div className="border-t border-border pt-3 flex items-center justify-between">
               <span className="text-sm font-semibold">{t("netBalance")}</span>
-              <span className={cn("text-lg font-extrabold", economy.net >= 0 ? "text-green-600" : "text-red-500")}>
+              <PointsLink className={cn("text-lg font-extrabold hover:underline", economy.net >= 0 ? "text-green-600" : "text-red-500")}>
                 {economy.net >= 0 ? "+" : ""}{economy.net.toLocaleString()}
-              </span>
+              </PointsLink>
             </div>
           </CardContent>
         </Card>
@@ -520,7 +521,7 @@ export default function AdminStatsClient() {
                 <span className="text-sm font-medium flex-1">{user.name}</span>
                 <div className="flex items-center gap-1">
                   <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                  <span className="text-sm font-bold text-primary">+{pts}</span>
+                  <PointsLink className="text-sm font-bold text-primary hover:underline">+{pts}</PointsLink>
                 </div>
               </div>
             ))}

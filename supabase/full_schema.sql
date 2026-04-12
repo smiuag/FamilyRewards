@@ -23,7 +23,8 @@ alter table families
   add column if not exists pets_enabled boolean not null default false,
   add column if not exists minigame_enabled boolean not null default false,
   add column if not exists minigame_max_daily integer not null default 2,
-  add column if not exists minigame_points_base integer not null default 3;
+  add column if not exists minigame_points_base integer not null default 3,
+  add column if not exists polls_creation_enabled boolean not null default true;
 
 -- ── PROFILES ────────────────────────────────────────────────
 create table if not exists profiles (
@@ -389,7 +390,7 @@ begin
         'reward_claims','points_transactions','board_messages',
         'board_reactions','task_templates','task_template_items',
         'family_pets','pet_accessories','pet_inventory','pet_care_log',
-        'family_polls','family_poll_votes'
+        'family_polls','family_poll_votes','minigame_results'
       )
   ) loop
     execute format('drop policy if exists %I on %I', r.policyname, r.tablename);

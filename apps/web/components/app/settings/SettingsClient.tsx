@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Save, Trash2, Gamepad2 } from "lucide-react";
+import { MapPin, Save, Trash2, Gamepad2, Vote } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchMinigameConfig, updateMinigameConfig } from "@/lib/api/minigame";
-import { updatePetsEnabled } from "@/lib/api/members";
+import { updatePetsEnabled, updatePollsCreationEnabled } from "@/lib/api/members";
 import { useMinigameStore } from "@/lib/store/useMinigameStore";
 
 // Spanish province lookup by postal code prefix (first 2 digits)
@@ -110,11 +110,16 @@ export default function SettingsClient() {
   const [petsSaving, setPetsSaving] = useState(false);
   const [petsLoaded, setPetsLoaded] = useState(false);
 
+  // Polls creation toggle
+  const [pollsCreationEnabled, setPollsCreationEnabled] = useState(true);
+  const [pollsCreationSaving, setPollsCreationSaving] = useState(false);
+
   useState(() => {
     if (currentUser?.familyId) {
       import("@/lib/api/members").then(({ fetchFamilyFeatureFlags }) => {
         fetchFamilyFeatureFlags(currentUser.familyId).then((flags) => {
           setPetsEnabled(flags.petsEnabled);
+          setPollsCreationEnabled(flags.pollsCreationEnabled);
           setPetsLoaded(true);
         });
       });
@@ -139,6 +144,20 @@ export default function SettingsClient() {
       toast.error("Error");
     } finally {
       setPetsSaving(false);
+    }
+  };
+
+  const handleTogglePollsCreation = async (enabled: boolean) => {
+    if (!currentUser?.familyId) return;
+    setPollsCreationSaving(true);
+    try {
+      await updatePollsCreationEnabled(currentUser.familyId, enabled);
+      setPollsCreationEnabled(enabled);
+      toast.success(t("saveLocation"));
+    } catch {
+      toast.error("Error");
+    } finally {
+      setPollsCreationSaving(false);
     }
   };
 
@@ -288,6 +307,31 @@ export default function SettingsClient() {
                 checked={petsEnabled}
                 onCheckedChange={handleTogglePets}
                 disabled={petsSaving}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Polls creation toggle (admin only) */}
+      {currentUser?.role === "admin" && petsLoaded && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Vote className="w-4 h-4 text-indigo-600" />
+              {t("pollsTitle")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{t("pollsCreationEnabled")}</p>
+                <p className="text-xs text-muted-foreground">{t("pollsCreationEnabledDesc")}</p>
+              </div>
+              <Switch
+                checked={pollsCreationEnabled}
+                onCheckedChange={handleTogglePollsCreation}
+                disabled={pollsCreationSaving}
               />
             </div>
           </CardContent>

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Trophy, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import type { FamilyChallenge, ChallengeGoalType } from "@/lib/challenges";
 
 const addDays = (n: number) =>
@@ -179,9 +180,9 @@ export default function AdminChallengesClient() {
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <p className="text-sm">
                     {c.rewardEmoji} {c.rewardDescription}{" "}
-                    <span className="text-muted-foreground">
+                    <PointsLink className="text-muted-foreground hover:underline">
                       (+{c.rewardPoints} pts)
-                    </span>
+                    </PointsLink>
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">

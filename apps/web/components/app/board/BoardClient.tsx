@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 
 // Unión de mensajes del tablón + transacciones para el feed
 interface FeedItem {
@@ -596,7 +597,7 @@ function TransactionCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <PointsLink className="flex items-center gap-1 flex-shrink-0 hover:underline">
             {isPositive ? (
               <TrendingUp className="w-3.5 h-3.5 text-green-600" />
             ) : (
@@ -608,7 +609,7 @@ function TransactionCard({
             )}>
               {t("pointsAmount", { sign: isPositive ? "+" : "", amount: tx.amount })}
             </span>
-          </div>
+          </PointsLink>
         </div>
       </CardContent>
     </Card>

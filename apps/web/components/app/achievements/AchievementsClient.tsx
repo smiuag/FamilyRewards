@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Star, Lock, Trophy } from "lucide-react";
 import { getLevelForAchievementCount, getNextLevel } from "@/lib/levels";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 
 export default function AchievementsClient() {
@@ -215,7 +216,7 @@ export default function AchievementsClient() {
           </div>
           <div className="w-px h-8 bg-primary/20" />
           <div>
-            <p className="text-2xl font-extrabold text-primary leading-tight">+{totalPoints}</p>
+            <PointsLink className="text-2xl font-extrabold text-primary leading-tight hover:underline">+{totalPoints}</PointsLink>
             <p className="text-xs text-muted-foreground">{t("bonusLabel")}</p>
           </div>
         </div>
@@ -346,9 +347,9 @@ export default function AchievementsClient() {
                     {achievement.points > 0 && (
                       <div className="flex items-center gap-1 mt-2">
                         <Star className={cn("w-3 h-3 fill-current", isUnlocked ? "text-primary" : "text-muted-foreground")} />
-                        <span className={cn("text-xs font-semibold", isUnlocked ? "text-primary" : "text-muted-foreground")}>
+                        <PointsLink className={cn("text-xs font-semibold hover:underline", isUnlocked ? "text-primary" : "text-muted-foreground")}>
                           +{achievement.points} pts bonus
-                        </span>
+                        </PointsLink>
                       </div>
                     )}
 

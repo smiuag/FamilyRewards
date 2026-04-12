@@ -11,7 +11,6 @@ import {
   CheckSquare,
   Calendar,
   Gift,
-  History,
   Users,
   BarChart3,
   ClipboardList,
@@ -61,7 +60,6 @@ export default function Sidebar() {
     { href: `/${locale}/tasks`, icon: CheckSquare, label: t("tasks") },
     { href: `/${locale}/calendar`, icon: Calendar, label: t("calendar") },
     { href: `/${locale}/rewards`, icon: Gift, label: t("rewards") },
-    { href: `/${locale}/history`, icon: History, label: t("history") },
     { href: `/${locale}/polls`, icon: Vote, label: t("polls") },
     ...(featuresUnlocked.includes("pets") ? [
       { href: `/${locale}/pets`, icon: PawPrint, label: t("pets") },

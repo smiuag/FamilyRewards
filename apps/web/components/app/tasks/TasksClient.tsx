@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { AppModal, AppModalHeader, AppModalBody, AppModalFooter } from "@/components/ui/app-modal";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import { format, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { useMultipliersStore } from "@/lib/store/useMultipliersStore";
@@ -560,9 +561,9 @@ function TaskCard({
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <div className="flex items-center gap-1">
                 <Star className="w-3 h-3 text-primary fill-primary" />
-                <span className="text-xs font-medium text-primary">+{task.points} pts</span>
+                <PointsLink className="text-xs font-medium text-primary hover:underline">+{task.points} pts</PointsLink>
                 {penalty > 0 && (
-                  <span className="text-xs text-red-500 font-medium">/ -{penalty}</span>
+                  <PointsLink className="text-xs text-red-500 font-medium hover:underline">/ -{penalty}</PointsLink>
                 )}
                 {multiplier > 1 && (
                   <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
@@ -707,7 +708,7 @@ function ClaimableTaskCard({
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <div className="flex items-center gap-1">
                 <Star className="w-3 h-3 text-primary fill-primary" />
-                <span className="text-xs font-medium text-primary">+{task.points} pts</span>
+                <PointsLink className="text-xs font-medium text-primary hover:underline">+{task.points} pts</PointsLink>
                 {multiplier > 1 && (
                   <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                     {t("multiplierBadge", { multiplier })}

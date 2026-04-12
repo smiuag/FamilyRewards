@@ -19,6 +19,7 @@ import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PointsLink } from "@/components/ui/points-link";
 import { ACHIEVEMENTS, RARITY_CONFIG } from "@/lib/achievements";
 import { calculateCurrentStreak, buildVacationDays } from "@/lib/config/constants";
 import { useChallengesStore } from "@/lib/store/useChallengesStore";
@@ -268,13 +269,13 @@ export default function DashboardClient() {
         <StatCard
           icon={<Star className="w-5 h-5 text-primary fill-primary" />}
           label={t("pointsToday")}
-          value={`+${pointsToday}`}
+          value={<PointsLink className="hover:underline">+{pointsToday}</PointsLink>}
           bg="bg-orange-50"
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
           label={t("pointsTotal")}
-          value={currentUser.pointsBalance.toLocaleString()}
+          value={<PointsLink className="hover:underline">{currentUser.pointsBalance.toLocaleString()}</PointsLink>}
           bg="bg-blue-50"
         />
       </div>
@@ -360,7 +361,7 @@ export default function DashboardClient() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task?.title ?? "—"}</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">+{task?.points ?? 0} pts</p>
+                      <PointsLink className="text-xs text-muted-foreground hover:underline">+{task?.points ?? 0} pts</PointsLink>
                       {isClaimable && (
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px] px-1.5 py-0">
                           {t("unassigned")}
@@ -772,7 +773,7 @@ function StatCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   bg: string;
 }) {
   return (

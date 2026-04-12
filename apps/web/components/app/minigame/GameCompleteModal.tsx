@@ -8,6 +8,7 @@ import {
   AppModalFooter,
 } from "@/components/ui/app-modal";
 import { Button } from "@/components/ui/button";
+import { PointsLink } from "@/components/ui/points-link";
 import type { MinigameDifficulty } from "@/lib/types";
 import type { GameScore } from "@/lib/minigame/constants";
 
@@ -70,19 +71,19 @@ export function GameCompleteModal({
         <div className="bg-muted/50 rounded-xl p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t("basePoints")}</span>
-            <span className="font-semibold">+{score.base}</span>
+            <PointsLink className="font-semibold hover:underline">+{score.base}</PointsLink>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t("speedBonus")}</span>
-            <span className="font-semibold text-blue-500">+{score.speedBonus}</span>
+            <PointsLink className="font-semibold text-blue-500 hover:underline">+{score.speedBonus}</PointsLink>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t("accuracyBonus")}</span>
-            <span className="font-semibold text-green-500">+{score.accuracyBonus}</span>
+            <PointsLink className="font-semibold text-green-500 hover:underline">+{score.accuracyBonus}</PointsLink>
           </div>
           <div className="border-t border-border pt-2 flex justify-between font-bold">
             <span>{t("totalPoints")}</span>
-            <span className="text-primary">+{score.total}</span>
+            <PointsLink className="text-primary hover:underline">+{score.total}</PointsLink>
           </div>
         </div>
       </AppModalBody>

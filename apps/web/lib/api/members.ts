@@ -175,6 +175,7 @@ export async function fetchFamilySettings(familyId: string): Promise<FamilySetti
 export interface FamilyFeatureFlags {
   petsEnabled: boolean;
   minigameEnabled: boolean;
+  pollsCreationEnabled: boolean;
 }
 
 export async function fetchFamilyFeatureFlags(familyId: string): Promise<FamilyFeatureFlags> {
@@ -195,12 +196,23 @@ export async function fetchFamilyFeatureFlags(familyId: string): Promise<FamilyF
     }
   };
 
-  const [petsEnabled, minigameEnabled] = await Promise.all([
+  const [petsEnabled, minigameEnabled, pollsCreationEnabled] = await Promise.all([
     readFlag("pets_enabled"),
     readFlag("minigame_enabled"),
+    readFlag("polls_creation_enabled"),
   ]);
 
-  return { petsEnabled, minigameEnabled };
+  // polls_creation_enabled defaults to true (column default), so treat null/missing as true
+  return { petsEnabled, minigameEnabled, pollsCreationEnabled: pollsCreationEnabled !== false };
+}
+
+export async function updatePollsCreationEnabled(familyId: string, enabled: boolean): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("families")
+    .update({ polls_creation_enabled: enabled })
+    .eq("id", familyId);
+  if (error) throw error;
 }
 
 export async function updatePetsEnabled(familyId: string, enabled: boolean): Promise<void> {

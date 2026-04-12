@@ -25,6 +25,7 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 
 export default function CalendarClient() {
   const t = useTranslations("calendar");
@@ -292,7 +293,7 @@ export default function CalendarClient() {
                       {ti.state === "cancelled" && <MinusCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{task?.title}</p>
-                        <p className="text-xs text-muted-foreground">+{task?.points} pts</p>
+                        <PointsLink className="text-xs text-muted-foreground hover:underline">+{task?.points} pts</PointsLink>
                       </div>
                       <Badge
                         variant="outline"

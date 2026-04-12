@@ -13,6 +13,7 @@ import {
   ArrowLeft, Trophy, Users, ChevronLeft, ChevronRight, CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PointsLink } from "@/components/ui/points-link";
 import { format, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -200,7 +201,7 @@ export default function MemberDetailClient() {
         <SummaryCard
           icon={<Star className="w-4 h-4 text-primary fill-primary" />}
           label="Puntos del día"
-          value={ptsEarned >= 0 ? `+${ptsEarned}` : String(ptsEarned)}
+          value={<PointsLink className="hover:underline">{ptsEarned >= 0 ? `+${ptsEarned}` : String(ptsEarned)}</PointsLink>}
           bg="bg-orange-50"
         />
       </div>
@@ -232,8 +233,8 @@ export default function MemberDetailClient() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{task.title}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <span className="text-primary font-medium">+{task.points} pts</span>
-                        {penalty > 0 && <span className="text-red-500">/ -{penalty}</span>}
+                        <PointsLink className="text-primary font-medium hover:underline">+{task.points} pts</PointsLink>
+                        {penalty > 0 && <PointsLink className="text-red-500 hover:underline">/ -{penalty}</PointsLink>}
                         {task.deadline && (
                           <span className={cn("font-medium",
                             task.deadline < selectedDateStr && state !== "completed" ? "text-red-600" : "text-amber-600")}>
@@ -280,7 +281,7 @@ export default function MemberDetailClient() {
   );
 }
 
-function SummaryCard({ icon, label, value, bg }: { icon: React.ReactNode; label: string; value: number | string; bg: string }) {
+function SummaryCard({ icon, label, value, bg }: { icon: React.ReactNode; label: string; value: React.ReactNode; bg: string }) {
   return (
     <Card className="shadow-sm">
       <CardContent className="pt-3 pb-2">

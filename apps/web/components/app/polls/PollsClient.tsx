@@ -17,6 +17,7 @@ import {
   getVoteCounts,
   applySystemAction,
 } from "@/lib/api/polls";
+import { fetchFamilyFeatureFlags } from "@/lib/api/members";
 import type { PollOption, PollVote, FamilyPoll } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export default function PollsClient() {
   const [showCreate, setShowCreate] = useState(false);
   const [voting, setVoting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"close" | "cancel" | null>(null);
+  const [canCreatePolls, setCanCreatePolls] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -55,6 +57,11 @@ export default function PollsClient() {
           const v = await fetchPollVotes(active.id);
           loadVotes(v);
         }
+        // Load polls creation flag
+        if (currentUser?.familyId) {
+          const flags = await fetchFamilyFeatureFlags(currentUser.familyId);
+          setCanCreatePolls(flags.pollsCreationEnabled);
+        }
       } catch {
         // ignore
       } finally {
@@ -62,7 +69,7 @@ export default function PollsClient() {
       }
     }
     load();
-  }, [loadActivePoll, loadPolls, loadVotes]);
+  }, [loadActivePoll, loadPolls, loadVotes, currentUser?.familyId]);
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -168,16 +175,18 @@ export default function PollsClient() {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => {
-          if (activePoll) {
-            toast.error(t("alreadyActive"));
-            return;
-          }
-          setShowCreate(true);
-        }}>
-          <Plus className="w-4 h-4 mr-1" />
-          {t("createPoll")}
-        </Button>
+        {(isAdmin || canCreatePolls) && (
+          <Button onClick={() => {
+            if (activePoll) {
+              toast.error(t("alreadyActive"));
+              return;
+            }
+            setShowCreate(true);
+          }}>
+            <Plus className="w-4 h-4 mr-1" />
+            {t("createPoll")}
+          </Button>
+        )}
       </div>
 
       {/* Pet suggestion CTA */}
