@@ -1,20 +1,79 @@
-import type { MinigameDifficulty } from "@/lib/types";
-import type { PetSpecies, PetStage } from "@/lib/types";
-import { PET_SPECIES_CONFIG, PET_EYE_STYLES } from "@/lib/pet/constants";
+import type { MinigameDifficulty, PetSpecies, PetStage } from "@/lib/types";
 
-// ── Difficulty config ─────────────────────────────────────
+// ── Game types ────────────────────────────────────────────
 
-export interface DifficultyConfig {
+export type MinigameType = "match" | "quiz" | "sequence" | "oddone";
+
+export const GAME_TYPES: MinigameType[] = ["match", "quiz", "sequence", "oddone"];
+
+export const GAME_LABELS: Record<MinigameType, { emoji: string; key: string }> = {
+  match:    { emoji: "🃏", key: "gameMatch" },
+  quiz:     { emoji: "🔍", key: "gameQuiz" },
+  sequence: { emoji: "🧠", key: "gameSequence" },
+  oddone:   { emoji: "🚫", key: "gameOddOne" },
+};
+
+// ── Match config ──────────────────────────────────────────
+
+export interface MatchConfig {
   pairs: number;
   gridCols: number;
-  maxTimeForBonus: number; // seconds — beyond this, no speed bonus
+  maxTimeForBonus: number;
 }
 
-export const DIFFICULTY_CONFIG: Record<MinigameDifficulty, DifficultyConfig> = {
+export const MATCH_CONFIG: Record<MinigameDifficulty, MatchConfig> = {
   easy:   { pairs: 4,  gridCols: 4, maxTimeForBonus: 60 },
   medium: { pairs: 6,  gridCols: 4, maxTimeForBonus: 120 },
   hard:   { pairs: 8,  gridCols: 4, maxTimeForBonus: 180 },
 };
+
+// ── Quiz config ───────────────────────────────────────────
+
+export interface QuizConfig {
+  rounds: number;
+  showTimeMs: number;    // initial time to memorize (ms)
+  minShowTimeMs: number; // minimum show time at later rounds
+  maxTimeForBonus: number;
+}
+
+export const QUIZ_CONFIG: Record<MinigameDifficulty, QuizConfig> = {
+  easy:   { rounds: 5,  showTimeMs: 3000, minShowTimeMs: 2000, maxTimeForBonus: 60 },
+  medium: { rounds: 8,  showTimeMs: 2500, minShowTimeMs: 1500, maxTimeForBonus: 90 },
+  hard:   { rounds: 12, showTimeMs: 2000, minShowTimeMs: 1000, maxTimeForBonus: 120 },
+};
+
+// ── Sequence config ───────────────────────────────────────
+
+export interface SequenceConfig {
+  maxRounds: number;
+  poolSize: number;       // number of distinct pets to choose from
+  showDelayMs: number;    // time each pet is highlighted
+  maxTimeForBonus: number;
+}
+
+export const SEQUENCE_CONFIG: Record<MinigameDifficulty, SequenceConfig> = {
+  easy:   { maxRounds: 6,  poolSize: 4, showDelayMs: 800, maxTimeForBonus: 60 },
+  medium: { maxRounds: 10, poolSize: 5, showDelayMs: 600, maxTimeForBonus: 120 },
+  hard:   { maxRounds: 14, poolSize: 6, showDelayMs: 500, maxTimeForBonus: 180 },
+};
+
+// ── Odd-one config ────────────────────────────────────────
+
+export interface OddOneConfig {
+  rounds: number;
+  optionCount: number;    // total options (including the odd one)
+  roundTimeMs: number;    // time limit per round
+  maxTimeForBonus: number;
+}
+
+export const ODDONE_CONFIG: Record<MinigameDifficulty, OddOneConfig> = {
+  easy:   { rounds: 5,  optionCount: 4, roundTimeMs: 8000, maxTimeForBonus: 60 },
+  medium: { rounds: 8,  optionCount: 5, roundTimeMs: 6000, maxTimeForBonus: 90 },
+  hard:   { rounds: 12, optionCount: 6, roundTimeMs: 4000, maxTimeForBonus: 120 },
+};
+
+// Keep old DIFFICULTY_CONFIG as alias for match (used by MinigameBoard)
+export const DIFFICULTY_CONFIG = MATCH_CONFIG;
 
 // ── Card types ────────────────────────────────────────────
 
@@ -36,66 +95,15 @@ export interface GameCard {
   isMatched: boolean;
 }
 
-// ── Accessory svg keys for random selection ───────────────
+// ── Card generation (delegates to pet-generators) ─────────
 
-const HEAD_ACCESSORIES = ["crown", "party-hat", "sunglasses", "bow", "wizard-hat"];
-const BODY_ACCESSORIES = ["cape", "scarf", "star-necklace", "bowtie", "armor"];
-
-// ── Card generation ───────────────────────────────────────
-
-const SPECIES: PetSpecies[] = ["fire", "water", "plant", "electric", "shadow"];
-const STAGES: Exclude<PetStage, "egg">[] = ["baby", "juvenile", "adult"];
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function generateUniquePetConfigs(count: number): PetCardConfig[] {
-  // Build pool of all possible combos (species × stage × eyeStyle = 120)
-  const pool: PetCardConfig[] = [];
-  for (const species of SPECIES) {
-    const { defaultPrimary, defaultSecondary } = PET_SPECIES_CONFIG[species];
-    for (const stage of STAGES) {
-      for (const eyeStyle of PET_EYE_STYLES) {
-        pool.push({
-          species,
-          stage,
-          eyeStyle,
-          primaryColor: defaultPrimary,
-          secondaryColor: defaultSecondary,
-          accessorySvgKey: null,
-          accessorySlot: null,
-        });
-      }
-    }
-  }
-
-  // Shuffle and pick `count` unique configs
-  const selected = shuffle(pool).slice(0, count);
-
-  // Add a random accessory to some cards for visual variety
-  for (const config of selected) {
-    if (Math.random() < 0.4) {
-      const isHead = Math.random() < 0.5;
-      config.accessorySlot = isHead ? "head" : "body";
-      config.accessorySvgKey = isHead
-        ? HEAD_ACCESSORIES[Math.floor(Math.random() * HEAD_ACCESSORIES.length)]
-        : BODY_ACCESSORIES[Math.floor(Math.random() * BODY_ACCESSORIES.length)];
-    }
-  }
-
-  return selected;
-}
+import { shuffle, generateUniquePetConfigs, maybeAddAccessory } from "./pet-generators";
 
 /** Generates a shuffled array of GameCards (each pet appears twice). */
 export function generatePetCards(difficulty: MinigameDifficulty): GameCard[] {
-  const { pairs } = DIFFICULTY_CONFIG[difficulty];
+  const { pairs } = MATCH_CONFIG[difficulty];
   const configs = generateUniquePetConfigs(pairs);
+  for (const c of configs) maybeAddAccessory(c);
 
   const cards: GameCard[] = [];
   configs.forEach((pet, i) => {

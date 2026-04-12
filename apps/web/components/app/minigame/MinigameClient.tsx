@@ -14,9 +14,12 @@ import {
   saveMinigameResult,
 } from "@/lib/api/minigame";
 import type { MinigameDifficulty } from "@/lib/types";
-import type { GameScore } from "@/lib/minigame/constants";
+import { GAME_TYPES, GAME_LABELS, type MinigameType, type GameScore } from "@/lib/minigame/constants";
 import { DifficultySelector } from "./DifficultySelector";
 import { MinigameBoard } from "./MinigameBoard";
+import { PetQuizBoard } from "./PetQuizBoard";
+import { PetSequenceBoard } from "./PetSequenceBoard";
+import { PetOddOneBoard } from "./PetOddOneBoard";
 import { GameCompleteModal } from "./GameCompleteModal";
 import { WeeklyRanking } from "./WeeklyRanking";
 
@@ -37,7 +40,8 @@ export default function MinigameClient() {
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [difficulty, setDifficulty] = useState<MinigameDifficulty>("easy");
-  const [gameKey, setGameKey] = useState(0); // force remount of board
+  const [gameType, setGameType] = useState<MinigameType>("match");
+  const [gameKey, setGameKey] = useState(0);
   const [lastResult, setLastResult] = useState<{
     moves: number;
     timeSeconds: number;
@@ -58,7 +62,6 @@ export default function MinigameClient() {
         ]);
         loadConfig(cfg);
 
-        // Auto-reset if day changed
         const today = new Date().toISOString().slice(0, 10);
         if (todayDate !== today) {
           setTodayGames(count);
@@ -72,7 +75,7 @@ export default function MinigameClient() {
           unlockFeature("minigame");
           setPhase("menu");
         } else {
-          setPhase("menu"); // will show disabled message
+          setPhase("menu");
         }
       } catch {
         toast.error(t("error"));
@@ -84,12 +87,17 @@ export default function MinigameClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
+  const pickRandomGame = useCallback((): MinigameType => {
+    return GAME_TYPES[Math.floor(Math.random() * GAME_TYPES.length)];
+  }, []);
+
   const handleSelectDifficulty = useCallback((diff: MinigameDifficulty) => {
     setDifficulty(diff);
+    setGameType(pickRandomGame());
     setGameKey((k) => k + 1);
     setLastResult(null);
     setPhase("playing");
-  }, []);
+  }, [pickRandomGame]);
 
   const handleGameComplete = useCallback(
     async (result: {
@@ -124,14 +132,12 @@ export default function MinigameClient() {
         });
         incrementTodayGames();
 
-        // Update points in app store
         useAppStore.setState((s) => ({
           currentUser: s.currentUser
             ? { ...s.currentUser, pointsBalance: s.currentUser.pointsBalance + result.score.total }
             : null,
         }));
 
-        // Refresh ranking
         const ranking = await fetchWeeklyRanking(currentUser.familyId);
         loadWeeklyRanking(ranking);
       } catch {
@@ -142,8 +148,11 @@ export default function MinigameClient() {
   );
 
   const handlePlayAgain = useCallback(() => {
-    handleSelectDifficulty(difficulty);
-  }, [difficulty, handleSelectDifficulty]);
+    setGameType(pickRandomGame());
+    setGameKey((k) => k + 1);
+    setLastResult(null);
+    setPhase("playing");
+  }, [pickRandomGame]);
 
   const handleBackToMenu = useCallback(() => {
     setPhase("menu");
@@ -167,6 +176,8 @@ export default function MinigameClient() {
     );
   }
 
+  const gameLabel = GAME_LABELS[gameType];
+
   return (
     <div className="max-w-2xl mx-auto px-4 pb-8 space-y-6">
       {/* Header */}
@@ -178,8 +189,11 @@ export default function MinigameClient() {
         )}
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Gamepad2 className="w-5 h-5" />
-            {t("title")}
+            {phase === "playing" || phase === "complete" ? (
+              <><span>{gameLabel.emoji}</span> {t(gameLabel.key)}</>
+            ) : (
+              <><Gamepad2 className="w-5 h-5" /> {t("title")}</>
+            )}
           </h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
@@ -197,14 +211,42 @@ export default function MinigameClient() {
         </div>
       )}
 
-      {/* Playing phase */}
+      {/* Playing phase — render the selected game */}
       {(phase === "playing" || phase === "complete") && (
-        <MinigameBoard
-          key={gameKey}
-          difficulty={difficulty}
-          pointsBase={config.pointsBase}
-          onComplete={handleGameComplete}
-        />
+        <>
+          {gameType === "match" && (
+            <MinigameBoard
+              key={gameKey}
+              difficulty={difficulty}
+              pointsBase={config.pointsBase}
+              onComplete={handleGameComplete}
+            />
+          )}
+          {gameType === "quiz" && (
+            <PetQuizBoard
+              key={gameKey}
+              difficulty={difficulty}
+              pointsBase={config.pointsBase}
+              onComplete={handleGameComplete}
+            />
+          )}
+          {gameType === "sequence" && (
+            <PetSequenceBoard
+              key={gameKey}
+              difficulty={difficulty}
+              pointsBase={config.pointsBase}
+              onComplete={handleGameComplete}
+            />
+          )}
+          {gameType === "oddone" && (
+            <PetOddOneBoard
+              key={gameKey}
+              difficulty={difficulty}
+              pointsBase={config.pointsBase}
+              onComplete={handleGameComplete}
+            />
+          )}
+        </>
       )}
 
       {/* Complete modal */}

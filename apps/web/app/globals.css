@@ -265,3 +265,10 @@ textarea:focus-visible,
   100% { transform: scale(1); opacity: 1; }
 }
 .combo-indicator { animation: combo-pop 0.3s ease-out; }
+
+/* Quiz memorize bar shrink */
+@keyframes shrink-bar {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+.animate-shrink { animation: shrink-bar 3s linear forwards; }
