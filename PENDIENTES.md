@@ -1,6 +1,6 @@
 # FamilyRewards — Pendientes, Ideas y Roadmap
 
-> Actualizado: 2026-04-11
+> Actualizado: 2026-04-12
 > Fichero unificado. Sustituye a TODO.md e IDEAS.md como fuente de verdad.
 > PLANNING.md se conserva como referencia de arquitectura original.
 
@@ -30,6 +30,10 @@
 - Onboarding wizard para nueva familia
 - Plantillas de tareas recurrentes (BD + API + UI, ocultas del menú)
 - SessionGuard: sesión sobrevive hard refresh y reinicio
+- Minijuegos (Pet Match, Pet Quiz, Pet Sequence, Pet Descarte) con puntuación, ranking semanal, logros y límite diario
+- Features (mascotas, minijuegos) persistidos en BD (families) en vez de solo localStorage
+- Ojos y accesorios posicionados por especie/nivel (corrige water/plant/electric/shadow)
+- Fondos SVG más visibles en mascotas
 
 ---
 
@@ -117,20 +121,34 @@
 | Multiplicador de cumpleaños | Puntos x2 automático el día del cumpleaños | Baja |
 | Niveles de miembro | Títulos por puntos acumulados históricos (Aprendiz → Leyenda) | Media |
 | Temporadas | Ciclos de 1-3 meses con ranking final y recompensa especial | Alta |
-| Mascota virtual familiar | Mascota compartida que se cuida con tareas de todos, personalizable con puntos | Media-Alta |
+| ~~Mascota virtual familiar~~ | ✅ Implementada — huevo → 5 especies SVG, accesorios, tienda, care points por tareas | ~~Media-Alta~~ |
+
+## Ideas — Minijuegos
+
+> Los minijuegos dan XP de juego (moneda separada de los puntos de recompensa).
+> XP de juego sirve para: logros, drops cosméticos para la mascota, ranking familiar.
+> NO para comprar recompensas reales — eso solo con tareas.
+
+| Idea | Descripción | Cooperativo | Complejidad |
+|------|-------------|-------------|-------------|
+| Boss Battle Familiar | Jefe semanal/mensual con barra HP SVG. Tareas = daño al jefe. Si nadie hace tareas, el jefe daña a la mascota. Al vencer: XP + drop cosmético. Inspirado en Habitica quests | Sí — toda la familia | Media |
+| Rueda diaria | Tirada diaria al completar ≥1 tarea. Premios: XP bonus, accesorio cosmético aleatorio, multiplicador temporal de care points. SVG circle + CSS rotate | No | Baja |
+| ~~Memory / Parejas~~ | ✅ Implementado — Pet Match + Pet Quiz + Pet Sequence + Pet Descarte, 3 dificultades, ranking semanal, config admin | ~~No (ranking familiar)~~ | ~~Baja~~ |
+| Álbum de colección | Grid de items desbloqueables como drops al completar tareas/juegos. Raridad variable. Completar sets da bonus. Intercambio entre miembros | Sí — intercambio | Baja |
 
 ## Ideas — Social y familia
 
 | Idea | Descripción | Complejidad |
 |------|-------------|-------------|
 | Retos de equipo | Meta de puntos conjunta para recompensa compartida (ya hay challenges base) | Baja |
-| Votación familiar | Admin abre votación antes de recompensa cara (24-48h, visible) | Media |
+| ~~Votación familiar~~ | ✅ Implementada — polls standard + system, públicas/privadas, alargar/cerrar/cancelar | ~~Media~~ |
 | Préstamo de puntos | Pedir puntos prestados al banco familiar, devolver con tareas futuras | Alta |
 
 ## Ideas — Utilidad
 
 | Idea | Descripción | Complejidad |
 |------|-------------|-------------|
+| Rotación automática de tareas | ✅ Implementada — toggle en crear/editar tarea recurrente, semanal o diaria | ~~Baja-Media~~ |
 | Verificación con foto (local) | Foto guardada solo en dispositivo (IndexedDB), sin coste servidor | Media |
 | Exportar informe | PDF/CSV mensual con resumen por miembro | Media |
 | Recordatorios push | Notificaciones PWA a hora configurable si hay tareas pendientes | Media |
