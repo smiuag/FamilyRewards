@@ -418,6 +418,19 @@ export async function fetchInstancesForDate(profileId: string, date: string): Pr
   return (data ?? []).map((ti) => toInstance(ti as SupabaseInstance));
 }
 
+/** Fetch instances for unassigned (claimable) tasks — any user, for a given date */
+export async function fetchClaimedInstances(taskIds: string[], date: string): Promise<TaskInstance[]> {
+  if (taskIds.length === 0) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("task_instances")
+    .select("*")
+    .in("task_id", taskIds)
+    .eq("date", date);
+  if (error) throw error;
+  return (data ?? []).map((ti) => toInstance(ti as SupabaseInstance));
+}
+
 // ── Claim an unassigned task ─────────────────────────────────
 // Creates instance as completed + awards points. Returns the new instance.
 // Fails silently if someone already claimed it (unique constraint).

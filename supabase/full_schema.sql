@@ -159,14 +159,18 @@ create table if not exists board_messages (
 );
 
 -- ── BOARD REACTIONS ─────────────────────────────────────────
+-- message_id is generic: can reference board_messages OR points_transactions
 create table if not exists board_reactions (
   id          uuid primary key default gen_random_uuid(),
-  message_id  uuid not null references board_messages(id) on delete cascade,
+  message_id  uuid not null,
   profile_id  uuid not null references profiles(id) on delete cascade,
   emoji       text not null,
   created_at  timestamptz not null default now(),
   unique (message_id, profile_id, emoji)
 );
+
+-- Drop FK if it exists (idempotent for existing DBs)
+alter table board_reactions drop constraint if exists board_reactions_message_id_fkey;
 
 -- ── TASK TEMPLATES ──────────────────────────────────────────
 create table if not exists task_templates (
@@ -451,14 +455,24 @@ create policy "family members can read reactions"
     message_id in (
       select id from board_messages where family_id = get_my_family_id()
     )
+    or message_id in (
+      select id from points_transactions where profile_id in (
+        select id from profiles where family_id = get_my_family_id()
+      )
+    )
   );
 
 create policy "family members can add reactions"
   on board_reactions for insert
   with check (
     profile_id in (select id from profiles where auth_user_id = auth.uid())
-    and message_id in (
-      select id from board_messages where family_id = get_my_family_id()
+    and (
+      message_id in (select id from board_messages where family_id = get_my_family_id())
+      or message_id in (
+        select id from points_transactions where profile_id in (
+          select id from profiles where family_id = get_my_family_id()
+        )
+      )
     )
   );
 

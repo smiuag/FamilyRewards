@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useAnnounce } from "@/components/AriaLiveAnnouncer";
-import { backfillInstances, syncInstanceState, fetchFamilyTasks, claimTask, releaseClaimedTask, shareTaskPoints } from "@/lib/api/tasks";
+import { backfillInstances, syncInstanceState, fetchFamilyTasks, claimTask, releaseClaimedTask, shareTaskPoints, fetchClaimedInstances } from "@/lib/api/tasks";
 import { toast } from "sonner";
 import type { Task, TaskState, TaskInstance } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -107,9 +107,19 @@ export default function TasksClient() {
         if (!isFutureDay) {
           const instances = await backfillInstances(freshTasks, currentUser.id, selectedDate);
           if (cancelled) return;
+          // Also fetch claimed instances for unassigned tasks
+          const unassignedIds = freshTasks
+            .filter((t) => t.assignedTo.length === 0 && t.isActive)
+            .map((t) => t.id);
+          const claimed = await fetchClaimedInstances(unassignedIds, selectedDateStr);
+          if (cancelled) return;
+          const myIds = new Set(instances.map((i) => i.id));
           loadTaskInstances([
-            ...useAppStore.getState().taskInstances.filter((ti) => ti.userId !== currentUser.id),
+            ...useAppStore.getState().taskInstances.filter((ti) =>
+              ti.userId !== currentUser.id && !unassignedIds.includes(ti.taskId)
+            ),
             ...instances,
+            ...claimed.filter((i) => !myIds.has(i.id)),
           ]);
         }
       } catch {
@@ -138,8 +148,11 @@ export default function TasksClient() {
   });
 
   // Separate assigned vs claimable for rendering
+  // Claimable tasks with an instance from another user are already claimed — hide them
   const assignedEntries = entries.filter((e) => !e.isClaimable);
-  const claimableEntries = entries.filter((e) => e.isClaimable);
+  const claimableEntries = entries.filter((e) =>
+    e.isClaimable && !(e.instance && e.instance.userId !== currentUser.id)
+  );
 
   const handleStateChange = async (task: Task, instance: TaskInstance, newState: TaskState) => {
     const resolved: TaskState = instance.state === newState ? "pending" : newState;

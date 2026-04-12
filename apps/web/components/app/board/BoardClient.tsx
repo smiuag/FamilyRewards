@@ -70,9 +70,10 @@ export default function BoardClient() {
       ]);
       setMessages(msgs);
       setTransactions(txs);
-      // Fetch reactions for all messages
-      if (msgs.length > 0) {
-        const rxns = await fetchReactions(msgs.map((m) => m.id));
+      // Fetch reactions for all messages and transactions
+      const allIds = [...msgs.map((m) => m.id), ...txs.map((t) => t.id)];
+      if (allIds.length > 0) {
+        const rxns = await fetchReactions(allIds);
         setReactions(rxns);
       }
     } catch (err) {
@@ -137,15 +138,14 @@ export default function BoardClient() {
       };
       setReactions((prev) => [...prev, optimistic]);
     }
+    const allIds = [...messages.map((m) => m.id), ...transactions.map((t) => t.id)];
     try {
       await toggleReaction({ messageId, profileId: currentUser.id, emoji });
-      // Refetch reactions for consistency
-      const rxns = await fetchReactions(messages.map((m) => m.id));
+      const rxns = await fetchReactions(allIds);
       setReactions(rxns);
     } catch (err) {
       console.error("Error toggling reaction:", err);
-      // Revert on error
-      const rxns = await fetchReactions(messages.map((m) => m.id));
+      const rxns = await fetchReactions(allIds);
       setReactions(rxns);
     }
   };
@@ -272,6 +272,9 @@ export default function BoardClient() {
                 key={item.id}
                 tx={item.data as PointsTransaction}
                 users={users}
+                reactions={reactions.filter((r) => r.messageId === item.id)}
+                currentProfileId={currentUser.id}
+                onToggleReaction={handleToggleReaction}
               />
             )
           )}
@@ -476,13 +479,42 @@ function BoardMessageCard({
 function TransactionCard({
   tx,
   users,
+  reactions,
+  currentProfileId,
+  onToggleReaction,
 }: {
   tx: PointsTransaction;
   users: ReturnType<typeof useAppStore.getState>["users"];
+  reactions: Reaction[];
+  currentProfileId: string;
+  onToggleReaction: (messageId: string, emoji: string) => void;
 }) {
   const t = useTranslations("board");
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const user = users.find((u) => u.id === tx.userId);
   const isPositive = tx.amount > 0;
+
+  const grouped = reactions.reduce<Record<string, { count: number; profileIds: string[] }>>(
+    (acc, r) => {
+      if (!acc[r.emoji]) acc[r.emoji] = { count: 0, profileIds: [] };
+      acc[r.emoji].count++;
+      acc[r.emoji].profileIds.push(r.profileId);
+      return acc;
+    },
+    {}
+  );
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
 
   return (
     <Card className={cn("shadow-sm border-0", isPositive ? "bg-green-50/60" : "bg-orange-50/60")}>
@@ -504,6 +536,64 @@ function TransactionCard({
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(tx.createdAt), { addSuffix: true, locale: es })}
             </span>
+
+            {/* Reactions row */}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {Object.entries(grouped).map(([emoji, { count, profileIds }]) => {
+                const isMine = profileIds.includes(currentProfileId);
+                const reactors = profileIds
+                  .map((pid) => users.find((u) => u.id === pid)?.name)
+                  .filter(Boolean);
+                return (
+                  <button
+                    key={emoji}
+                    onClick={() => onToggleReaction(tx.id, emoji)}
+                    title={reactors.join(", ")}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors",
+                      "border hover:bg-muted/80",
+                      isMine
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                    )}
+                  >
+                    <span>{emoji}</span>
+                    <span className="font-medium">{count}</span>
+                  </button>
+                );
+              })}
+
+              <div className="relative" ref={pickerRef}>
+                <button
+                  onClick={() => setShowPicker((v) => !v)}
+                  aria-label={t("addReaction")}
+                  className={cn(
+                    "inline-flex items-center justify-center w-7 h-7 rounded-full transition-colors",
+                    "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                    showPicker && "bg-muted text-foreground"
+                  )}
+                >
+                  <SmilePlus className="w-3.5 h-3.5" />
+                </button>
+                {showPicker && (
+                  <div className="absolute bottom-full left-0 mb-1 z-10 bg-popover border border-border rounded-xl shadow-lg p-1.5 flex gap-1">
+                    {QUICK_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          onToggleReaction(tx.id, emoji);
+                          setShowPicker(false);
+                        }}
+                        className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-base transition-colors"
+                        aria-label={emoji}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-1 flex-shrink-0">

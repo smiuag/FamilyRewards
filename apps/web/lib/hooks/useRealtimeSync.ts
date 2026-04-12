@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { fetchFamilyTasks, backfillInstances } from "@/lib/api/tasks";
+import { fetchFamilyTasks, backfillInstances, fetchClaimedInstances } from "@/lib/api/tasks";
 import { fetchFamilyRewards, fetchFamilyClaims } from "@/lib/api/rewards";
 import { fetchFamilyProfiles } from "@/lib/api/members";
 
@@ -29,12 +29,26 @@ export function useRealtimeSync() {
           const tasks = useAppStore.getState().tasks.length > 0
             ? useAppStore.getState().tasks
             : await fetchFamilyTasks();
-          const instances = await backfillInstances(tasks, currentUser.id, new Date());
+          const today = new Date().toISOString().split("T")[0];
+          const myInstances = await backfillInstances(tasks, currentUser.id, new Date());
+          // Also fetch claimed instances for unassigned tasks (so claimable status updates)
+          const unassignedTaskIds = tasks
+            .filter((t) => t.assignedTo.length === 0 && t.isActive)
+            .map((t) => t.id);
+          const claimedInstances = await fetchClaimedInstances(unassignedTaskIds, today);
+          // Merge: my instances + claimed by others (dedup by id)
+          const allIds = new Set(myInstances.map((i) => i.id));
+          const merged = [
+            ...myInstances,
+            ...claimedInstances.filter((i) => !allIds.has(i.id)),
+          ];
           useAppStore.setState((prev) => ({
             tasks,
             taskInstances: [
-              ...prev.taskInstances.filter((ti) => ti.userId !== currentUser.id),
-              ...instances,
+              ...prev.taskInstances.filter((ti) =>
+                ti.userId !== currentUser.id && !unassignedTaskIds.includes(ti.taskId)
+              ),
+              ...merged,
             ],
           }));
         }

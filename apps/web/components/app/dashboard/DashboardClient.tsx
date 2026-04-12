@@ -1,19 +1,19 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useAnnounce } from "@/components/AriaLiveAnnouncer";
-import { fetchBoardMessages, fetchReactions } from "@/lib/api/board";
+import { fetchBoardMessages, fetchReactions, toggleReaction } from "@/lib/api/board";
+import type { BoardMessage, Reaction } from "@/lib/api/board";
 import { fetchFamilyTransactions } from "@/lib/api/transactions";
 import { fetchFamilyTasks, backfillInstances, syncInstanceState, claimTask } from "@/lib/api/tasks";
-import type { BoardMessage, Reaction } from "@/lib/api/board";
 import type { PointsTransaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand, Heart, ChevronLeft, ChevronRight, Pin } from "lucide-react";
+import { CheckCircle2, Clock, Star, TrendingUp, Flame, Gift, Trophy, MessageSquare, Zap, Flag, Hand, Heart, ChevronLeft, ChevronRight, Pin, SmilePlus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter, useParams } from "next/navigation";
@@ -33,8 +33,10 @@ export default function DashboardClient() {
   const locale = (params?.locale as string) ?? "es";
 
   // Feed del tablón: mensajes + transacciones recientes
-  const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; userName?: string; amount?: number; reactions?: Record<string, number> }>>([]);
+  const [feedItems, setFeedItems] = useState<Array<{ id: string; type: "board" | "tx"; createdAt: string; content: string; userName?: string; amount?: number }>>([]);
   const [pinnedItems, setPinnedItems] = useState<Array<{ id: string; content: string; userName: string }>>([]);
+  const [boardReactions, setBoardReactions] = useState<Reaction[]>([]);
+  const [allItemIds, setAllItemIds] = useState<string[]>([]);
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
   const [targetRewardIdx, setTargetRewardIdx] = useState(0);
 
@@ -60,21 +62,17 @@ export default function DashboardClient() {
           fetchFamilyTransactions(),
         ]);
         const allUsers = useAppStore.getState().users;
+        // Fetch reactions for all board messages and transactions
+        const itemIds = [...msgs.map((m: BoardMessage) => m.id), ...txs.map((tx: PointsTransaction) => tx.id)];
+        const rxns = itemIds.length > 0 ? await fetchReactions(itemIds) : [];
+        setBoardReactions(rxns);
+        setAllItemIds(itemIds);
         // Pinned messages for top of board section
         const pinned = msgs.filter((m: BoardMessage) => m.pinned).map((m: BoardMessage) => {
           const author = allUsers.find((u) => u.id === m.profileId);
           return { id: m.id, content: m.content, userName: author?.name ?? t("systemUser") };
         });
         setPinnedItems(pinned);
-        // Fetch reactions for board messages
-        const msgIds = msgs.map((m: BoardMessage) => m.id);
-        const allReactions = msgIds.length > 0 ? await fetchReactions(msgIds) : [];
-        // Group reactions by message: { msgId: { "👍": 3, "❤️": 1 } }
-        const reactionsByMsg: Record<string, Record<string, number>> = {};
-        for (const r of allReactions) {
-          if (!reactionsByMsg[r.messageId]) reactionsByMsg[r.messageId] = {};
-          reactionsByMsg[r.messageId][r.emoji] = (reactionsByMsg[r.messageId][r.emoji] || 0) + 1;
-        }
         const boardItems = msgs.filter((m: BoardMessage) => !m.pinned).slice(0, 5).map((m: BoardMessage) => {
           const author = allUsers.find((u) => u.id === m.profileId);
           return {
@@ -83,11 +81,10 @@ export default function DashboardClient() {
             createdAt: m.createdAt,
             content: m.content,
             userName: author?.name ?? t("systemUser"),
-            reactions: reactionsByMsg[m.id],
           };
         });
         const txItems = txs.slice(0, 5).map((tx: PointsTransaction) => {
-          const u = allUsers.find((u) => u.id === tx.userId);
+          const u = allUsers.find((u_: typeof allUsers[number]) => u_.id === tx.userId);
           return {
             id: tx.id,
             type: "tx" as const,
@@ -105,6 +102,44 @@ export default function DashboardClient() {
     }
     loadAll();
   }, [currentUser]);
+
+  // Group reactions by item ID for rendering
+  const getGroupedReactions = useCallback((itemId: string) => {
+    const itemReactions = boardReactions.filter((r) => r.messageId === itemId);
+    const grouped: Record<string, { count: number; profileIds: string[] }> = {};
+    for (const r of itemReactions) {
+      if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, profileIds: [] };
+      grouped[r.emoji].count++;
+      grouped[r.emoji].profileIds.push(r.profileId);
+    }
+    return grouped;
+  }, [boardReactions]);
+
+  const handleToggleReaction = async (itemId: string, emoji: string) => {
+    if (!currentUser) return;
+    const existing = boardReactions.find(
+      (r) => r.messageId === itemId && r.profileId === currentUser.id && r.emoji === emoji
+    );
+    if (existing) {
+      setBoardReactions((prev) => prev.filter((r) => r.id !== existing.id));
+    } else {
+      setBoardReactions((prev) => [...prev, {
+        id: `temp-${Date.now()}`,
+        messageId: itemId,
+        profileId: currentUser.id,
+        emoji,
+        createdAt: new Date().toISOString(),
+      }]);
+    }
+    try {
+      await toggleReaction({ messageId: itemId, profileId: currentUser.id, emoji });
+      const rxns = await fetchReactions(allItemIds);
+      setBoardReactions(rxns);
+    } catch {
+      const rxns = await fetchReactions(allItemIds);
+      setBoardReactions(rxns);
+    }
+  };
 
   if (!currentUser) return null;
 
@@ -557,21 +592,6 @@ export default function DashboardClient() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Pinned messages */}
-            {pinnedItems.length > 0 && (
-              <div className="mb-3 space-y-1.5">
-                {pinnedItems.map((item) => (
-                  <div key={item.id} className="flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/20 px-2.5 py-2">
-                    <Pin className="w-3 h-3 text-primary flex-shrink-0 mt-1" />
-                    <p className="text-sm leading-snug">
-                      <span className="font-semibold">{item.userName}</span>
-                      {" "}
-                      <span className="text-muted-foreground">{item.content}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
             {feedItems.length === 0 && pinnedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
                 <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
@@ -583,18 +603,38 @@ export default function DashboardClient() {
                   {t("beFirst")}
                 </button>
               </div>
-            ) : feedItems.length > 0 ? (
-              <div className="space-y-2.5">
+            ) : (
+              <div className="space-y-2">
+                {/* Pinned messages */}
+                {pinnedItems.map((item) => (
+                  <div key={item.id} className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+                    <div className="flex items-start gap-2">
+                      <Pin className="w-3 h-3 text-primary flex-shrink-0 mt-1" />
+                      <p className="text-sm leading-snug flex-1">
+                        <span className="font-semibold">{item.userName}</span>
+                        {" "}
+                        <span className="text-muted-foreground">{item.content}</span>
+                      </p>
+                    </div>
+                    <DashboardReactionRow
+                      itemId={item.id}
+                      grouped={getGroupedReactions(item.id)}
+                      currentProfileId={currentUser.id}
+                      onToggle={handleToggleReaction}
+                      users={users}
+                      pillBg="bg-white/60"
+                    />
+                  </div>
+                ))}
+                {/* Feed messages */}
                 {feedItems.map((item) => (
-                  <div key={item.id} className="space-y-1">
+                  <div key={item.id} className="rounded-lg bg-muted/30 border border-border/50 px-3 py-2">
                     <div className="flex items-start gap-2.5">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm leading-snug">
-                          <span className="font-semibold">{item.userName}</span>
-                          {" "}
-                          <span className="text-muted-foreground">{item.content}</span>
-                        </p>
-                      </div>
+                      <p className="text-sm leading-snug flex-1">
+                        <span className="font-semibold">{item.userName}</span>
+                        {" "}
+                        <span className="text-muted-foreground">{item.content}</span>
+                      </p>
                       {item.amount != null && (
                         <span className={cn(
                           "text-xs font-bold flex-shrink-0",
@@ -604,22 +644,108 @@ export default function DashboardClient() {
                         </span>
                       )}
                     </div>
-                    {item.reactions && Object.keys(item.reactions).length > 0 && (
-                      <div className="flex gap-1 flex-wrap">
-                        {Object.entries(item.reactions).map(([emoji, count]) => (
-                          <span key={emoji} className="inline-flex items-center gap-0.5 text-xs bg-muted/50 rounded-full px-1.5 py-0.5">
-                            <span>{emoji}</span>
-                            <span className="text-muted-foreground font-medium">{count}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <DashboardReactionRow
+                      itemId={item.id}
+                      grouped={getGroupedReactions(item.id)}
+                      currentProfileId={currentUser.id}
+                      onToggle={handleToggleReaction}
+                      users={users}
+                      pillBg="bg-muted/50"
+                    />
                   </div>
                 ))}
               </div>
-            ) : null}
+            )}
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "👏", "🔥"];
+
+function DashboardReactionRow({
+  itemId,
+  grouped,
+  currentProfileId,
+  onToggle,
+  users,
+  pillBg,
+}: {
+  itemId: string;
+  grouped: Record<string, { count: number; profileIds: string[] }>;
+  currentProfileId: string;
+  onToggle: (itemId: string, emoji: string) => void;
+  users: ReturnType<typeof useAppStore.getState>["users"];
+  pillBg: string;
+}) {
+  const t = useTranslations("board");
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap justify-end mt-1">
+      {Object.entries(grouped).map(([emoji, { count, profileIds }]) => {
+        const isMine = profileIds.includes(currentProfileId);
+        const reactors = profileIds
+          .map((pid) => users.find((u) => u.id === pid)?.name)
+          .filter(Boolean);
+        return (
+          <button
+            key={emoji}
+            onClick={() => onToggle(itemId, emoji)}
+            title={reactors.join(", ")}
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors",
+              "border hover:bg-muted/80",
+              isMine
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : cn("border-border text-muted-foreground", pillBg)
+            )}
+          >
+            <span>{emoji}</span>
+            <span className="font-medium">{count}</span>
+          </button>
+        );
+      })}
+      <div className="relative" ref={pickerRef}>
+        <button
+          onClick={() => setShowPicker((v) => !v)}
+          aria-label={t("addReaction")}
+          className={cn(
+            "inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+            "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+            showPicker && "bg-muted text-foreground"
+          )}
+        >
+          <SmilePlus className="w-3 h-3" />
+        </button>
+        {showPicker && (
+          <div className="absolute bottom-full right-0 mb-1 z-10 bg-popover border border-border rounded-xl shadow-lg p-1.5 flex gap-1">
+            {QUICK_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => { onToggle(itemId, emoji); setShowPicker(false); }}
+                className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center text-sm transition-colors"
+                aria-label={emoji}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
