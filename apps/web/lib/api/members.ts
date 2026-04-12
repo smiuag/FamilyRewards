@@ -178,21 +178,29 @@ export interface FamilyFeatureFlags {
 }
 
 export async function fetchFamilyFeatureFlags(familyId: string): Promise<FamilyFeatureFlags> {
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("families")
-      .select("pets_enabled, minigame_enabled")
-      .eq("id", familyId)
-      .single();
-    if (error) throw error;
-    return {
-      petsEnabled: data?.pets_enabled ?? false,
-      minigameEnabled: data?.minigame_enabled ?? false,
-    };
-  } catch {
-    return { petsEnabled: false, minigameEnabled: false };
-  }
+  const supabase = createClient();
+
+  // Query each flag independently so a missing column doesn't break the other
+  const readFlag = async (col: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from("families")
+        .select(col)
+        .eq("id", familyId)
+        .single();
+      if (error) return false;
+      return (data as unknown as Record<string, boolean>)?.[col] ?? false;
+    } catch {
+      return false;
+    }
+  };
+
+  const [petsEnabled, minigameEnabled] = await Promise.all([
+    readFlag("pets_enabled"),
+    readFlag("minigame_enabled"),
+  ]);
+
+  return { petsEnabled, minigameEnabled };
 }
 
 export async function updatePetsEnabled(familyId: string, enabled: boolean): Promise<void> {
