@@ -164,7 +164,7 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1" aria-label="Menú principal">
 
         {/* Section label */}
-        <SectionLabel label={ts("myProfile")} badge={`${currentUser?.pointsBalance.toLocaleString()} pts`} />
+        <SectionLabel label={ts("myProfile")} />
 
         {meItems.map((item) => (
           <NavBtn

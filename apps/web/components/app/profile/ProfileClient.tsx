@@ -21,7 +21,7 @@ import { updateProfile } from "@/lib/api/members";
 import { getLevelForAchievementCount, getNextLevel } from "@/lib/levels";
 import { ACHIEVEMENTS, type UserStats } from "@/lib/achievements";
 import { Progress } from "@/components/ui/progress";
-import { Star, Sun, Moon, Globe, Palette, Cake } from "lucide-react";
+import { Sun, Moon, Globe, Palette, Cake } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -109,11 +109,6 @@ export default function ProfileClient() {
             <Badge variant={currentUser.role === "admin" ? "default" : "secondary"} className="text-[10px]">
               {tRoles(currentUser.role)}
             </Badge>
-          </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-            <span className="font-bold text-primary">{currentUser.pointsBalance.toLocaleString()}</span>
-            <span>{t("totalPoints")}</span>
           </div>
         </div>
       </div>
