@@ -22,7 +22,7 @@ import { calculateCurrentStreak } from "@/lib/config/constants";
 
 export default function AchievementsClient() {
   const t = useTranslations("achievements");
-  const { currentUser, taskInstances, claims, transactions } = useAppStore();
+  const { currentUser, taskInstances, claims, transactions, rewards } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
   useEffect(() => {
@@ -54,6 +54,7 @@ export default function AchievementsClient() {
       totalTasksCompleted: 0, currentStreak: 0, bestStreak: 0,
       totalPoints: 0, rewardsClaimed: 0, perfectWeeks: 0,
       totalPointsEarned: 0, daysActive: 0,
+      hasEarlyCompletion: false, maxRewardCost: 0,
     };
 
     const myInstances = taskInstances.filter((ti) => ti.userId === currentUser.id);
@@ -96,9 +97,25 @@ export default function AchievementsClient() {
     }
     const perfectWeeks = Object.values(weekSets).filter((s) => s.size === 7).length;
 
-    const rewardsClaimed = claims.filter(
+    const approvedClaims = claims.filter(
       (c) => c.userId === currentUser.id && c.status === "approved"
-    ).length;
+    );
+    const rewardsClaimed = approvedClaims.length;
+
+    // Max reward cost from approved claims
+    const maxRewardCost = approvedClaims.reduce((max, c) => {
+      const reward = rewards.find((r) => r.id === c.rewardId);
+      return reward ? Math.max(max, reward.pointsCost) : max;
+    }, 0);
+
+    // Early bird: any task-type transaction created before 8am
+    const myTaskTxs = transactions.filter(
+      (tx) => tx.userId === currentUser.id && tx.type === "task" && tx.amount > 0
+    );
+    const hasEarlyCompletion = myTaskTxs.some((tx) => {
+      const hour = new Date(tx.createdAt).getHours();
+      return hour < 8;
+    });
 
     const daysActive = completedDays.size;
 
@@ -111,8 +128,10 @@ export default function AchievementsClient() {
       perfectWeeks,
       totalPointsEarned,
       daysActive,
+      hasEarlyCompletion,
+      maxRewardCost,
     };
-  }, [currentUser, taskInstances, claims, transactions]);
+  }, [currentUser, taskInstances, claims, transactions, rewards]);
 
   if (!currentUser) return null;
 

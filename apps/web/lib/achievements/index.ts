@@ -20,6 +20,8 @@ export interface UserStats {
   perfectWeeks: number; // weeks with 100% completion
   totalPointsEarned: number;
   daysActive: number;
+  hasEarlyCompletion: boolean; // completed a task before 8am
+  maxRewardCost: number; // highest cost reward claimed
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -30,7 +32,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "3 días seguidos completando tareas",
     emoji: "🔥",
     category: "streak",
-    condition: (s) => s.currentStreak >= 3,
+    condition: (s) => s.bestStreak >= 3,
     points: 50,
     rarity: "common",
   },
@@ -40,7 +42,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "7 días seguidos sin fallar",
     emoji: "⚡",
     category: "streak",
-    condition: (s) => s.currentStreak >= 7,
+    condition: (s) => s.bestStreak >= 7,
     points: 150,
     rarity: "common",
   },
@@ -50,7 +52,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "14 días de racha consecutiva",
     emoji: "💪",
     category: "streak",
-    condition: (s) => s.currentStreak >= 14,
+    condition: (s) => s.bestStreak >= 14,
     points: 300,
     rarity: "rare",
   },
@@ -60,7 +62,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "30 días seguidos completando tareas",
     emoji: "🏆",
     category: "streak",
-    condition: (s) => s.currentStreak >= 30,
+    condition: (s) => s.bestStreak >= 30,
     points: 750,
     rarity: "epic",
   },
@@ -70,7 +72,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "100 días de racha. ¡Increíble!",
     emoji: "💎",
     category: "streak",
-    condition: (s) => s.currentStreak >= 100,
+    condition: (s) => s.bestStreak >= 100,
     points: 2000,
     rarity: "legendary",
   },
@@ -164,7 +166,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "Canjea una recompensa de más de 2000 puntos",
     emoji: "💰",
     category: "rewards",
-    condition: (s) => s.rewardsClaimed >= 1 && s.totalPoints >= 2000,
+    condition: (s) => s.maxRewardCost >= 2000,
     points: 300,
     rarity: "rare",
   },
@@ -208,7 +210,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "Completa una tarea antes de las 8 de la mañana",
     emoji: "🌅",
     category: "special",
-    condition: (s) => s.daysActive >= 1,
+    condition: (s) => s.hasEarlyCompletion,
     points: 50,
     rarity: "rare",
   },

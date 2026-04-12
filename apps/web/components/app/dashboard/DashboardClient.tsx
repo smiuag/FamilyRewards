@@ -205,6 +205,7 @@ export default function DashboardClient() {
       totalTasksCompleted: completed.length, currentStreak, bestStreak: currentStreak,
       totalPoints: currentUser.pointsBalance, rewardsClaimed, perfectWeeks: 0,
       totalPointsEarned, daysActive: completedDays.size,
+      hasEarlyCompletion: false, maxRewardCost: 0,
     };
   }, [currentUser, taskInstances, claims, transactions]);
 
